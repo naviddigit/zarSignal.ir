@@ -1,92 +1,162 @@
 generator client {
   provider = "prisma-client-js"
 }
+
 datasource db {
   provider = "postgresql"
-  url = env("DATABASE_URL")
+  url      = env("DATABASE_URL")
 }
+
 model User {
-  id String @id @default(cuid())
-  email String? @unique
-  phone String? @unique
-  createdAt DateTime @default(now())
+  id            String         @id @default(cuid())
+  name          String?
+  email         String?        @unique
+  emailVerified DateTime?
+  image         String?
+  phone         String?        @unique
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
   subscriptions Subscription[]
-  apiKeys ApiKey[]
-  payments Payment[]
+  apiKeys       ApiKey[]
+  payments      Payment[]
+  accounts      Account[]
+  sessions      Session[]
 }
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model IntegrationSetting {
+  id             String   @id @default(cuid())
+  key            String   @unique
+  category       String
+  label          String
+  valueEncrypted String?  @db.Text
+  publicValue    String?  @db.Text
+  enabled        Boolean  @default(false)
+  updatedAt      DateTime @updatedAt
+  createdAt      DateTime @default(now())
+
+  @@index([category])
+}
+
 model Subscription {
-  id String @id @default(cuid())
-  userId String
-  user User @relation(fields: [userId], references: [id])
-  product String
-  status SubscriptionStatus @default(PENDING)
-  startsAt DateTime
+  id        String             @id @default(cuid())
+  userId    String
+  user      User               @relation(fields: [userId], references: [id])
+  product   String
+  status    SubscriptionStatus @default(PENDING)
+  startsAt  DateTime
   expiresAt DateTime
+
   @@index([userId, status, expiresAt])
 }
+
 enum SubscriptionStatus {
   PENDING
   ACTIVE
   CANCELED
   EXPIRED
 }
+
 model Payment {
-  id String @id @default(cuid())
-  userId String
-  user User @relation(fields: [userId], references: [id])
-  provider String
-  providerReference String @unique
-  amountRial BigInt
-  status PaymentStatus @default(PENDING)
-  verifiedAt DateTime?
-  createdAt DateTime @default(now())
+  id                String        @id @default(cuid())
+  userId            String
+  user              User          @relation(fields: [userId], references: [id])
+  provider          String
+  providerReference String        @unique
+  amountRial        BigInt
+  status            PaymentStatus @default(PENDING)
+  verifiedAt        DateTime?
+  createdAt         DateTime      @default(now())
 }
+
 enum PaymentStatus {
   PENDING
   VERIFIED
   FAILED
   REFUNDED
 }
+
 model ApiKey {
-  id String @id @default(cuid())
-  userId String
-  user User @relation(fields: [userId], references: [id])
-  label String
-  prefix String
-  keyHash String @unique
-  revokedAt DateTime?
-  expiresAt DateTime
-  dailyLimit Int @default(1000)
-  usage ApiUsage[]
-  createdAt DateTime @default(now())
+  id         String     @id @default(cuid())
+  userId     String
+  user       User       @relation(fields: [userId], references: [id])
+  label      String
+  prefix     String
+  keyHash    String     @unique
+  revokedAt  DateTime?
+  expiresAt  DateTime
+  dailyLimit Int        @default(1000)
+  usage      ApiUsage[]
+  createdAt  DateTime   @default(now())
 }
+
 model ApiUsage {
   apiKeyId String
-  apiKey ApiKey @relation(fields: [apiKeyId], references: [id])
-  day DateTime @db.Date
-  count Int @default(0)
+  apiKey   ApiKey   @relation(fields: [apiKeyId], references: [id])
+  day      DateTime @db.Date
+  count    Int      @default(0)
+
   @@id([apiKeyId, day])
 }
+
 model MarketQuote {
-  id String @id @default(cuid())
-  symbol String
-  buy Decimal @db.Decimal(24, 6)
-  sell Decimal @db.Decimal(24, 6)
-  currency String
-  unit String
-  source String
-  sourceUrl String
+  id         String   @id @default(cuid())
+  symbol     String
+  buy        Decimal  @db.Decimal(24, 6)
+  sell       Decimal  @db.Decimal(24, 6)
+  currency   String
+  unit       String
+  source     String
+  sourceUrl  String
   observedAt DateTime
-  fetchedAt DateTime @default(now())
+  fetchedAt  DateTime @default(now())
+
   @@unique([source, symbol, observedAt])
   @@index([symbol, observedAt(sort: Desc)])
 }
+
 model IngestionRun {
-  id String @id @default(cuid())
-  source String
-  startedAt DateTime @default(now())
+  id         String    @id @default(cuid())
+  source     String
+  startedAt  DateTime  @default(now())
   finishedAt DateTime?
-  status String
-  count Int @default(0)
-  error String?
+  status     String
+  count      Int       @default(0)
+  error      String?
 }
