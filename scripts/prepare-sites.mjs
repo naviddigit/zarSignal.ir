@@ -14,6 +14,7 @@ rmSync('dist', { force: true, recursive: true });
 mkdirSync(target, { recursive: true });
 cpSync(standalone, target, { recursive: true, dereference: true });
 cpSync(join('.next', 'static'), join(target, '.next', 'static'), { recursive: true });
+rmSync(join(target, '.next', 'node_modules'), { force: true, recursive: true });
 
 if (existsSync('public')) {
   cpSync('public', join(target, 'public'), { recursive: true });
