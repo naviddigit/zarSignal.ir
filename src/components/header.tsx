@@ -1,0 +1,3 @@
+import Link from 'next/link';
+import { Activity, ArrowUpLeft } from 'lucide-react';
+export function Header() { return <header className="site-header"><div className="shell header-inner"><Link href="/" className="brand"><span className="brand-mark"><Activity size={26}/></span><span>زر<span className="gold-text">سیگنال</span><small>ZARSIGNAL</small></span></Link><nav aria-label="ناوبری اصلی"><Link href="/#markets">بازارها</Link><Link href="/#bubbles">رادار حباب</Link><Link href="/pricing">اشتراک پریمیوم</Link><Link href="/developers">توسعه‌دهندگان</Link><Link href="/methodology">روش تحلیل</Link></nav><Link className="button small-button" href="/#markets">ورود به دیده‌بان <ArrowUpLeft size={16}/></Link></div></header>; }

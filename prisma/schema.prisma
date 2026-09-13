@@ -1,0 +1,92 @@
+generator client {
+  provider = "prisma-client-js"
+}
+datasource db {
+  provider = "postgresql"
+  url = env("DATABASE_URL")
+}
+model User {
+  id String @id @default(cuid())
+  email String? @unique
+  phone String? @unique
+  createdAt DateTime @default(now())
+  subscriptions Subscription[]
+  apiKeys ApiKey[]
+  payments Payment[]
+}
+model Subscription {
+  id String @id @default(cuid())
+  userId String
+  user User @relation(fields: [userId], references: [id])
+  product String
+  status SubscriptionStatus @default(PENDING)
+  startsAt DateTime
+  expiresAt DateTime
+  @@index([userId, status, expiresAt])
+}
+enum SubscriptionStatus {
+  PENDING
+  ACTIVE
+  CANCELED
+  EXPIRED
+}
+model Payment {
+  id String @id @default(cuid())
+  userId String
+  user User @relation(fields: [userId], references: [id])
+  provider String
+  providerReference String @unique
+  amountRial BigInt
+  status PaymentStatus @default(PENDING)
+  verifiedAt DateTime?
+  createdAt DateTime @default(now())
+}
+enum PaymentStatus {
+  PENDING
+  VERIFIED
+  FAILED
+  REFUNDED
+}
+model ApiKey {
+  id String @id @default(cuid())
+  userId String
+  user User @relation(fields: [userId], references: [id])
+  label String
+  prefix String
+  keyHash String @unique
+  revokedAt DateTime?
+  expiresAt DateTime
+  dailyLimit Int @default(1000)
+  usage ApiUsage[]
+  createdAt DateTime @default(now())
+}
+model ApiUsage {
+  apiKeyId String
+  apiKey ApiKey @relation(fields: [apiKeyId], references: [id])
+  day DateTime @db.Date
+  count Int @default(0)
+  @@id([apiKeyId, day])
+}
+model MarketQuote {
+  id String @id @default(cuid())
+  symbol String
+  buy Decimal @db.Decimal(24, 6)
+  sell Decimal @db.Decimal(24, 6)
+  currency String
+  unit String
+  source String
+  sourceUrl String
+  observedAt DateTime
+  fetchedAt DateTime @default(now())
+  @@unique([source, symbol, observedAt])
+  @@index([symbol, observedAt(sort: Desc)])
+}
+model IngestionRun {
+  id String @id @default(cuid())
+  source String
+  startedAt DateTime @default(now())
+  finishedAt DateTime?
+  status String
+  count Int @default(0)
+  error String?
+}

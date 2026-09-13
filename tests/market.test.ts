@@ -1,0 +1,16 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { parseDecimal, parseSource } from '../src/server/ingestion/parser';
+import { bubbleResult, demoQuotes, isStale } from '../src/lib/market';
+const now = new Date('2026-09-13T10:00:00Z');
+const config = { verified:true, timestampSelector:'time', timestampAttribute:'datetime', assets:[{symbol:'USD',buySelector:'.buy',sellSelector:'.sell',currency:'TMN',unit:'دلار'}] };
+// Synthetic markup to verify parser behavior. This is NOT a captured Hamrate page.
+const html = '<time datetime="2026-09-13T09:59:00Z"></time><b class="buy">۹۸٬۵۰۰</b><b class="sell">۹۹٬۱۰۰</b>';
+test('normalizes Persian and Arabic numerals without losing decimals', () => { assert.equal(parseDecimal('۱٬۲۳۴٫۵۶'),'1234.56'); assert.equal(parseDecimal('١٢٣٫٤٥'),'123.45'); assert.equal(parseDecimal('9007199254740993.123456'),'9007199254740993.123456'); });
+test('rejects missing, malformed, negative, infinite, zero and ambiguous unit prices', () => { for (const input of ['—','0','-1','1e8','12,34','12 تومان','Infinity','1.1234567']) assert.throws(() => parseDecimal(input)); });
+test('parses an explicitly timestamped quote with its unit and provenance', () => { const [q] = parseSource(html,config,now); assert.equal(q.buy,'98500'); assert.equal(q.currency,'TMN'); assert.equal(q.observedAt,'2026-09-13T09:59:00.000Z'); assert.equal(q.fetchedAt,now.toISOString()); });
+test('fails closed on changed markup, ambiguous matches and unverified configuration', () => { assert.throws(() => parseSource(html.replace('class="buy"','class="changed"'),config,now)); assert.throws(() => parseSource(html+'<b class="buy">1</b>',config,now)); assert.throws(() => parseSource(html,{...config,verified:false},now)); });
+test('rejects stale/future/timeless timestamps, unit mismatch, inverse spread and duplicate symbols', () => { for (const timestamp of ['2026-09-13T08:00:00Z','2026-09-14T10:00:00Z','09:59:00','2026-09-13T09:59:00']) assert.throws(() => parseSource(html.replace('2026-09-13T09:59:00Z',timestamp),config,now)); assert.throws(() => parseSource(html,{...config,assets:[{...config.assets[0],currency:'USD'}]},now)); assert.throws(() => parseSource(html.replace('۹۸٬۵۰۰','۹۹٬۹۰۰'),config,now)); assert.throws(() => parseSource(html,{...config,assets:[...config.assets,...config.assets]},now)); });
+test('old source data stays stale even if just fetched', () => { assert.equal(isStale({...demoQuotes[0],fetchedAt:now.toISOString()},now.getTime()),true); });
+test('invalid and future dates cannot look fresh', () => { assert.equal(isStale({...demoQuotes[0],observedAt:'invalid'},now.getTime()),true); assert.equal(isStale({...demoQuotes[0],observedAt:'2026-09-14T10:00:00Z'},now.getTime()),true); });
+test('formula boundary returns no invented result', () => { assert.deepEqual(bubbleResult(),{status:'pending_formula',value:null,targets:null,reason:'در انتظار تعریف و اعتبارسنجی فرمول تحلیل'}); });

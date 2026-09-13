@@ -1,0 +1,25 @@
+import { useCallback, useEffect, useState } from 'react';
+import { ActivityIndicator, Linking, Pressable, RefreshControl, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
+type Quote = { symbol:string; buy:string; sell:string; currency:string; unit:string; observedAt:string };
+type Snapshot = { mode:'demo'|'live'; status:'demo'|'ok'|'stale'|'unavailable'; quotes:Quote[] };
+const labels:Record<string,string> = {USD:'دلار آمریکا',EUR:'یورو',AED:'درهم امارات',GOLD_MELTED:'طلای آب‌شده',XAG_USD:'اونس نقره',XAU_USD:'اونس طلا'};
+const baseUrl = process.env.EXPO_PUBLIC_API_URL;
+function validate(value:unknown):Snapshot {
+  if (!value || typeof value !== 'object') throw new Error('Invalid response');
+  const data = value as Snapshot;
+  if (!['demo','live'].includes(data.mode) || !['demo','ok','stale','unavailable'].includes(data.status) || !Array.isArray(data.quotes) || data.quotes.some(q => !q || typeof q.symbol !== 'string' || typeof q.sell !== 'string' || !/^\d+(\.\d+)?$/.test(q.sell) || typeof q.unit !== 'string' || !['USD','TMN'].includes(q.currency) || !Number.isFinite(Date.parse(q.observedAt)))) throw new Error('Invalid response');
+  return data;
+}
+export default function App() {
+  const [snapshot,setSnapshot] = useState<Snapshot|null>(null); const [loading,setLoading] = useState(true); const [error,setError] = useState('');
+  const refresh = useCallback(async (signal?:AbortSignal) => {
+    setLoading(true);
+    try { if (!baseUrl) throw new Error('API not configured'); const response = await fetch(`${baseUrl}/api/public/markets`,{signal}); if (!response.ok) throw new Error('Unavailable'); setSnapshot(validate(await response.json())); setError(''); }
+    catch { if (!signal?.aborted) setError('دریافت قیمت‌ها ممکن نشد. اتصال و نشانی سرور را بررسی کنید.'); }
+    finally { if (!signal?.aborted) setLoading(false); }
+  },[]);
+  useEffect(() => {const controller = new AbortController(); void refresh(controller.signal); return () => controller.abort();},[refresh]);
+  return <SafeAreaView style={styles.screen}><StatusBar style="light"/><ScrollView contentContainerStyle={styles.content} refreshControl={<RefreshControl refreshing={loading} onRefresh={() => void refresh()} tintColor="#e7c479"/>}><Text style={styles.logo}>زرسیگنال</Text><Text style={styles.caption}>دید روشن‌تر به بازار</Text><Text style={styles.title}>دیده‌بان بازار</Text><Text style={styles.note}>{snapshot?.mode === 'demo' ? 'پیش‌نمایش · تمام قیمت‌ها نمونه هستند' : 'قیمت خرید و فروش با زمان مشاهده'}</Text>{error ? <View style={styles.card}><Text style={styles.note}>{error}</Text><Pressable accessibilityRole="button" onPress={() => void refresh()}><Text style={styles.action}>تلاش دوباره</Text></Pressable></View> : null}{loading && !snapshot ? <ActivityIndicator color="#e7c479"/> : null}{snapshot?.quotes.map(q => <View style={styles.card} key={q.symbol}><Text style={styles.name}>{labels[q.symbol] ?? q.symbol}</Text><Text style={styles.price}>{new Intl.NumberFormat('fa-IR',{maximumFractionDigits:2}).format(Number(q.sell))} {q.currency === 'TMN' ? 'تومان':'دلار'}</Text><Text style={styles.note}>هر {q.unit} · {snapshot.mode === 'demo' ? 'دادهٔ نمونه' : new Intl.DateTimeFormat('fa-IR',{dateStyle:'short',timeStyle:'short',timeZone:'Asia/Tehran'}).format(new Date(q.observedAt))}</Text>{snapshot.mode === 'live' && Date.now()-Date.parse(q.observedAt)>900000 ? <Text style={styles.warning}>این قیمت قدیمی است</Text> : null}</View>)}<View style={styles.card}><Text style={styles.name}>رادار حباب</Text><Text style={styles.note}>حباب طلا، نقره و دلار پس از تعریف و اعتبارسنجی فرمول اختصاصی فعال می‌شود.</Text></View><View style={styles.card}><Text style={styles.name}>پریمیوم</Text><Text style={styles.note}>خرید اشتراک هنوز فعال نیست. اتصال پرداخت و بازیابی خرید در مرحلهٔ بعد تکمیل می‌شود.</Text><Pressable accessibilityRole="link" onPress={() => Linking.openURL('https://zarsignal.ir/methodology').catch(() => setError('بازکردن مرورگر ممکن نشد.'))}><Text style={styles.action}>شفافیت داده و روش تحلیل ←</Text></Pressable></View></ScrollView></SafeAreaView>;
+}
+const styles = StyleSheet.create({screen:{flex:1,backgroundColor:'#0b0e13'},content:{padding:24,paddingBottom:45},logo:{color:'#e7c479',fontSize:30,fontWeight:'800',textAlign:'right',marginTop:20},caption:{color:'#a5afbe',textAlign:'right',marginTop:5},title:{color:'#edf0f5',fontSize:25,fontWeight:'700',textAlign:'right',marginTop:35},note:{color:'#a5afbe',fontSize:13,lineHeight:25,textAlign:'right',marginTop:8},card:{backgroundColor:'#11151d',borderColor:'#252a35',borderWidth:1,borderRadius:15,padding:20,marginTop:16},name:{color:'#edf0f5',fontSize:17,fontWeight:'600',textAlign:'right'},price:{color:'#e7c479',fontSize:23,textAlign:'right',marginTop:12},warning:{color:'#efb284',textAlign:'right',marginTop:8},action:{color:'#e7c479',textAlign:'right',marginTop:16,paddingVertical:8}});

@@ -1,0 +1,12 @@
+# ZarSignal — زرسیگنال
+
+Persian market dashboard for gold, silver and currencies.
+This is an early development version. Demo prices are not market quotations.
+The proprietary bubble formula and price forecasts are not configured.
+
+## Public information
+- [Methodology](/methodology): data freshness, units and pending model status.
+- [API documentation](/developers): versioned contracts and access requirements.
+- [Subscription roadmap](/pricing): planned features, not an active checkout.
+
+Never treat demo data or unconfigured analyses as investment recommendations.

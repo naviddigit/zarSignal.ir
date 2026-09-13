@@ -1,0 +1,8 @@
+{
+  "verified": false,
+  "timestampSelector": "REPLACE_WITH_VERIFIED_SOURCE_TIMESTAMP_SELECTOR",
+  "timestampAttribute": "datetime",
+  "assets": [
+    { "symbol": "USD", "buySelector": "REPLACE_WITH_VERIFIED_BUY_SELECTOR", "sellSelector": "REPLACE_WITH_VERIFIED_SELL_SELECTOR", "currency": "TMN", "unit": "دلار" }
+  ]
+}
