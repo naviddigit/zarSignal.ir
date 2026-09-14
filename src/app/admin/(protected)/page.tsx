@@ -14,13 +14,14 @@ export default async function AdminHome() {
   return <>
     <header className="admin-title">
       <div><span className="eyebrow">SYSTEM OVERVIEW</span><h1>صبح بخیر، مدیر.</h1><p>وضعیت فعلی سرویس و داده را از یک جا بررسی کنید.</p></div>
-      <span className={`admin-badge ${data.database}`}>{data.database === 'connected' ? 'دیتابیس متصل است' : 'دیتابیس در دسترس نیست'}</span>
+      <span className={`admin-badge ${data.database}`}>{data.database === 'connected' ? 'PostgreSQL متصل' : data.database === 'local' ? 'ذخیره محلی توسعه فعال' : 'ذخیره‌سازی در دسترس نیست'}</span>
     </header>
     {data.database === 'unavailable' && <div className="admin-alert" role="alert">
       <strong>اتصال دیتابیس برقرار نیست</strong>
       <p>{data.databaseMessage}</p>
       <div><code dir="ltr">docker compose up -d postgres</code><code dir="ltr">npx prisma migrate deploy</code></div>
     </div>}
+    {data.database === 'local' && <div className="admin-message is-ok" role="status"><strong>اجرای محلی آماده است.</strong> داده بازار در ذخیره محلی توسعه نگهداری می‌شود؛ PostgreSQL هنگام استقرار جایگزین آن خواهد شد.</div>}
     <div className="admin-stats">{stats.map(({ label, value, icon: Icon }) => <article className="admin-stat" key={label}><Icon size={19}/><span>{label}</span><strong>{display(value)}</strong></article>)}</div>
     <div className="admin-grid">
       <article className="admin-card"><span className="eyebrow">MARKET PIPELINE</span><h2>آخرین دریافت داده</h2>{data.lastRun ? <><strong className={`run-status ${data.lastRun.status.toLowerCase()}`}>{data.lastRun.status}</strong><p>{display(data.lastRun.count)} رکورد ثبت شده</p>{data.lastRun.error && <p className="form-error">{data.lastRun.error}</p>}</> : <p>هنوز دریافت واقعی ثبت نشده است. حالت فعلی: {data.sourceMode === 'demo' ? 'دادهٔ نمایشی' : 'دادهٔ زنده بدون رکورد'}.</p>}<a href="/admin/data">مدیریت داده ←</a></article>

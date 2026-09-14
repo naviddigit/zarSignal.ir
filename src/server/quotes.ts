@@ -8,6 +8,11 @@ const liveQuotes = unstable_cache(async (): Promise<Snapshot> => {
 }, ['market-quotes-v1'], { revalidate: 60 });
 export async function getSnapshot(): Promise<Snapshot> {
   if (process.env.MARKET_MODE === 'demo' || (!process.env.MARKET_MODE && process.env.NODE_ENV !== 'production')) return { mode: 'demo', status: 'demo', quotes: [], pollSeconds: 60 };
+  if (process.env.NODE_ENV !== 'production') {
+    const { readLocalMarket } = await import('@/server/ingestion/local-store');
+    const local = await readLocalMarket();
+    if (local.quotes.length) return { mode: 'live', status: local.quotes.some(quote => isStale(quote)) ? 'stale' : 'ok', quotes: local.quotes, pollSeconds: local.source?.pollSeconds ?? 300 };
+  }
   try { return await liveQuotes(); } catch {
     if (process.env.NODE_ENV !== 'production') {
       const { readLocalMarket } = await import('@/server/ingestion/local-store');

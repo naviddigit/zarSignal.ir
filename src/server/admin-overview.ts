@@ -11,6 +11,11 @@ export type AdminOverview = {
 
 export async function getAdminOverview(): Promise<AdminOverview> {
   const sourceMode = process.env.MARKET_MODE === 'live' ? 'live' : 'demo';
+  if (process.env.NODE_ENV !== 'production') {
+    const { readLocalMarket } = await import('@/server/ingestion/local-store');
+    const local = await readLocalMarket();
+    if (local) return { sourceMode, database: 'local', databaseMessage: 'ذخیره محلی توسعه فعال است؛ PostgreSQL هنگام استقرار جایگزین می‌شود.', databaseLatencyMs: null, quoteCount: local.quotes.length, userCount: 0, activeSubscriptions: 0, activeApiKeys: 0, lastRun: local.lastRun ? { ...local.lastRun, startedAt: new Date(local.lastRun.startedAt), finishedAt: local.lastRun.finishedAt ? new Date(local.lastRun.finishedAt) : null } : null, latestQuotes: instruments.map(asset => { const quote = local.quotes.find(item => item.symbol === asset.symbol); return { symbol: asset.symbol, source: quote?.source ?? '—', observedAt: quote ? new Date(quote.observedAt) : new Date(0), fetchedAt: quote ? new Date(quote.fetchedAt) : new Date(0) }; }) };
+  }
   try {
     const now = new Date();
     const [quoteCount, userCount, activeSubscriptions, activeApiKeys, lastRun, latestRows] = await db.$transaction([
