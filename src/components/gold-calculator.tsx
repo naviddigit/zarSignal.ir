@@ -1,11 +1,13 @@
 'use client';
-import { useMemo, useState } from 'react';
-import { Calculator } from 'lucide-react';
-
-function readNumber(value: string) { const normalized = value.replace(/[۰-۹]/g, char => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(char))).replaceAll(',',''); const number = Number(normalized); return Number.isFinite(number) && number >= 0 ? number : 0; }
-const display = (value: number) => new Intl.NumberFormat('fa-IR',{maximumFractionDigits:0}).format(value);
-export function GoldCalculator() {
-  const [weight, setWeight] = useState('10'); const [price, setPrice] = useState('0'); const [fee, setFee] = useState('0');
-  const total = useMemo(() => readNumber(weight) * readNumber(price) + readNumber(fee), [weight, price, fee]);
-  return <section className="calculator-card" aria-labelledby="calculator-title"><div><span className="eyebrow"><Calculator size={14}/> GOLD CALCULATOR</span><h2 id="calculator-title">ماشین‌حساب سادهٔ آبشده</h2><p>وزن و قیمت هر گرم را خودت وارد کن؛ نتیجه بدون فرض پنهان محاسبه می‌شود.</p></div><div className="calculator-form"><label>وزن (گرم)<input inputMode="decimal" value={weight} onChange={event => setWeight(event.target.value)} /></label><label>قیمت هر گرم (تومان)<input inputMode="decimal" placeholder="مثلاً ۸٬۰۰۰٬۰۰۰" value={price} onChange={event => setPrice(event.target.value)} /></label><label>کارمزد / هزینه (تومان)<input inputMode="decimal" value={fee} onChange={event => setFee(event.target.value)} /></label><output><span>برآورد جمع</span><strong>{display(total)} تومان</strong></output></div><small>این ابزار فقط محاسبهٔ ورودی‌های شماست؛ عیار، مالیات، اجرت و قواعد معامله باید جداگانه مشخص شوند.</small></section>;
-}
+import { useMemo,useState } from 'react';
+import { Calculator,RotateCcw } from 'lucide-react';
+function readNumber(value:string){const normalized=value.replace(/[۰-۹]/g,char=>String('۰۱۲۳۴۵۶۷۸۹'.indexOf(char))).replace(/[٠-٩]/g,char=>String('٠١٢٣٤٥٦٧٨٩'.indexOf(char))).replace(/[٬,]/g,'').replace('٫','.').trim();if(!normalized)return 0;const number=Number(normalized);return Number.isFinite(number)&&number>=0?number:0}
+const display=(value:number)=>new Intl.NumberFormat('fa-IR',{maximumFractionDigits:0}).format(value);
+export function GoldCalculator(){const[weight,setWeight]=useState('');const[price,setPrice]=useState('');const[fee,setFee]=useState('');const total=useMemo(()=>readNumber(weight)*readNumber(price)+readNumber(fee),[weight,price,fee]);const hasInput=Boolean(weight||price||fee);function reset(){setWeight('');setPrice('');setFee('')}return <section className="calculator-card calculator-pro" aria-labelledby="calculator-title">
+ <div className="calculator-copy"><span className="eyebrow"><Calculator size={15}/> QUICK CALCULATOR</span><h2 id="calculator-title">ماشین‌حساب آبشده</h2><p>وزن و قیمت هر گرم را خودتان وارد کنید. واحد همهٔ مبلغ‌ها تومان است.</p><div className="calculator-rule"><span>محاسبهٔ فعلی</span><code>وزن × قیمت هر گرم + هزینه</code></div><small>عیار، مالیات، اجرت و تبدیل واحد پس از تأیید فرمول‌های Product Spec اضافه می‌شوند.</small></div>
+ <div className="calculator-machine"><div className="calculator-screen"><span>مبلغ نهایی</span><strong>{hasInput?display(total):'۰'} <small>تومان</small></strong><em>{hasInput?'براساس ورودی‌های شما':'برای شروع مقادیر را وارد کنید'}</em></div><div className="calculator-form">
+  <label><span>وزن <b>گرم</b></span><input inputMode="decimal" placeholder="مثلاً ۱۰٫۵" value={weight} onChange={e=>setWeight(e.target.value)}/></label>
+  <label><span>قیمت هر گرم <b>تومان</b></span><input inputMode="numeric" placeholder="مثلاً ۸٬۵۰۰٬۰۰۰" value={price} onChange={e=>setPrice(e.target.value)}/></label>
+  <label><span>هزینه یا کارمزد <b>تومان</b></span><input inputMode="numeric" placeholder="اختیاری" value={fee} onChange={e=>setFee(e.target.value)}/></label>
+ </div><button type="button" className="calculator-reset" onClick={reset} disabled={!hasInput}><RotateCcw size={14}/> پاک‌کردن</button></div>
+ </section>}
