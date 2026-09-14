@@ -1,24 +1,8 @@
 'use client';
-
-import { Moon, Sun } from 'lucide-react';
+import { Laptop, Moon, Sun } from 'lucide-react';
 import { useEffect, useState } from 'react';
-
-type Theme = 'dark' | 'light';
-
-export function ThemeToggle() {
-  const [theme, setTheme] = useState<Theme>('dark');
-
-  useEffect(() => {
-    setTheme(document.documentElement.dataset.theme === 'light' ? 'light' : 'dark');
-  }, []);
-
-  function toggleTheme() {
-    const next = theme === 'dark' ? 'light' : 'dark';
-    document.documentElement.dataset.theme = next;
-    document.documentElement.style.colorScheme = next;
-    localStorage.setItem('zarsignal-theme', next);
-    setTheme(next);
-  }
-
-  return <button className="theme-toggle" type="button" onClick={toggleTheme} aria-label={theme === 'dark' ? 'فعال‌کردن حالت روشن' : 'فعال‌کردن حالت تیره'} title={theme === 'dark' ? 'حالت روشن' : 'حالت تیره'}>{theme === 'dark' ? <Sun size={17}/> : <Moon size={17}/>}</button>;
-}
+type ThemePreference='system'|'light'|'dark';
+const order:ThemePreference[]=['system','light','dark'];
+const labels={system:'سیستم',light:'روشن',dark:'تیره'} as const;
+function applyTheme(preference:ThemePreference){const dark=window.matchMedia('(prefers-color-scheme: dark)').matches;const resolved=preference==='system'?(dark?'dark':'light'):preference;const root=document.documentElement;root.dataset.themePreference=preference;root.dataset.theme=resolved;root.style.colorScheme=resolved;document.querySelector<HTMLMetaElement>('meta[name="theme-color"]')?.setAttribute('content',resolved==='dark'?'#080c13':'#f3f0e8')}
+export function ThemeToggle(){const[preference,setPreference]=useState<ThemePreference>('system');useEffect(()=>{const stored=localStorage.getItem('zarsignal-theme');const initial:ThemePreference=stored==='dark'||stored==='light'?stored:'system';setPreference(initial);applyTheme(initial);const media=window.matchMedia('(prefers-color-scheme: dark)');const sync=()=>{if((localStorage.getItem('zarsignal-theme')??'system')==='system')applyTheme('system')};media.addEventListener('change',sync);return()=>media.removeEventListener('change',sync)},[]);function cycle(){const next=order[(order.indexOf(preference)+1)%order.length];if(next==='system')localStorage.removeItem('zarsignal-theme');else localStorage.setItem('zarsignal-theme',next);setPreference(next);applyTheme(next)}const Icon=preference==='system'?Laptop:preference==='light'?Sun:Moon;return <button className="theme-toggle" type="button" onClick={cycle} aria-label={`حالت نمایش: ${labels[preference]}`} title={`حالت نمایش: ${labels[preference]}`}><Icon size={16}/><small>{labels[preference]}</small></button>}
