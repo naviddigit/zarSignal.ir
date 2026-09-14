@@ -4,6 +4,7 @@ dist/
 .env
 .env.*
 !.env.example
+.data/
 *.tsbuildinfo
 playwright-report/
 test-results/

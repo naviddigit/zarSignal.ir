@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { ArrowUpLeft, BadgeEuro, Clock3, Coins, Gem, Landmark, RefreshCw, Search, Star } from 'lucide-react';
 import { formatPrice, instruments, type Snapshot, type Symbol } from '@/lib/market';
 
-const iconBySymbol = { GOLD_MELTED: Coins, XAG_USD: Gem, USD: Landmark, EUR: BadgeEuro, AED: Landmark, XAU_USD: Coins } as const;
+const iconBySymbol = { GOLD_MELTED: Coins, XAG_USD: Gem, USD: Landmark, EUR: BadgeEuro, AED: Landmark, XAU_USD: Coins, DUBAI_GOLD_OZ: Coins } as const;
 function AssetMark({ symbol, category }: { symbol: Symbol; category: string }) { const Icon = iconBySymbol[symbol]; return <span className={`market-asset-mark ${category}`}><Icon size={21}/></span>; }
 
 export function MarketBoard({ initial }: { initial: Snapshot }) {

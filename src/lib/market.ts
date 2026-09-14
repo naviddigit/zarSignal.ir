@@ -5,6 +5,7 @@ export const instruments = [
   { symbol: 'EUR', name: 'یورو', short: 'یورو', category: 'currency', currency: 'TMN', unit: 'یورو', description: 'قیمت یورو به تومان با تفکیک نرخ خرید و فروش.' },
   { symbol: 'AED', name: 'درهم امارات', short: 'درهم', category: 'currency', currency: 'TMN', unit: 'درهم', description: 'قیمت درهم امارات به تومان با زمان دریافت و منبع مشخص.' },
   { symbol: 'XAU_USD', name: 'اونس جهانی طلا', short: 'اونس طلا', category: 'gold', currency: 'USD', unit: 'اونس تروا', description: 'قیمت جهانی یک اونس تروا طلا به دلار؛ برای تبدیل به طلای داخلی، عیار و واحد وزن لازم است.' },
+  { symbol: 'DUBAI_GOLD_OZ', name: 'طلای دبی', short: 'طلای دبی', category: 'gold', currency: 'USD', unit: 'اونس دبی', description: 'قیمت خرید و فروش GOLD 1 OZ در بازار دبی به دلار؛ بدون تبدیل به تومان یا طلای داخلی.' },
 ] as const;
 export type Symbol = typeof instruments[number]['symbol'];
 export type Quote = { symbol: Symbol; buy: string; sell: string; currency: string; unit: string; source: string; sourceUrl: string | null; observedAt: string; fetchedAt: string };

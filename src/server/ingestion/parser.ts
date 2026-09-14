@@ -6,7 +6,7 @@ export const sourceConfigSchema = z.object({
   timestampSelector: z.string().min(1),
   timestampAttribute: z.enum(['datetime', 'text']).default('datetime'),
   timeZoneOffset: z.string().regex(/^[+-]\d\d:\d\d$/).optional(),
-  assets: z.array(z.object({ symbol: z.enum(['GOLD_MELTED','XAG_USD','USD','EUR','AED','XAU_USD']), buySelector: z.string().min(1), sellSelector: z.string().min(1), currency: z.enum(['TMN','USD']), unit: z.string().min(1) })).min(1),
+  assets: z.array(z.object({ symbol: z.enum(['GOLD_MELTED','XAG_USD','USD','EUR','AED','XAU_USD','DUBAI_GOLD_OZ']), buySelector: z.string().min(1), sellSelector: z.string().min(1), textSuffix: z.enum(['USD']).optional(), currency: z.enum(['TMN','USD']), unit: z.string().min(1) })).min(1),
 }).refine(config => new Set(config.assets.map(a => a.symbol)).size === config.assets.length, 'Duplicate symbol');
 export type SourceConfig = z.infer<typeof sourceConfigSchema>;
 export function parseDecimal(text: string): string {
@@ -42,7 +42,8 @@ export function parseSource(html: string, inputConfig: unknown, now = new Date()
     const known = instruments.find(a => a.symbol === asset.symbol)!;
     if (known.currency !== asset.currency || known.unit !== asset.unit) throw new Error('Instrument unit mismatch');
     if ($(asset.buySelector).length !== 1 || $(asset.sellSelector).length !== 1) throw new Error(`Ambiguous or missing price for ${asset.symbol}`);
-    const buy = parseDecimal($(asset.buySelector).text()); const sell = parseDecimal($(asset.sellSelector).text());
+    const directText = (selector: string) => { const value = $(selector).contents().first().text().trim(); return asset.textSuffix && value.endsWith(asset.textSuffix) ? value.slice(0, -asset.textSuffix.length).trim() : value; };
+    const buy = parseDecimal(directText(asset.buySelector)); const sell = parseDecimal(directText(asset.sellSelector));
     // Compare exact fixed-point values, never round money through floating-point arithmetic.
     const fixed = (value: string) => { const [integer, fraction = ''] = value.split('.'); return BigInt(integer) * 1_000_000n + BigInt(fraction.padEnd(6,'0')); };
     if (fixed(buy) > fixed(sell)) throw new Error('Buy price exceeds sell price');

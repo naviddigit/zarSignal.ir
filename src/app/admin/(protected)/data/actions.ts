@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 import { db } from '@/lib/db';
 import { requireAdmin } from '@/server/admin-auth';
 import { defaultHamrateConfig, HAMRATE_KEY, MIN_POLL_SECONDS, runHamrateIngestion, validateHamrateUrl } from '@/server/ingestion/hamrate';
+import { saveLocalSource } from '@/server/ingestion/local-store';
 
 const done = (kind: 'ok' | 'error', message: string): never => redirect(`/admin/data?${kind}=${encodeURIComponent(message)}`);
 export async function saveMarketSource(formData: FormData) {
@@ -13,7 +14,9 @@ export async function saveMarketSource(formData: FormData) {
     if (!Number.isInteger(pollSeconds) || pollSeconds < MIN_POLL_SECONDS || pollSeconds > 86400) throw new Error(`فاصله باید بین ${MIN_POLL_SECONDS} تا ۸۶۴۰۰ ثانیه باشد.`);
     const url = validateHamrateUrl(String(formData.get('url') ?? ''));
     const config = await defaultHamrateConfig();
-    await db.marketSource.upsert({ where: { key: HAMRATE_KEY }, create: { key: HAMRATE_KEY, name: 'HamRate (صفحه عمومی)', url, pollSeconds, enabled: formData.get('enabled') === 'on', config }, update: { url, pollSeconds, enabled: formData.get('enabled') === 'on', config } });
+    const source = { key: HAMRATE_KEY, name: 'HamRate (صفحه عمومی)', url, pollSeconds, enabled: formData.get('enabled') === 'on', config };
+    try { await db.marketSource.upsert({ where: { key: HAMRATE_KEY }, create: source, update: { url, pollSeconds, enabled: source.enabled, config } }); }
+    catch (error) { if (process.env.NODE_ENV === 'production') throw error; await saveLocalSource(source); }
     revalidatePath('/admin/data'); revalidatePath('/');
   } catch (error) { done('error', error instanceof Error ? error.message : 'ذخیره تنظیمات ناموفق بود.'); }
   done('ok', 'تنظیمات منبع ذخیره شد. برای اجرای پیوسته worker را اجرا کنید.');
