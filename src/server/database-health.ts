@@ -1,9 +1,9 @@
 import { db } from '@/lib/db';
 
 export type DatabaseHealth = {
-  status: 'connected' | 'unavailable';
+  status: 'connected' | 'local' | 'unavailable';
   latencyMs: number | null;
-  code: 'ok' | 'connection_refused' | 'authentication_failed' | 'database_missing' | 'migration_required' | 'unknown';
+  code: 'ok' | 'local_storage' | 'connection_refused' | 'authentication_failed' | 'database_missing' | 'migration_required' | 'unknown';
   message: string;
 };
 
@@ -18,6 +18,18 @@ export function describeDatabaseError(error: unknown): Pick<DatabaseHealth, 'cod
 }
 
 export async function checkDatabase(): Promise<DatabaseHealth> {
+  if (process.env.NODE_ENV !== 'production') {
+    const { readLocalMarket } = await import('@/server/ingestion/local-store');
+    const local = await readLocalMarket();
+    if (local.source || local.lastRun || local.quotes.length) {
+      return {
+        status: 'local',
+        latencyMs: null,
+        code: 'local_storage',
+        message: 'ذخیره‌سازی محلی توسعه فعال است؛ PostgreSQL برای محیط نهایی همچنان لازم است.',
+      };
+    }
+  }
   const startedAt = performance.now();
   try {
     await db.$queryRaw`SELECT 1`;
