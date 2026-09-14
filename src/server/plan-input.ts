@@ -1,0 +1,4 @@
+import { z } from 'zod';
+const slug=/^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+export const planInput=z.object({title:z.string().trim().min(2).max(80),slug:z.string().trim().regex(slug).max(80),features:z.array(z.string().trim().min(1).max(160)).min(1).max(30),apiLimits:z.record(z.string(),z.number().int().nonnegative()).optional(),active:z.boolean(),displayOrder:z.number().int().min(0).max(999),webAvailable:z.boolean(),mobileAvailable:z.boolean()});
+export const pricingInput=z.object({planId:z.string().min(1),price:z.string().regex(/^\d+$/),currency:z.string().trim().min(2).max(10),billingPeriod:z.enum(['MONTHLY','QUARTERLY','YEARLY','ONE_TIME']),discount:z.string().regex(/^\d+(?:\.\d{1,2})?$/).optional(),effectiveAt:z.coerce.date(),active:z.boolean()}).refine(v=>!v.discount||Number(v.discount)<=100,{message:'تخفیف نمی‌تواند بیشتر از صد درصد باشد.',path:['discount']});

@@ -1,0 +1,3 @@
+import test from'node:test';import assert from'node:assert/strict';import{planInput,pricingInput}from'../src/server/plan-input';
+test('plan validation accepts explicit admin configuration',()=>{assert.equal(planInput.safeParse({title:'حرفه‌ای',slug:'pro',features:['ویژگی'],apiLimits:{daily:100},active:true,displayOrder:1,webAvailable:true,mobileAvailable:false}).success,true)});
+test('pricing validation rejects guessed-like malformed values',()=>{assert.equal(pricingInput.safeParse({planId:'x',price:'-1',currency:'IRT',billingPeriod:'MONTHLY',discount:'120',effectiveAt:'bad',active:true}).success,false)});

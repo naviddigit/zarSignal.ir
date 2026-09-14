@@ -26,6 +26,46 @@ model User {
   @@index([role])
 }
 
+model Plan {
+  id              String           @id @default(cuid())
+  title           String
+  slug            String           @unique
+  features        Json
+  apiLimits       Json?
+  active          Boolean          @default(false)
+  displayOrder    Int              @default(0)
+  webAvailable    Boolean          @default(true)
+  mobileAvailable Boolean          @default(false)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  pricingVersions PricingVersion[]
+
+  @@index([active, displayOrder])
+}
+
+model PricingVersion {
+  id            String        @id @default(cuid())
+  planId        String
+  plan          Plan          @relation(fields: [planId], references: [id], onDelete: Cascade)
+  price         Decimal       @db.Decimal(18, 0)
+  currency      String
+  billingPeriod BillingPeriod
+  discount      Decimal?      @db.Decimal(5, 2)
+  effectiveAt   DateTime
+  active        Boolean       @default(false)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@index([planId, active, effectiveAt])
+}
+
+enum BillingPeriod {
+  MONTHLY
+  QUARTERLY
+  YEARLY
+  ONE_TIME
+}
+
 enum Role {
   ADMIN
   USER
