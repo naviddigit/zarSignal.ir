@@ -211,3 +211,17 @@ model IngestionRun {
   count      Int       @default(0)
   error      String?
 }
+
+model MarketSource {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  name        String
+  url         String
+  enabled     Boolean  @default(false)
+  pollSeconds Int      @default(300)
+  config      Json
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([enabled])
+}

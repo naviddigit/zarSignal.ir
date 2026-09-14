@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { readFile } from 'node:fs/promises';
 
 const db = new PrismaClient();
 
@@ -15,6 +16,12 @@ async function main() {
       update: { label: integration.label, category: integration.category },
     });
   }
+  const hamrateConfig = JSON.parse(await readFile('config/hamrate.json', 'utf8'));
+  await db.marketSource.upsert({
+    where: { key: 'hamrate-web' },
+    create: { key: 'hamrate-web', name: 'HamRate (صفحه عمومی)', url: 'https://hamrate.com/', enabled: false, pollSeconds: 300, config: hamrateConfig },
+    update: { name: 'HamRate (صفحه عمومی)', config: hamrateConfig },
+  });
 }
 
 main().finally(() => db.$disconnect());

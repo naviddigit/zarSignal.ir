@@ -8,7 +8,7 @@ export const instruments = [
 ] as const;
 export type Symbol = typeof instruments[number]['symbol'];
 export type Quote = { symbol: Symbol; buy: string; sell: string; currency: string; unit: string; source: string; sourceUrl: string | null; observedAt: string; fetchedAt: string };
-export type Snapshot = { mode: 'demo' | 'live'; status: 'demo' | 'ok' | 'stale' | 'unavailable'; quotes: Quote[]; };
+export type Snapshot = { mode: 'demo' | 'live'; status: 'demo' | 'ok' | 'stale' | 'unavailable'; quotes: Quote[]; pollSeconds?: number; };
 export function isStale(quote: Quote, now = Date.now()) { const observedAt = Date.parse(quote.observedAt); return !Number.isFinite(observedAt) || now - observedAt > 15 * 60_000 || observedAt > now + 60_000; }
 export function bubbleResult() { return { status: 'pending_formula' as const, value: null, targets: null, reason: 'در انتظار تعریف و اعتبارسنجی فرمول تحلیل' }; }
 export const demoQuotes: Quote[] = instruments.map((asset, index) => ({ symbol: asset.symbol, buy: ['34800000','31.25','98500','108400','26800','2640'][index], sell: ['35120000','31.65','99100','109100','27100','2648'][index], currency: asset.currency, unit: asset.unit, source: 'دادهٔ نمایشی', sourceUrl: null, observedAt: '2026-09-01T09:00:00.000Z', fetchedAt: '2026-09-01T09:00:00.000Z' }));
