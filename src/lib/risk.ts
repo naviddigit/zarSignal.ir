@@ -1,0 +1,5 @@
+export type NumericResult={ok:true;value:number}|{ok:false;error:string};
+const invalid=(error:string):NumericResult=>({ok:false,error});
+export function riskAmount(capital:number,riskPercent:number):NumericResult{if(!Number.isFinite(capital)||capital<=0)return invalid('سرمایه باید بیشتر از صفر باشد.');if(!Number.isFinite(riskPercent)||riskPercent<=0||riskPercent>100)return invalid('درصد ریسک باید بین صفر و صد باشد.');return{ok:true,value:capital*riskPercent/100}}
+export function positionSize(amountAtRisk:number,lossPerUnit:number):NumericResult{if(!Number.isFinite(amountAtRisk)||amountAtRisk<=0)return invalid('مبلغ ریسک باید بیشتر از صفر باشد.');if(!Number.isFinite(lossPerUnit)||lossPerUnit<=0)return invalid('زیان هر واحد باید بیشتر از صفر باشد.');return{ok:true,value:amountAtRisk/lossPerUnit}}
+export function riskReward(entry:number,stop:number,target:number):NumericResult{if(![entry,stop,target].every(Number.isFinite))return invalid('همهٔ قیمت‌ها را درست وارد کنید.');const risk=Math.abs(entry-stop);const reward=Math.abs(target-entry);if(risk===0)return invalid('فاصلهٔ ورود و حد توقف نمی‌تواند صفر باشد.');return{ok:true,value:reward/risk}}
