@@ -1,12 +1,20 @@
 # ZarSignal — زرسیگنال
 
-Persian market dashboard for gold, silver and currencies.
-This is an early development version. Demo prices are not market quotations.
-The proprietary bubble formula and price forecasts are not configured.
+ZarSignal is a Persian decision-support product for gold, silver and currency markets.
+It separates observed market facts, user inputs, calculations and model inferences.
 
-## Public information
-- [Methodology](/methodology): data freshness, units and pending model status.
-- [API documentation](/developers): versioned contracts and access requirements.
-- [Subscription roadmap](/pricing): planned features, not an active checkout.
+## Current public capabilities
 
-Never treat demo data or unconfigured analyses as investment recommendations.
+- `/`: market feed status, bubble placeholders, market table and basic calculator.
+- `/risk-management`: educational risk amount, generic position size and risk/reward tools.
+- `/methodology`: units, freshness policy, source disclosure and calculation limits.
+- `/developers`: versioned API contract and authentication requirements.
+- `/pricing`: plans published by an administrator; no invented prices.
+
+## Data policy
+
+When no verified live feed is connected, ZarSignal displays no market price.
+Every future market value must include its unit, currency, source and observation time.
+Unconfigured bubble, theoretical-value and trading formulas remain unavailable.
+
+ZarSignal does not guarantee profit and does not provide undocumented buy/sell instructions.
