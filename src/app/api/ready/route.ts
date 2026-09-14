@@ -1,7 +1,6 @@
-import { db } from '@/lib/db';
+import { checkDatabase } from '@/server/database-health';
 export const dynamic = 'force-dynamic';
 export async function GET() {
-  if (process.env.MARKET_MODE === 'demo') return Response.json({status:'ready',mode:'demo',database:'not_required'},{headers:{'Cache-Control':'no-store'}});
-  try { await db.$queryRaw`SELECT 1`; return Response.json({status:'ready',mode:'live'},{headers:{'Cache-Control':'no-store'}}); }
-  catch { return Response.json({status:'unavailable',component:'database'},{status:503,headers:{'Cache-Control':'no-store'}}); }
+  const database = await checkDatabase();
+  return Response.json({ status: database.status === 'connected' ? 'ready' : 'unavailable', mode: process.env.MARKET_MODE === 'live' ? 'live' : 'demo', database }, { status: database.status === 'connected' ? 200 : 503, headers: { 'Cache-Control':'no-store' } });
 }
