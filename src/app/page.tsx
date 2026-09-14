@@ -3,6 +3,7 @@ import { ArrowUpLeft, Activity, ShieldCheck, Layers3, Radio, ChevronLeft, Smartp
 import { MarketBoard } from '@/components/market-board';
 import { HeroTicker } from '@/components/hero-ticker';
 import { GoldCalculator } from '@/components/gold-calculator';
+import { FaqPreview } from '@/components/faq-preview';
 import { getSnapshot } from '@/server/quotes';
 export default async function Home() {
   const snapshot = await getSnapshot();
@@ -14,6 +15,7 @@ export default async function Home() {
     <MarketBoard initial={snapshot}/>
     <GoldCalculator/>
     <section className="product-grid section-reveal"><article className="panel premium-card"><span className="eyebrow gold-text"><Sparkles size={15}/> ZARSIGNAL PREMIUM</span><h2>برای نگاه عمیق‌تر<br/>به حرکت بازار.</h2><p>مسیر توسعهٔ ابزارهای تحلیل، هشدار قیمت و دنبال‌کردن بازارهای منتخب را ببینید.</p><Link className="button" href="/pricing">آشنایی با پریمیوم <ArrowUpLeft size={16}/></Link><span className="premium-decoration" aria-hidden="true">✳</span></article><article className="panel feature-card"><Code2 size={26}/><h3>داده، برای محصول شما</h3><p>یک API نسخه‌بندی‌شده برای اتصال وب‌سایت، اپ و ابزارهای تحلیلی شما.</p><Link href="/developers">مستندات توسعه‌دهندگان <ArrowUpLeft size={15}/></Link><code dir="ltr">GET /api/v1/quotes</code></article><article className="panel feature-card"><Smartphone size={26}/><h3>بازار، همیشه همراهت</h3><p>توسعهٔ اپ مشترک آیفون و اندروید، با تجربهٔ فارسی و اتصال به همین داده‌ها.</p><Link href="/mobile">وضعیت اپلیکیشن <ArrowUpLeft size={15}/></Link><span className="platforms">iOS <span>+</span> Android</span></article></section>
+    <FaqPreview/>
     <section className="principles"><Radio size={22}/><div><h3>اعتماد، از شفافیت شروع می‌شود.</h3><p>دادهٔ قدیمی پنهان نمی‌شود، قیمت نمایشی برچسب دارد و پیش‌بینی بدون مدل معتبر منتشر نمی‌شود.</p></div><Link href="/methodology">استاندارد دادهٔ ما <ArrowUpLeft size={16}/></Link></section>
   </main>;
 }

@@ -10,11 +10,13 @@ It separates observed market facts, user inputs, calculations and model inferenc
 - `/methodology`: units, freshness policy, source disclosure and calculation limits.
 - `/developers`: versioned API contract and authentication requirements.
 - `/pricing`: plans published by an administrator; no invented prices.
+- `/faq`: concise answers about data freshness, calculations, subscriptions and product limits.
 
 ## Data policy
 
 When no verified live feed is connected, ZarSignal displays no market price.
 Every future market value must include its unit, currency, source and observation time.
+The current market catalog also treats Dubai gold ounce as its own USD-denominated observation; it is not derived from another quote.
 Unconfigured bubble, theoretical-value and trading formulas remain unavailable.
 
 ZarSignal does not guarantee profit and does not provide undocumented buy/sell instructions.
