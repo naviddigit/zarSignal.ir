@@ -46,7 +46,13 @@ export function isValidSession(value: string | undefined, now = Math.floor(Date.
 }
 
 export async function requireAdmin() {
-  if (!isValidSession((await cookies()).get(cookieName)?.value)) redirect('/admin/login');
+  if (isValidSession((await cookies()).get(cookieName)?.value)) return;
+  const { auth } = await import('@/auth');
+  const session = await auth().catch(() => null);
+  if (!session?.user?.email) redirect('/admin/login');
+  const { db } = await import('@/lib/db');
+  const user = await db.user.findUnique({ where: { email: session.user.email }, select: { role: true } }).catch(() => null);
+  if (user?.role !== 'ADMIN') redirect('/admin/login?error=forbidden');
 }
 
 export const adminSession = { cookieName, maxAge };

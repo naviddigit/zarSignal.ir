@@ -14,6 +14,7 @@ model User {
   emailVerified DateTime?
   image         String?
   phone         String?        @unique
+  role          Role           @default(USER)
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
   subscriptions Subscription[]
@@ -21,6 +22,16 @@ model User {
   payments      Payment[]
   accounts      Account[]
   sessions      Session[]
+
+  @@index([role])
+}
+
+enum Role {
+  ADMIN
+  USER
+  HOME_TRADER
+  PROFESSIONAL_TRADER
+  API_CUSTOMER
 }
 
 model Account {
