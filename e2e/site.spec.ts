@@ -20,15 +20,20 @@ test('market board is searchable, aligned and keeps favorites', async ({ page })
   await expect(page.locator('.market-table tbody tr')).toHaveCount(1);
 });
 
-test('calculator formats controlled numeric inputs', async ({ page }) => {
+test('calculator loads a market side and keeps manual numeric input available', async ({ page }) => {
   await page.goto('/');
   const calculator = page.locator('.calculator-machine');
   await expect(calculator.locator('input')).toHaveCount(3);
   for (const input of await calculator.locator('input').all()) await expect(input).toHaveValue('');
-  await calculator.getByRole('textbox', { name: 'وزن' }).fill('۱۰٫۵x');
-  await calculator.getByRole('textbox', { name: 'قیمت هر گرم' }).fill('8500000abc');
-  await expect(calculator.getByRole('textbox', { name: 'وزن' })).toHaveValue('10.5');
-  await expect(calculator.getByRole('textbox', { name: 'قیمت هر گرم' })).toHaveValue('8,500,000');
+  const autoSell = calculator.getByRole('button', { name: /قیمت فروش/ });
+  if (await autoSell.isEnabled()) {
+    await autoSell.click();
+    await expect(calculator.getByRole('textbox', { name: 'قیمت هر واحد' })).not.toHaveValue('');
+  }
+  await calculator.getByRole('textbox', { name: 'تعداد / مقدار' }).fill('۱۰٫۵x');
+  await calculator.getByRole('textbox', { name: 'قیمت هر واحد' }).fill('8500000abc');
+  await expect(calculator.getByRole('textbox', { name: 'تعداد / مقدار' })).toHaveValue('10.5');
+  await expect(calculator.getByRole('textbox', { name: 'قیمت هر واحد' })).toHaveValue('8,500,000');
   await expect(calculator.locator('.calculator-screen strong')).toContainText('۸۹٬۲۵۰٬۰۰۰');
 });
 
@@ -75,4 +80,8 @@ test('admin can reach the three versioned formula editors', async ({ page }) => 
   await expect(page.getByRole('heading', { level: 1, name: 'فرمول‌های طلا، نقره و دلار' })).toBeVisible();
   await expect(page.locator('.formula-card')).toHaveCount(3);
   await expect(page.locator('.formula-form')).toHaveCount(3);
+  await expect(page.locator('.formula-live__grid article')).toHaveCount(7);
+  await expect(page.locator('.formula-form').first().getByRole('checkbox')).toHaveCount(14);
+  await page.goto('/admin/plans');
+  await expect(page.locator('.plan-admin-list > article')).toHaveCount(4);
 });

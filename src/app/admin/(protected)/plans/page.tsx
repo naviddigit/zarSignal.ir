@@ -10,9 +10,9 @@ export default async function PlansAdmin({ searchParams }: { searchParams: Promi
   const { plans, storage } = await getManagedPlans();
   return <>
     <header className="admin-title"><div><span className="eyebrow">PLANS & PRICING</span><h1>تعرفه‌ها و نسخه‌های قیمت</h1><p>هر قیمت فقط با تصمیم مدیر ثبت و منتشر می‌شود.</p></div><span className={`admin-badge ${storage === 'local' ? 'local' : 'connected'}`}>{storage === 'local' ? 'ذخیره محلی توسعه' : 'PostgreSQL متصل'}</span></header>
-    {storage === 'local' && <p className="admin-message is-ok">مدیریت تعرفه در محیط local فعال است. این اطلاعات هنگام استقرار باید به PostgreSQL منتقل شود.</p>}
+    {storage === 'local' && <p className="admin-message is-ok">چهار تعرفهٔ آزمایشی برای تست ساخته شده‌اند. قیمت‌های آن‌ها تصمیم تجاری نهایی نیست و هنگام استقرار باید در PostgreSQL بازبینی شوند.</p>}
     {error && <p className="form-error" role="alert">اطلاعات فرم معتبر نبود؛ ورودی‌ها را بررسی کنید.</p>}
-    <section className="admin-card"><h2>پلن جدید</h2><PlanForm/></section>
+    <section className="admin-card"><h2>پلن جدید</h2><p>ابتدا عنوان، slug انگلیسی و حداقل یک ویژگی را وارد کنید. سپس قیمت و تاریخ اجرای آن را در کارت همان پلن اضافه کنید.</p><PlanForm/></section>
     <div className="plan-admin-list">{plans.map(plan => <article className="admin-card" key={plan.id}><h2>{plan.title}</h2><PlanForm plan={plan}/><h3>نسخه‌های قیمت</h3>{plan.pricingVersions.map(price => <PricingForm key={price.id} price={price} planId={plan.id}/>)}<PricingForm planId={plan.id}/><form action={deletePlan}><input type="hidden" name="id" value={plan.id}/><PendingButton className="danger-button" pendingText="در حال حذف…">حذف پلن</PendingButton></form></article>)}</div>
   </>;
 }

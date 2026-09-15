@@ -15,8 +15,18 @@ type PlanWrite = Omit<ManagedPlan, 'id' | 'pricingVersions' | 'apiLimits'> & { a
 const file = path.join(process.cwd(), '.data', 'plans.json');
 const useLocal = () => process.env.NODE_ENV !== 'production';
 
+const developmentPlanPresets: StoredPlan[] = [
+  { id: 'dev-free', title: 'رایگان آزمایشی', slug: 'free-preview', features: ['مشاهده قیمت‌ها با منبع و زمان دریافت', 'ماشین‌حساب سریع بازار', 'دسترسی به روش محاسبه و محتوای آموزشی'], apiLimits: { daily: 0 }, active: true, displayOrder: 10, webAvailable: true, mobileAvailable: true, pricingVersions: [{ id: 'dev-free-monthly', planId: 'dev-free', price: '0', currency: 'تومان', billingPeriod: 'MONTHLY', discount: null, effectiveAt: '2026-09-15T00:00:00.000Z', active: true }] },
+  { id: 'dev-home', title: 'معامله‌گر خانگی آزمایشی', slug: 'home-trader-preview', features: ['فهرست بازارهای منتخب', 'ماشین‌حساب‌ها و مدیریت سرمایه', 'پیش‌نمایش هشدار قیمت', 'تاریخچه محدود داده'], apiLimits: { daily: 0 }, active: true, displayOrder: 20, webAvailable: true, mobileAvailable: true, pricingVersions: [{ id: 'dev-home-monthly', planId: 'dev-home', price: '249000', currency: 'تومان', billingPeriod: 'MONTHLY', discount: null, effectiveAt: '2026-09-15T00:00:00.000Z', active: true }] },
+  { id: 'dev-pro', title: 'حرفه‌ای آزمایشی', slug: 'professional-preview', features: ['ابزارهای حرفه‌ای تحلیل', 'حسابداری و مدیریت ریسک پس از تأیید مشخصات', 'هشدارها و بازارهای بیشتر', 'پشتیبانی اولویت‌دار'], apiLimits: { daily: 1000 }, active: true, displayOrder: 30, webAvailable: true, mobileAvailable: true, pricingVersions: [{ id: 'dev-pro-monthly', planId: 'dev-pro', price: '799000', currency: 'تومان', billingPeriod: 'MONTHLY', discount: null, effectiveAt: '2026-09-15T00:00:00.000Z', active: true }] },
+  { id: 'dev-api', title: 'API آزمایشی', slug: 'api-preview', features: ['دسترسی نسخه‌بندی‌شده به قیمت‌ها', 'نمایش منبع و زمان دریافت', 'کلید مستقل و محدودیت مصرف', 'مستندات توسعه‌دهندگان'], apiLimits: { daily: 10000 }, active: true, displayOrder: 40, webAvailable: true, mobileAvailable: false, pricingVersions: [{ id: 'dev-api-monthly', planId: 'dev-api', price: '1490000', currency: 'تومان', billingPeriod: 'MONTHLY', discount: null, effectiveAt: '2026-09-15T00:00:00.000Z', active: true }] },
+];
+
 async function readLocal(): Promise<StoredPlan[]> {
-  try { return JSON.parse(await readFile(file, 'utf8')) as StoredPlan[]; } catch { return []; }
+  try { return JSON.parse(await readFile(file, 'utf8')) as StoredPlan[]; } catch {
+    await writeLocal(developmentPlanPresets);
+    return developmentPlanPresets;
+  }
 }
 async function writeLocal(plans: StoredPlan[]) {
   await mkdir(path.dirname(file), { recursive: true });
