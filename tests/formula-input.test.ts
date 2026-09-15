@@ -4,7 +4,7 @@ import { formulaInput } from '../src/server/formula-input';
 
 const base = {
   key: 'GOLD_BUBBLE', version: 1, title: 'حباب طلا', description: 'فرمول مرجع برای محاسبه حباب بازار طلا', expression: '(market - theoretical) / theoretical * 100',
-  inputs: ['market', 'theoretical'], units: ['market = TMN', 'theoretical = TMN'], constants: [], rounding: 'دو رقم اعشار، نیم به بالا',
+  inputs: ['GOLD_MELTED.sell', 'XAU_USD.sell'], units: ['TMN/مثقال:sell', 'USD/اونس تروا:sell'], constants: [], rounding: 'دو رقم اعشار، نیم به بالا',
   edgeCases: ['theoretical must be greater than zero'], fixtures: [], status: 'DRAFT',
 };
 
@@ -12,6 +12,7 @@ test('formula drafts require explicit inputs, units, rounding and edge cases', (
   assert.equal(formulaInput.safeParse(base).success, true);
   assert.equal(formulaInput.safeParse({ ...base, inputs: [] }).success, false);
   assert.equal(formulaInput.safeParse({ ...base, units: [] }).success, false);
+  assert.equal(formulaInput.safeParse({ ...base, inputs: ['unknown.sell'] }).success, false);
 });
 
 test('approved formulas require a reference fixture and effective date', () => {
