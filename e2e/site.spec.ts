@@ -1,4 +1,7 @@
 import { test, expect } from '@playwright/test';
+import { readFileSync } from 'node:fs';
+
+const adminToken = (() => { try { return readFileSync('.env', 'utf8').match(/^ADMIN_BOOTSTRAP_TOKEN=(.*)$/m)?.[1]?.trim().replace(/^['"]|['"]$/g, '') ?? ''; } catch { return ''; } })();
 
 test('market board is searchable, aligned and keeps favorites', async ({ page }) => {
   await page.goto('/');
@@ -56,5 +59,20 @@ test('market detail, FAQ and information routes render', async ({ page, request 
     await page.goto(path);
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
   }
+  const acknowledgement = page.getByRole('checkbox', { name: /خواندم و می‌دانم/ });
+  await acknowledgement.click();
+  await expect(acknowledgement).toHaveAttribute('aria-checked', 'true');
   expect((await request.get('/sitemap.xml')).status()).toBe(200);
+});
+
+test('admin can reach the three versioned formula editors', async ({ page }) => {
+  test.skip(!adminToken, 'ADMIN_BOOTSTRAP_TOKEN is not configured');
+  await page.goto('/admin/login');
+  await page.locator('#token').fill(adminToken);
+  await page.getByRole('button', { name: 'ورود امن' }).click();
+  await page.waitForURL('**/admin');
+  await page.goto('/admin/analysis');
+  await expect(page.getByRole('heading', { level: 1, name: 'فرمول‌های طلا، نقره و دلار' })).toBeVisible();
+  await expect(page.locator('.formula-card')).toHaveCount(3);
+  await expect(page.locator('.formula-form')).toHaveCount(3);
 });

@@ -1,5 +1,6 @@
 import { ExternalLink, Play, Save } from 'lucide-react';
 import { PendingButton } from '@/components/pending-button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { getAdminOverview } from '@/server/admin-overview';
 import { getHamrateSettings } from '@/server/ingestion/hamrate';
 import { runMarketSourceNow, saveMarketSource } from './actions';
@@ -10,7 +11,7 @@ export default async function AdminData({ searchParams }: { searchParams: Promis
   return <><header className="admin-title"><div><span className="eyebrow">MARKET DATA</span><h1>منبع و دریافت داده</h1><p>آدرس منبع، فاصله دریافت، نتیجه آخرین اجرا و زمان هر قیمت را از همین‌جا کنترل کنید.</p></div><span className={`admin-badge ${data.database}`}>{data.database === 'connected' ? 'PostgreSQL متصل' : data.database === 'local' ? 'ذخیره محلی توسعه' : 'دیتابیس در دسترس نیست'}</span></header>
   {(message.ok || message.error) && <p className={message.error ? 'form-error admin-message' : 'admin-message is-ok'}>{message.error ?? message.ok}</p>}
   <article className="admin-card wide source-control"><div className="admin-card-heading"><div><span className="eyebrow">CRAWLER SOURCE</span><h2>HamRate</h2></div><a href={source.url} target="_blank" rel="noreferrer">مشاهده منبع <ExternalLink size={14}/></a></div>
-   <form action={saveMarketSource} className="source-form"><label>آدرس صفحه<input name="url" type="url" dir="ltr" defaultValue={source.url} required/></label><label>فاصله دریافت (ثانیه)<input name="pollSeconds" type="number" min="180" max="86400" defaultValue={source.pollSeconds} required/></label><label className="source-check"><input name="enabled" type="checkbox" defaultChecked={source.enabled}/><span>خزنده فعال باشد</span></label><PendingButton pendingText="در حال ذخیره…"><Save size={15}/> ذخیره تنظیمات</PendingButton></form>
+   <form action={saveMarketSource} className="source-form"><label>آدرس صفحه<input name="url" type="url" dir="ltr" defaultValue={source.url} required/></label><label>فاصله دریافت (ثانیه)<input name="pollSeconds" type="number" min="180" max="86400" defaultValue={source.pollSeconds} required/></label><Checkbox name="enabled" label="خزنده فعال باشد" defaultChecked={source.enabled} className="source-check"/><PendingButton pendingText="در حال ذخیره…"><Save size={15}/> ذخیره تنظیمات</PendingButton></form>
    <div className="source-facts"><span><b>روش:</b> خواندن HTML عمومی با selectorهای اعتبارسنجی‌شده</span><span><b>حداقل فاصله:</b> ۱۸۰ ثانیه</span><span><b>نمادها:</b> ۷ بازار، شامل طلای دبی</span></div>
    <form action={runMarketSourceNow}><PendingButton className="button source-run" pendingText="در حال دریافت…" disabled={!source.enabled || data.database === 'unavailable'}><Play size={15}/> دریافت و ثبت همین حالا</PendingButton></form>
   </article>
