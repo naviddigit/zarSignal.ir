@@ -1,4 +1,3 @@
-import 'server-only';
 import { isStale, type Quote, type Snapshot } from '@/lib/market';
 import type { LiveBubbleCard } from '@/lib/bubbles';
 import { goldBubble, usdGap, FORMULA_VERSION } from './bubble-formulas';
