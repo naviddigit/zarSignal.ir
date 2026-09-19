@@ -136,3 +136,38 @@ html[data-theme='light'] .calculator-screen>span,html[data-theme='light'] .calcu
 .gauge>i{position:absolute;top:-3px;width:10px;height:10px;border-radius:50%;background:var(--accent);transform:translateX(-50%);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 25%,transparent);transition:inset-inline-start .45s ease}
 .gauge-labels{font-size:10px!important;color:var(--text-muted)}
 @media(max-width:760px){.radar-bubble-value{font-size:28px}.bubble-value{font-size:42px!important}}
+
+/* Pro interactive bubble radar */
+.radar-pro{position:relative;isolation:isolate;height:420px;overflow:hidden;border-radius:28px;border:1px solid color-mix(in srgb,var(--accent) 28%,var(--border-subtle));background:
+  radial-gradient(circle at 50% 45%,color-mix(in srgb,var(--accent) 16%,transparent),transparent 42%),
+  linear-gradient(160deg,var(--surface-raised),var(--surface-card));box-shadow:0 24px 60px var(--shadow)}
+.radar-pro__glow{position:absolute;inset:8% 10%;border-radius:50%;background:radial-gradient(circle,color-mix(in srgb,var(--accent) 22%,transparent),transparent 68%);filter:blur(18px);animation:neon-breathe 4s ease-in-out infinite;pointer-events:none}
+.radar-pro.tint-silver .radar-pro__glow{background:radial-gradient(circle,#9eb6d733,transparent 68%)}
+.radar-pro.tint-dollar .radar-pro__glow{background:radial-gradient(circle,#4fd6b033,transparent 68%)}
+.radar-pro__grid{position:absolute;inset:18px;opacity:.55;background-image:linear-gradient(#ffffff07 1px,transparent 1px),linear-gradient(90deg,#ffffff07 1px,transparent 1px);background-size:28px 28px;mask-image:radial-gradient(circle,black 35%,transparent 72%);pointer-events:none}
+.radar-pro__orbit{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);border-radius:50%;border:1px solid color-mix(in srgb,var(--accent) 18%,transparent);pointer-events:none}
+.radar-pro__orbit--a{width:170px;height:170px}.radar-pro__orbit--b{width:250px;height:250px;border-style:dashed;opacity:.7}.radar-pro__orbit--c{width:330px;height:330px;opacity:.45}
+.radar-pro__sweep{position:absolute;left:50%;top:50%;width:165px;height:165px;transform-origin:top left;border-radius:0 0 100% 0;background:conic-gradient(from 270deg at top left,transparent 0deg,color-mix(in srgb,var(--accent) 35%,transparent) 70deg,transparent 72deg);animation:scan 6.5s linear infinite;pointer-events:none}
+.radar-pro__ring{position:absolute;top:50%;left:50%;width:250px;height:250px;transform:translate(-50%,-50%) rotate(-90deg);pointer-events:none;z-index:1}
+.radar-pro__ring-track{fill:none;stroke:color-mix(in srgb,var(--text-muted) 28%,transparent);stroke-width:8}
+.radar-pro__ring-value{fill:none;stroke:var(--accent);stroke-width:8;stroke-linecap:round;transition:stroke-dashoffset .8s cubic-bezier(.2,.8,.2,1);filter:drop-shadow(0 0 10px color-mix(in srgb,var(--accent) 55%,transparent))}
+.radar-pro__ring-value.is-up{stroke:var(--success)}.radar-pro__ring-value.is-down{stroke:var(--danger)}.radar-pro__ring-value.is-locked,.radar-pro__ring-value.is-empty{stroke:color-mix(in srgb,var(--text-muted) 55%,transparent);filter:none}
+.radar-pro__center{position:absolute;inset:0;display:grid;place-content:center;justify-items:center;gap:7px;text-align:center;z-index:2;padding:24px;animation:radar-center-in .55s cubic-bezier(.2,.8,.2,1)}
+.radar-pro__eyebrow{font-size:12px;color:var(--accent);letter-spacing:0}
+.radar-pro__value{font-size:clamp(40px,5vw,54px);line-height:1;font-weight:900;font-variant-numeric:tabular-nums;color:var(--text-primary)}
+.radar-pro__value.is-up{color:var(--success)}.radar-pro__value.is-down{color:var(--danger)}.radar-pro__value.is-locked{color:var(--text-muted);font-size:42px}
+.radar-pro__status{max-width:210px;font-size:11px;line-height:1.7;color:var(--text-secondary)}
+.radar-pro__pips{display:flex;gap:6px;margin-top:4px}.radar-pro__pips i{width:7px;height:7px;border-radius:50%;background:color-mix(in srgb,var(--text-muted) 45%,transparent)}.radar-pro__pips i.is-on{background:var(--accent);box-shadow:0 0 12px color-mix(in srgb,var(--accent) 60%,transparent)}
+.radar-pro__token{position:absolute;z-index:3;width:78px;min-height:78px;border-radius:22px;border:1px solid #736242;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:8px 6px;cursor:pointer;appearance:none;font:inherit;background:linear-gradient(145deg,#342d20,#14161b);color:var(--accent);box-shadow:0 12px 28px #0006;transition:transform .35s ease,box-shadow .35s ease,border-color .35s ease}
+.radar-pro__token b{font:800 22px Georgia,serif;line-height:1}.radar-pro__token small{font-size:10px;color:#cbbfa6}.radar-pro__token em{font-style:normal;font-size:10px;font-weight:700;color:var(--text-primary);font-variant-numeric:tabular-nums}
+.radar-pro__token.token-gold{top:28px;left:50%;transform:translateX(-50%) rotate(-4deg)}
+.radar-pro__token.token-silver{left:10%;bottom:58px;background:linear-gradient(145deg,#2e3541,#12151c);color:#c1cddb;border-color:#4a5666}
+.radar-pro__token.token-dollar{right:10%;bottom:58px;background:linear-gradient(145deg,#243a32,#121a19);color:#85c9ac;border-color:#3e6454}
+.radar-pro__token.is-active{transform:translateX(-50%) scale(1.14);box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 75%,transparent),0 18px 40px var(--shadow)}
+.radar-pro__token.token-silver.is-active,.radar-pro__token.token-dollar.is-active{transform:scale(1.14)}
+.radar-pro__token.is-locked{opacity:.78}
+.radar-pro__token.is-locked em{color:var(--text-muted)}
+.radar-pro__caption{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:8px;white-space:nowrap;font-size:11px;color:var(--text-secondary);background:color-mix(in srgb,var(--surface-card) 92%,transparent);border:1px solid var(--border-subtle);border-radius:999px;padding:6px 14px;z-index:3}
+@keyframes radar-center-in{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:none}}
+@media(max-width:760px){.radar-pro{height:380px;border-radius:22px}.radar-pro__value{font-size:40px}.radar-pro__token{width:68px;min-height:68px;border-radius:18px}.radar-pro__token.token-gold{top:18px}.radar-pro__token.token-silver{left:6%;bottom:52px}.radar-pro__token.token-dollar{right:6%;bottom:52px}.radar-pro__ring{width:210px;height:210px}}
+@media(prefers-reduced-motion:reduce){.radar-pro__sweep,.radar-pro__glow,.radar-pro__center{animation:none!important}}

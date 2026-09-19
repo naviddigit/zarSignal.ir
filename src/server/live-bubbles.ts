@@ -37,7 +37,7 @@ export function computeLiveBubbles(snapshot: Snapshot): LiveBubbleCard[] {
   const usd = requireQuote(snapshot, 'USD');
 
   if (!melted.ok || !xau.ok || !usd.ok) {
-    const reason = !melted.ok ? melted.reason : !xau.ok ? xau.reason : usd.reason;
+    const reason = !melted.ok ? melted.reason : !xau.ok ? xau.reason : !usd.ok ? usd.reason : 'unavailable';
     return [
       { key: 'GOLD_BUBBLE', status: 'unavailable', percent: null, theoretical: null, reason },
       silver,
