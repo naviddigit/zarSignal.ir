@@ -112,3 +112,27 @@ html[data-theme='light'] .calculator-screen>span,html[data-theme='light'] .calcu
 .formula-live{margin-bottom:18px}.formula-live h2{margin-bottom:16px}.formula-live__grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px}.formula-live__grid article{display:grid;gap:4px;padding:12px;border:1px solid var(--border-subtle);border-radius:10px;background:var(--surface-soft)}.formula-live__grid strong{font-size:11px}.formula-live__grid small,.formula-live__grid em{font-size:8px;color:var(--text-muted);font-style:normal}.formula-live__grid span{font-size:9px;color:var(--text-secondary)}.formula-source-picker{margin:0;padding:14px;border:1px solid var(--border-subtle);border-radius:11px}.formula-source-picker legend{padding:0 7px;color:var(--text-primary);font-size:11px;font-weight:800}.formula-source-picker>p{margin:0 0 12px;color:var(--text-muted);font-size:9px}.formula-source-picker>div{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.formula-source-picker section{display:grid;grid-template-columns:1fr 1fr;gap:7px;padding:10px;border:1px solid var(--border-subtle);border-radius:9px;background:var(--surface-soft)}.formula-source-picker section>strong{grid-column:1/-1;font-size:10px}.formula-source-picker section>strong small{color:var(--text-muted);font:8px Arial}.formula-source-picker .ds-checkbox{padding:7px;background:var(--surface-card);border-radius:8px}.formula-source-picker .ds-checkbox__copy strong{font-size:9px}.formula-source-picker .ds-checkbox__copy small{font-size:8px}
 .calculator-source{display:grid;grid-template-columns:1fr auto;gap:8px 12px;margin-bottom:12px}.calculator-source label{display:grid;gap:5px;color:var(--text-secondary);font-size:9px}.calculator-source select{min-width:0;padding:10px;border:1px solid var(--border-strong);border-radius:9px;background:var(--surface-input);color:var(--text-primary);font:11px Vazirmatn}.calculator-source>div{display:flex;align-items:end;gap:7px}.calculator-source button{display:flex;align-items:center;gap:5px;padding:9px 10px;border:1px solid color-mix(in srgb,var(--accent) 45%,var(--border-strong));border-radius:8px;background:color-mix(in srgb,var(--accent) 10%,var(--surface-card));color:var(--text-primary);font:9px Vazirmatn;cursor:pointer}.calculator-source button:hover{border-color:var(--accent);color:var(--accent)}.calculator-source button:disabled{opacity:.45;cursor:not-allowed}.calculator-source>small{grid-column:1/-1;color:var(--text-muted);font-size:8px}
 @media(max-width:900px){.formula-live__grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:700px){.formula-live__grid,.formula-source-picker>div{grid-template-columns:1fr}.calculator-source{grid-template-columns:1fr}.calculator-source>div{align-items:stretch}.calculator-source>small{grid-column:1}.calculator-source button{flex:1;justify-content:center}}
+
+/* Live bubble radar + readable cards */
+.radar-token{appearance:none;cursor:pointer;z-index:2;padding:0;font:inherit}
+.radar-token.is-active{transform:scale(1.12);box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 70%,transparent),0 16px 36px var(--shadow);z-index:3}
+.radar-token.is-active.token-gold{animation:none;transform:scale(1.12) rotate(-6deg)}
+.radar-token.is-active.token-silver{animation:none;transform:scale(1.12) rotate(6deg)}
+.radar-token.is-active.token-dollar{animation:none;transform:scale(1.12) rotate(-4deg)}
+.radar-center{gap:6px;min-width:160px;text-align:center;z-index:2}
+.radar-center strong{font-size:15px}
+.radar-bubble-value{font-size:34px;line-height:1.1;font-weight:800;color:var(--text-primary);font-variant-numeric:tabular-nums}
+.radar-bubble-value.is-up{color:var(--success)}
+.radar-bubble-value.is-down{color:var(--danger)}
+.radar-center small{max-width:180px;line-height:1.5;font-size:10px}
+.bubble-value{font-weight:800;font-variant-numeric:tabular-nums;color:var(--text-primary)!important;letter-spacing:-.5px}
+.bubble-value.is-up{color:var(--success)!important}
+.bubble-value.is-down{color:var(--danger)!important}
+.bubble-value span{display:block;max-width:210px;line-height:1.7;font-size:12px!important;color:var(--text-secondary)!important;font-weight:500}
+.bubble-card p{font-size:13px!important;line-height:1.9;color:var(--text-secondary)!important}
+.bubble-card.is-blocked{opacity:.88}
+.bubble-card.is-stale .bubble-value span{color:color-mix(in srgb,var(--accent) 80%,var(--text-secondary))!important}
+.gauge{margin-top:8px}
+.gauge>i{position:absolute;top:-3px;width:10px;height:10px;border-radius:50%;background:var(--accent);transform:translateX(-50%);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 25%,transparent);transition:inset-inline-start .45s ease}
+.gauge-labels{font-size:10px!important;color:var(--text-muted)}
+@media(max-width:760px){.radar-bubble-value{font-size:28px}.bubble-value{font-size:42px!important}}
