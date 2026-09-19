@@ -22,3 +22,12 @@ export async function getSnapshot(): Promise<Snapshot> {
     return { mode: 'live', status: 'unavailable', quotes: [] };
   }
 }
+
+/** Public site + sold API never expose upstream provider name or URL. */
+export async function getPublicSnapshot(): Promise<Snapshot> {
+  const snapshot = await getSnapshot();
+  return {
+    ...snapshot,
+    quotes: snapshot.quotes.map(quote => ({ ...quote, source: 'زرسیگنال', sourceUrl: null })),
+  };
+}

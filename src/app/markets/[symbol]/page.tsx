@@ -7,7 +7,7 @@ import { RelativeTime } from '@/components/relative-time';
 import { FaqAccordion } from '@/components/faq-accordion';
 import { JsonLd } from '@/components/json-ld';
 import { formatPrice, instruments } from '@/lib/market';
-import { getSnapshot } from '@/server/quotes';
+import { getPublicSnapshot } from '@/server/quotes';
 
 type Props = { params: Promise<{ symbol: string }> };
 
@@ -30,19 +30,19 @@ export default async function AssetPage({ params }: Props) {
   const { symbol } = await params;
   const asset = instruments.find(item => item.symbol.toLowerCase() === symbol);
   if (!asset) notFound();
-  const snapshot = await getSnapshot();
+  const snapshot = await getPublicSnapshot();
   const quote = snapshot.quotes.find(item => item.symbol === asset.symbol);
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://zarsignal.ir';
   const url = `${siteUrl}/markets/${symbol}`;
   const related = instruments.filter(item => item.symbol !== asset.symbol && item.category === asset.category).slice(0, 3);
   const faq = [
-    { question: `قیمت ${asset.name} از کجا دریافت می‌شود؟`, answer: quote ? `قیمت نمایش‌داده‌شده از ${quote.source} دریافت شده و زمان دریافت آن کنار قیمت درج می‌شود.` : 'تا اتصال موفق منبع، زر‌سیگنال عددی را به‌عنوان قیمت جاری نمایش نمی‌دهد.' },
+    { question: `قیمت ${asset.name} از کجا می‌آید؟`, answer: quote ? 'قیمت از لایه دادهٔ زر‌سیگنال می‌آید و زمان دریافت کنار آن نمایش داده می‌شود.' : 'تا اتصال موفق منبع، زر‌سیگنال عددی را به‌عنوان قیمت جاری نمایش نمی‌دهد.' },
     { question: `واحد قیمت ${asset.name} چیست؟`, answer: `هر عدد این صفحه برای یک ${asset.unit} و با ارز ${asset.currency === 'TMN' ? 'تومان' : 'دلار آمریکا'} نمایش داده می‌شود.` },
-    { question: 'آیا این صفحه پیشنهاد خرید یا فروش می‌دهد؟', answer: 'خیر. این صفحه داده مشاهده‌شده و روش خواندن آن را نشان می‌دهد. فعال‌شدن تحلیل نیازمند فرمول تأییدشده و نمایش فرض‌ها و ریسک است.' },
+    { question: 'آیا این صفحه پیشنهاد خرید یا فروش می‌دهد؟', answer: 'خیر. این صفحه داده مشاهده‌شده را نشان می‌دهد. تحلیل حباب فقط با فرمول تأییدشده فعال می‌شود.' },
   ];
 
   return <main id="main" className="shell asset-page">
-    <JsonLd data={{ '@context': 'https://schema.org', '@type': 'Dataset', name: `قیمت ${asset.name}`, description: asset.description, url, inLanguage: 'fa-IR', temporalCoverage: quote?.observedAt, variableMeasured: ['قیمت خرید', 'قیمت فروش', 'زمان دریافت'], creator: { '@type': 'Organization', name: 'زرسیگنال', url: siteUrl }, isBasedOn: quote?.sourceUrl }}/>
+    <JsonLd data={{ '@context': 'https://schema.org', '@type': 'Dataset', name: `قیمت ${asset.name}`, description: asset.description, url, inLanguage: 'fa-IR', temporalCoverage: quote?.observedAt, variableMeasured: ['قیمت خرید', 'قیمت فروش', 'زمان دریافت'], creator: { '@type': 'Organization', name: 'زرسیگنال', url: siteUrl } }}/>
     <JsonLd data={{ '@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: [{ '@type': 'ListItem', position: 1, name: 'زرسیگنال', item: siteUrl }, { '@type': 'ListItem', position: 2, name: 'بازارها', item: `${siteUrl}/#markets` }, { '@type': 'ListItem', position: 3, name: asset.name, item: url }] }}/>
     <nav className="asset-breadcrumb" aria-label="مسیر صفحه"><Link href="/">زرسیگنال</Link><span>/</span><Link href="/#markets">بازارها</Link><span>/</span><strong>{asset.name}</strong></nav>
 
