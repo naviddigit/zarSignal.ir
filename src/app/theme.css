@@ -204,3 +204,25 @@ html[data-theme='light'] .calculator-screen>span,html[data-theme='light'] .calcu
 @keyframes radar-spin{to{transform:rotate(360deg)}}
 @media(max-width:760px){.radar-orbit{height:360px}.radar-orbit__node{width:56px;height:56px;margin:-28px;transform:rotate(calc(var(--i) * 60deg)) translateY(-122px) rotate(calc(var(--i) * -60deg))}.radar-orbit__node-face{width:56px;height:56px;border-radius:16px}.radar-orbit__node-face b{font-size:17px}.radar-orbit__value{font-size:34px}.radar-orbit__gauge{width:190px;height:190px}.radar-orbit__ring-soft{width:250px;height:250px}}
 @media(prefers-reduced-motion:reduce){.radar-orbit__wheel,.radar-orbit__sweep,.radar-orbit__glow,.radar-orbit__center{animation:none!important}}
+
+/* Restored radar: original layout + live center (no broken orbit wheel) */
+.radar-art.radar-restored{min-height:395px}
+.radar-token{appearance:none;cursor:pointer;z-index:3;padding:0}
+.radar-token.place-gold{top:36px;left:50%;transform:translateX(-50%) rotate(-6deg);animation:float-gold 4.8s ease-in-out infinite}
+.radar-token.place-silver{left:14%;top:58%;background:linear-gradient(140deg,#2e3541,#12151c);color:#c1cddb;border-color:#4a5666;transform:rotate(8deg);animation:float-silver 5.7s .3s ease-in-out infinite}
+.radar-token.place-dollar{right:12%;top:58%;background:linear-gradient(140deg,#243a32,#121a19);color:#85c9ac;border-color:#3e6454;transform:rotate(-8deg);animation:float-dollar 5.2s .6s ease-in-out infinite}
+.radar-token.place-euro{left:10%;top:28%;background:linear-gradient(140deg,#243a32,#121a19);color:#85c9ac;border-color:#3e6454;transform:rotate(10deg);animation:float-dollar 6s .2s ease-in-out infinite}
+.radar-token.place-aed{right:10%;top:28%;background:linear-gradient(140deg,#2e3541,#12151c);color:#c1cddb;border-color:#4a5666;transform:rotate(-10deg);animation:float-silver 6.2s .4s ease-in-out infinite}
+.radar-token.place-dubai{bottom:52px;left:50%;transform:translateX(-50%) rotate(4deg);background:linear-gradient(140deg,#342d20,#14161b);animation:float-gold 5.4s .5s ease-in-out infinite}
+.radar-token.is-active{box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 75%,transparent),0 14px 32px #0007;z-index:4}
+.radar-token.place-gold.is-active{transform:translateX(-50%) scale(1.12) rotate(-4deg);animation:none}
+.radar-token.place-dubai.is-active{transform:translateX(-50%) scale(1.12) rotate(2deg);animation:none}
+.radar-token.place-silver.is-active,.radar-token.place-dollar.is-active,.radar-token.place-euro.is-active,.radar-token.place-aed.is-active{transform:scale(1.12);animation:none}
+.radar-token.is-locked{opacity:.78;filter:saturate(.8)}
+.radar-lock-badge{position:absolute;top:4px;left:4px;width:14px;height:14px;border-radius:50%;display:grid;place-items:center;background:#0008;color:#c9d0da}
+.radar-center-live{gap:6px;z-index:2;min-width:170px;text-align:center;animation:radar-center-in .4s ease}
+.radar-live-label{font-size:13px;color:var(--accent)}
+.radar-live-value{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-size:clamp(34px,4.2vw,46px);line-height:1;font-weight:900;font-variant-numeric:tabular-nums;color:var(--text-primary)}
+.radar-live-value.is-up{color:var(--success)}.radar-live-value.is-down{color:var(--danger)}.radar-live-value.is-locked{color:var(--text-muted);font-size:30px}
+.radar-center-live small{max-width:190px;font-size:10px;line-height:1.6;color:var(--text-secondary)}
+@media(max-width:760px){.radar-token{width:56px;height:56px;border-radius:16px}.radar-token b{font-size:18px}.radar-token.place-euro{left:6%;top:22%}.radar-token.place-aed{right:6%;top:22%}.radar-token.place-silver{left:8%}.radar-token.place-dollar{right:6%}.radar-live-value{font-size:32px}}
