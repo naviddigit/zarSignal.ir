@@ -2,9 +2,9 @@
 
 | formula_id | version | status | notes |
 | --- | --- | --- | --- |
-| GOLD_BUBBLE | 1.0 | APPROVED_FORMULA | Neutral SPEC_BLOCKER; needs MARKET_18K feed |
-| SILVER_BUBBLE | 1.0 | APPROVED_FORMULA | Neutral SPEC_BLOCKER; needs SILVER_999_MARKET feed |
-| USD_GAP | 1.0 | APPROVED_FORMULA | Not fundamental USD fair value; needs MARKET_18K |
+| MAZANEH_TO_18K | 1.0 | APPROVED | DERIVED MARKET_18K from GOLD_MELTED |
+| GOLD_BUBBLE | 1.0 | APPROVED_LIVE_VIA_DERIVED | Uses MAZANEH_TO_18K; neutral SPEC_BLOCKER |
+| USD_GAP | 1.0 | APPROVED_LIVE_VIA_DERIVED | USD bubble card; neutral SPEC_BLOCKER |
+| SILVER_BUBBLE | 1.0 | BLOCKED | Needs SILVER_999_MARKET |
 
-Code: `src/server/bubble-formulas.ts`  
-Tests: `tests/bubble-formulas.test.ts`
+Code: `mazaneh-to-18k.ts`, `bubble-formulas.ts`, `live-bubbles.ts`

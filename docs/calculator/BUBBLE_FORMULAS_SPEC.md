@@ -18,16 +18,17 @@ LiveCloud is behavioral reference only. Formulas below are NOT reverse-engineere
 - Historical bubble(T) uses synchronized inputs at T only
 - Formula version must be persisted with history
 
-## Data gap vs current ZarSignal feed (SPEC_BLOCKER for live wiring)
+## Data vs feed
 
-Current live symbols: `GOLD_MELTED` (مثقال), `XAU_USD`, `XAG_USD`, `USD`, `EUR`, `AED`, `DUBAI_GOLD_OZ`.
+Upstream feed has `GOLD_MELTED` (مظنه مثقال ۷۰۵), not a separate 18K gram row and not SILVER_999.
 
-Missing for these formulas:
+Approved path (option B):
 
-- `MARKET_18K` = domestic 18K gold [Toman / gram]
-- `SILVER_999_MARKET` = domestic silver 999 [Toman / gram]
+- Derive `MARKET_18K` via `MAZANEH_TO_18K` (provenance DERIVED)
+- Enable GOLD_BUBBLE + USD_GAP
+- SILVER_BUBBLE remains SPEC_BLOCKER
 
-Do NOT invent conversion from مثقال آب‌شده → گرم ۱۸ عیار without a separate approved Spec.
+When a direct 18K feed arrives later, keep DERIVED and DIRECT side-by-side for data-quality cross-check.
 
 ## Modules
 
