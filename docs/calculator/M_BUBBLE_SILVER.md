@@ -1,0 +1,44 @@
+# SILVER_BUBBLE — حباب نقره ۹۹۹
+
+Status: Formula APPROVED · Neutral band SPEC_BLOCKER · Live wiring blocked until SILVER_999_MARKET feed exists
+
+Canonical asset: Silver 999
+
+## Inputs
+
+| Name | Meaning | Unit |
+| --- | --- | --- |
+| XAG_USD | global silver | USD / troy oz |
+| USD_IRT | domestic USD | Toman / USD |
+| SILVER_999_MARKET | domestic silver 999 | Toman / gram |
+
+## Constants
+
+```
+TROY_OZ_GRAMS = 31.1034768
+```
+
+## Formula
+
+```
+THEORETICAL_SILVER_999 = XAG_USD × USD_IRT / 31.1034768
+SILVER_GAP = SILVER_999_MARKET - THEORETICAL_SILVER_999
+SILVER_BUBBLE_PERCENT = SILVER_GAP / THEORETICAL_SILVER_999 × 100
+```
+
+## Golden tests
+
+### GT-SILVER-01
+
+- XAG_USD=50, USD_IRT=200000, SILVER_999_MARKET=350000
+- THEORETICAL ≈ 321507.47 · BUBBLE ≈ +8.8622%
+
+### GT-SILVER-02
+
+- XAG_USD=55, USD_IRT=230000, SILVER_999_MARKET=410000
+- THEORETICAL ≈ 406706.94 · BUBBLE ≈ +0.8097%
+
+### GT-SILVER-03
+
+- XAG_USD=40, USD_IRT=180000, SILVER_999_MARKET=220000
+- THEORETICAL ≈ 231485.38 · BUBBLE ≈ -4.9616%
