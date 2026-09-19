@@ -44,6 +44,14 @@ GOLD_MELTED = MARKET_18K * 4.608 * 705 / 750
 
 ## Golden test
 
-- Input: GOLD_MELTED = 100_000_000
-- Expected: MARKET_18K ≈ 23_089_835.46
-- Tolerance: ≤ 0.01 Toman (calculation layer)
+Input: `GOLD_MELTED = 100_000_000`
+
+Exact with constants above:
+
+```
+MARKET_18K = 100000000 × 750 / (705 × 4.608) ≈ 23086583.92
+```
+
+Tolerance: ≤ 0.01 Toman (calculation layer).
+
+Note: an earlier draft printed ≈ 23,089,835.46; that figure does not match these constants. Code and tests use the exact constant form.

@@ -5,7 +5,8 @@ import { goldBubble, usdGap } from '../src/server/bubble-formulas';
 
 test('GT-MAZANEH-TO-18K', () => {
   const derived = mazanehTo18k(100_000_000);
-  assert.ok(Math.abs(derived.market18k - 23_089_835.46) <= 0.01);
+  // Exact: 1e8 * 750 / (705 * 4.608) ≈ 23086583.92
+  assert.ok(Math.abs(derived.market18k - 23_086_583.92) <= 0.01);
   assert.equal(derived.provenance, 'DERIVED');
   assert.equal(derived.formulaId, 'MAZANEH_TO_18K');
 });
