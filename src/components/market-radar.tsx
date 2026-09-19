@@ -1,30 +1,17 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
-import { Lock } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Activity, Lock } from 'lucide-react';
 import type { LiveBubbleCard } from '@/lib/bubbles';
 
-type Focus = 'GOLD_BUBBLE' | 'SILVER_BUBBLE' | 'USD_BUBBLE' | 'EUR_LOCK' | 'AED_LOCK' | 'DUBAI_LOCK';
+type Focus = 'GOLD_BUBBLE' | 'SILVER_BUBBLE' | 'USD_BUBBLE';
 
-type Node = {
-  key: Focus;
-  token: string;
-  short: string;
-  place: string;
-  bubbleKey?: LiveBubbleCard['key'];
-  locked?: boolean;
+const order: Focus[] = ['GOLD_BUBBLE', 'SILVER_BUBBLE', 'USD_BUBBLE'];
+const meta: Record<Focus, { label: string; token: string; className: string; locked?: boolean }> = {
+  GOLD_BUBBLE: { label: 'حباب طلا', token: 'Au', className: 'token-gold' },
+  SILVER_BUBBLE: { label: 'حباب نقره', token: 'Ag', className: 'token-silver', locked: true },
+  USD_BUBBLE: { label: 'فاصله دلار', token: '$', className: 'token-dollar' },
 };
-
-const nodes: Node[] = [
-  { key: 'GOLD_BUBBLE', token: 'Au', short: 'طلا', place: 'place-gold', bubbleKey: 'GOLD_BUBBLE' },
-  { key: 'SILVER_BUBBLE', token: 'Ag', short: 'نقره', place: 'place-silver', bubbleKey: 'SILVER_BUBBLE', locked: true },
-  { key: 'USD_BUBBLE', token: '$', short: 'دلار', place: 'place-dollar', bubbleKey: 'USD_BUBBLE' },
-  { key: 'EUR_LOCK', token: '€', short: 'یورو', place: 'place-euro', locked: true },
-  { key: 'AED_LOCK', token: 'د', short: 'درهم', place: 'place-aed', locked: true },
-  { key: 'DUBAI_LOCK', token: 'Db', short: 'دبی', place: 'place-dubai', locked: true },
-];
-
-const autoFocus: Focus[] = ['GOLD_BUBBLE', 'USD_BUBBLE', 'SILVER_BUBBLE', 'EUR_LOCK', 'AED_LOCK', 'DUBAI_LOCK'];
 
 function formatPercent(value: number) {
   const sign = value > 0 ? '+' : '';
@@ -38,24 +25,19 @@ export function MarketRadar({ bubbles }: { bubbles: LiveBubbleCard[] }) {
   useEffect(() => {
     if (paused) return;
     const id = window.setInterval(() => {
-      setFocus(current => autoFocus[(autoFocus.indexOf(current) + 1) % autoFocus.length]);
-    }, 3600);
+      setFocus(current => order[(order.indexOf(current) + 1) % order.length]);
+    }, 4200);
     return () => window.clearInterval(id);
   }, [paused]);
 
-  const node = nodes.find(item => item.key === focus)!;
-  const card = useMemo(
-    () => (node.bubbleKey ? bubbles.find(item => item.key === node.bubbleKey) : undefined),
-    [bubbles, node.bubbleKey],
-  );
-  const ready = !node.locked && card && (card.status === 'ok' || card.status === 'stale') && card.percent != null;
-  const locked = Boolean(node.locked || card?.status === 'blocked');
-  const tone = ready ? (card!.percent! >= 0 ? 'up' : 'down') : locked ? 'locked' : 'empty';
-  const title = locked ? `${node.short} · قفل` : node.bubbleKey === 'USD_BUBBLE' ? 'فاصله دلار' : `حباب ${node.short}`;
+  const card = bubbles.find(item => item.key === focus);
+  const info = meta[focus];
+  const locked = Boolean(info.locked || card?.status === 'blocked');
+  const ready = !locked && card && (card.status === 'ok' || card.status === 'stale') && card.percent != null;
 
   return (
     <div
-      className={`radar-art radar-restored tone-${tone}`}
+      className={`radar-art radar-live focus-${focus.toLowerCase()}`}
       aria-label="رادار حباب بازار"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
@@ -66,41 +48,42 @@ export function MarketRadar({ bubbles }: { bubbles: LiveBubbleCard[] }) {
       <div className="orbit orbit-three" />
       <div className="radar-ray" />
       <span className="radar-label label-top">BUBBLE RADAR</span>
-      <span className="radar-label label-bottom">AUTO FOCUS</span>
+      <span className="radar-label label-bottom">LIVE SWITCH</span>
 
-      <div className="radar-center radar-center-live" key={focus} aria-live="polite">
-        <span className="radar-live-label">{title}</span>
-        <strong className={`radar-live-value is-${tone}`}>
-          {ready ? formatPercent(card!.percent!) : locked ? <><Lock size={18} aria-hidden /> قفل</> : '—'}
-        </strong>
+      <div className="radar-center" key={focus} aria-live="polite">
+        <Activity size={22} aria-hidden />
+        <strong>{info.label}</strong>
+        <b className={`radar-bubble-value ${ready ? (card!.percent! >= 0 ? 'is-up' : 'is-down') : locked ? 'is-locked' : ''}`}>
+          {ready ? formatPercent(card!.percent!) : locked ? <><Lock size={16} aria-hidden /> قفل</> : '—'}
+        </b>
         <small>
           {ready
-            ? (card!.status === 'stale' ? 'داده کمی قدیمی · سیگنال معامله نیست' : 'محاسبه زنده · سیگنال معامله نیست')
+            ? (card!.status === 'stale' ? 'داده کمی قدیمی · سیگنال معامله نیست' : 'محاسبه‌شده · سیگنال معامله نیست')
             : locked
               ? 'با اشتراک پریمیوم باز می‌شود'
               : card?.reason ?? 'در انتظار داده'}
         </small>
       </div>
 
-      {nodes.map(item => {
-        const itemCard = item.bubbleKey ? bubbles.find(bubble => bubble.key === item.bubbleKey) : undefined;
+      {order.map(key => {
+        const item = meta[key];
+        const itemCard = bubbles.find(bubble => bubble.key === key);
         const itemLocked = Boolean(item.locked || itemCard?.status === 'blocked');
         return (
           <button
-            key={item.key}
+            key={key}
             type="button"
-            className={`radar-token ${item.place} ${focus === item.key ? 'is-active' : ''} ${itemLocked ? 'is-locked' : ''}`}
-            aria-pressed={focus === item.key}
-            onClick={() => { setFocus(item.key); setPaused(true); }}
+            className={`radar-token ${item.className} ${focus === key ? 'is-active' : ''} ${itemLocked ? 'is-locked' : ''}`}
+            aria-pressed={focus === key}
+            onClick={() => { setFocus(key); setPaused(true); }}
           >
-            <b>{item.token}</b>
-            <small>{item.short}</small>
-            {itemLocked && <em className="radar-lock-badge" aria-label="قفل"><Lock size={9} /></em>}
+            {item.token}
+            <small>{item.label.replace('حباب ', '').replace('فاصله ', '')}</small>
           </button>
         );
       })}
 
-      <div className="radar-caption"><span className="status-dot" /> چرخش خودکار بین نمادها · قفل = پریمیوم</div>
+      <div className="radar-caption"><span className="status-dot" /> انتخاب نماد · نمایش حباب در مرکز</div>
     </div>
   );
 }
