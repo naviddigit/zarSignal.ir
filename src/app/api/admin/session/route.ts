@@ -3,10 +3,11 @@ import { adminSession, sessionValue, validAdminToken } from '@/server/admin-auth
 
 export async function POST(request: Request) {
   if (new URL(request.url).searchParams.get('_method') === 'delete') return destroy(request);
+  const session = sessionValue();
+  // ponytail: config() null used to look like "wrong token"; surface config first
+  if (!session) return redirectTo('/admin/login?error=config', request);
   const formData = await request.formData();
   if (!validAdminToken(formData.get('token'))) return redirectTo('/admin/login?error=1', request);
-  const session = sessionValue();
-  if (!session) return redirectTo('/admin/login?error=config', request);
   const response = redirectTo('/admin', request);
   response.cookies.set(adminSession.cookieName, session, { httpOnly: true, sameSite: 'strict', secure: process.env.NODE_ENV === 'production', path: '/', maxAge: adminSession.maxAge });
   return response;
