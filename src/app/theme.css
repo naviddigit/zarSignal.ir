@@ -171,3 +171,36 @@ html[data-theme='light'] .calculator-screen>span,html[data-theme='light'] .calcu
 @keyframes radar-center-in{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:none}}
 @media(max-width:760px){.radar-pro{height:380px;border-radius:22px}.radar-pro__value{font-size:40px}.radar-pro__token{width:68px;min-height:68px;border-radius:18px}.radar-pro__token.token-gold{top:18px}.radar-pro__token.token-silver{left:6%;bottom:52px}.radar-pro__token.token-dollar{right:6%;bottom:52px}.radar-pro__ring{width:210px;height:210px}}
 @media(prefers-reduced-motion:reduce){.radar-pro__sweep,.radar-pro__glow,.radar-pro__center{animation:none!important}}
+
+/* Orbit radar — floating tokens, no boxy cards */
+.radar-orbit{position:relative;isolation:isolate;height:420px;overflow:hidden;background:radial-gradient(ellipse at center,color-mix(in srgb,var(--accent) 8%,transparent),transparent 62%)}
+.radar-orbit__glow{position:absolute;inset:10% 12%;border-radius:50%;background:radial-gradient(circle,color-mix(in srgb,var(--accent) 20%,transparent),transparent 70%);filter:blur(16px);animation:neon-breathe 4.2s ease-in-out infinite;pointer-events:none}
+.radar-orbit.tint-silver .radar-orbit__glow{background:radial-gradient(circle,#9eb6d72e,transparent 70%)}
+.radar-orbit.tint-dollar .radar-orbit__glow,.radar-orbit.tint-euro .radar-orbit__glow,.radar-orbit.tint-aed .radar-orbit__glow,.radar-orbit.tint-dubai .radar-orbit__glow{background:radial-gradient(circle,#4fd6b02a,transparent 70%)}
+.radar-orbit__grid{position:absolute;inset:22px;opacity:.45;background-image:linear-gradient(#ffffff06 1px,transparent 1px),linear-gradient(90deg,#ffffff06 1px,transparent 1px);background-size:32px 32px;mask-image:radial-gradient(circle,black 30%,transparent 72%);pointer-events:none}
+.radar-orbit__ring-soft{position:absolute;top:50%;left:50%;width:300px;height:300px;transform:translate(-50%,-50%);border:1px dashed color-mix(in srgb,var(--accent) 22%,transparent);border-radius:50%;pointer-events:none}
+.radar-orbit__sweep{position:absolute;left:50%;top:50%;width:150px;height:150px;transform-origin:top left;border-radius:0 0 100% 0;background:conic-gradient(from 270deg at top left,transparent 0deg,color-mix(in srgb,var(--accent) 28%,transparent) 68deg,transparent 70deg);animation:scan 7s linear infinite;pointer-events:none}
+.radar-orbit__gauge{position:absolute;top:50%;left:50%;width:220px;height:220px;transform:translate(-50%,-50%) rotate(-90deg);pointer-events:none;z-index:1}
+.radar-orbit__gauge-track{fill:none;stroke:color-mix(in srgb,var(--text-muted) 25%,transparent);stroke-width:6}
+.radar-orbit__gauge-value{fill:none;stroke:var(--accent);stroke-width:6;stroke-linecap:round;transition:stroke-dashoffset .75s cubic-bezier(.2,.8,.2,1);filter:drop-shadow(0 0 8px color-mix(in srgb,var(--accent) 45%,transparent))}
+.radar-orbit__gauge-value.is-up{stroke:var(--success)}.radar-orbit__gauge-value.is-down{stroke:var(--danger)}.radar-orbit__gauge-value.is-locked,.radar-orbit__gauge-value.is-empty{stroke:color-mix(in srgb,var(--text-muted) 50%,transparent);filter:none}
+.radar-orbit__center{position:absolute;inset:0;z-index:2;display:grid;place-content:center;justify-items:center;gap:6px;text-align:center;padding:20px;animation:radar-center-in .45s ease}
+.radar-orbit__label{font-size:13px;color:var(--accent)}
+.radar-orbit__value{display:inline-flex;align-items:center;gap:8px;font-size:clamp(36px,4.6vw,48px);line-height:1;font-weight:900;font-variant-numeric:tabular-nums;color:var(--text-primary)}
+.radar-orbit__value.is-up{color:var(--success)}.radar-orbit__value.is-down{color:var(--danger)}.radar-orbit__value.is-locked{color:var(--text-muted);font-size:34px}
+.radar-orbit__center small{max-width:200px;font-size:11px;line-height:1.65;color:var(--text-secondary)}
+.radar-orbit__wheel{position:absolute;inset:0;z-index:3;animation:radar-spin 28s linear infinite;pointer-events:none}
+.radar-orbit__wheel.is-paused{animation-play-state:paused}
+.radar-orbit__node{position:absolute;top:50%;left:50%;width:64px;height:64px;margin:-32px;border:0;padding:0;background:transparent;cursor:pointer;pointer-events:auto;transform:rotate(calc(var(--i) * 60deg)) translateY(-148px) rotate(calc(var(--i) * -60deg))}
+.radar-orbit__node-face{width:64px;height:64px;border-radius:18px;border:1px solid color-mix(in srgb,var(--accent) 35%,transparent);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;background:linear-gradient(145deg,color-mix(in srgb,var(--surface-raised) 88%,var(--accent)),var(--surface-card));box-shadow:0 10px 24px #0005;color:var(--accent);transition:transform .3s ease,box-shadow .3s ease,border-color .3s ease}
+.radar-orbit__node-face b{font:800 20px Georgia,serif;line-height:1}.radar-orbit__node-face small{font-size:9px;color:var(--text-secondary)}.radar-orbit__node-face em{display:inline-flex;align-items:center;gap:3px;font-style:normal;font-size:9px;font-weight:700;color:var(--text-primary);font-variant-numeric:tabular-nums}
+.radar-orbit__node.is-gold .radar-orbit__node-face{color:#e7c479;border-color:#736242;background:linear-gradient(140deg,#342d20,#14161b)}
+.radar-orbit__node.is-silver .radar-orbit__node-face{color:#c1cddb;border-color:#4a5666;background:linear-gradient(140deg,#2e3541,#12151c)}
+.radar-orbit__node.is-dollar .radar-orbit__node-face,.radar-orbit__node.is-euro .radar-orbit__node-face,.radar-orbit__node.is-aed .radar-orbit__node-face,.radar-orbit__node.is-dubai .radar-orbit__node-face{color:#85c9ac;border-color:#3e6454;background:linear-gradient(140deg,#243a32,#121a19)}
+.radar-orbit__node.is-active .radar-orbit__node-face{transform:scale(1.16);box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 70%,transparent),0 14px 30px #0007}
+.radar-orbit__node.is-locked .radar-orbit__node-face{opacity:.72;filter:saturate(.75)}
+.radar-orbit__node.is-locked .radar-orbit__node-face em{color:var(--text-muted)}
+.radar-orbit__caption{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);z-index:4;display:flex;align-items:center;gap:8px;font-size:11px;color:var(--text-secondary);background:color-mix(in srgb,var(--surface-card) 88%,transparent);border:1px solid var(--border-subtle);border-radius:999px;padding:5px 12px;white-space:nowrap}
+@keyframes radar-spin{to{transform:rotate(360deg)}}
+@media(max-width:760px){.radar-orbit{height:360px}.radar-orbit__node{width:56px;height:56px;margin:-28px;transform:rotate(calc(var(--i) * 60deg)) translateY(-122px) rotate(calc(var(--i) * -60deg))}.radar-orbit__node-face{width:56px;height:56px;border-radius:16px}.radar-orbit__node-face b{font-size:17px}.radar-orbit__value{font-size:34px}.radar-orbit__gauge{width:190px;height:190px}.radar-orbit__ring-soft{width:250px;height:250px}}
+@media(prefers-reduced-motion:reduce){.radar-orbit__wheel,.radar-orbit__sweep,.radar-orbit__glow,.radar-orbit__center{animation:none!important}}
