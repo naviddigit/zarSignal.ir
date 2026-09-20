@@ -58,6 +58,7 @@ export function MarketRadar({ bubbles }: { bubbles: LiveBubbleCard[] }) {
       <div className="radar-pro__orbit radar-pro__orbit--b" />
       <div className="radar-pro__orbit radar-pro__orbit--c" />
       <div className="radar-pro__sweep" />
+      <div className="radar-pro__pulse" aria-hidden="true" />
 
       <svg className="radar-pro__ring" viewBox="0 0 200 200" aria-hidden="true">
         <circle cx="100" cy="100" r="78" className="radar-pro__ring-track" />
@@ -72,39 +73,40 @@ export function MarketRadar({ bubbles }: { bubbles: LiveBubbleCard[] }) {
       </svg>
 
       <div className="radar-pro__center" aria-live="polite" key={focus}>
-        <span className="radar-pro__eyebrow">{locked ? `${info.short} · قفل` : info.label}</span>
-        <strong className={`radar-pro__value is-${direction}`}>
-          {ready ? formatPercent(card!.percent!) : locked ? 'قفل' : '—'}
-        </strong>
-        <span className="radar-pro__status">
-          {ready
-            ? card!.status === 'stale'
-              ? 'داده کمی قدیمی · سیگنال معامله نیست'
-              : 'محاسبه زنده · سیگنال معامله نیست'
-            : locked
-              ? 'با اشتراک پریمیوم باز می‌شود'
-              : card?.reason ?? 'در انتظار داده'}
-        </span>
-        <div className="radar-pro__pips" aria-hidden="true">
-          {order.map(key => <i key={key} className={key === focus ? 'is-on' : ''} />)}
+        <div className="radar-pro__center-beat">
+          <span className="radar-pro__eyebrow">{locked ? `${info.short} · قفل` : info.label}</span>
+          <strong className={`radar-pro__value is-${direction}`}>
+            {ready ? formatPercent(card!.percent!) : locked ? 'قفل' : '—'}
+          </strong>
+          <span className="radar-pro__status">
+            {ready
+              ? card!.status === 'stale'
+                ? 'داده کمی قدیمی · سیگنال معامله نیست'
+                : 'محاسبه زنده · سیگنال معامله نیست'
+              : locked
+                ? 'با اشتراک پریمیوم باز می‌شود'
+                : card?.reason ?? 'در انتظار داده'}
+          </span>
+          <div className="radar-pro__pips" aria-hidden="true">
+            {order.map(key => <i key={key} className={key === focus ? 'is-on' : ''} />)}
+          </div>
         </div>
       </div>
 
       {order.map(key => {
         const item = bubbles.find(bubble => bubble.key === key);
         const itemLocked = Boolean(meta[key].locked || item?.status === 'blocked');
-        const readyToken = !itemLocked && item && (item.status === 'ok' || item.status === 'stale') && item.percent != null;
         return (
           <button
             key={key}
             type="button"
             className={`radar-pro__token ${meta[key].className} ${focus === key ? 'is-active' : ''} ${itemLocked ? 'is-locked' : ''}`}
             aria-pressed={focus === key}
+            aria-label={`${meta[key].short}${itemLocked ? ' قفل' : ''}`}
             onClick={() => { setFocus(key); setPaused(true); }}
           >
             <b>{meta[key].token}</b>
             <small>{meta[key].short}</small>
-            <em>{readyToken ? formatPercent(item!.percent!) : itemLocked ? 'قفل' : '—'}</em>
           </button>
         );
       })}
