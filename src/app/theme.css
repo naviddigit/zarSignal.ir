@@ -185,3 +185,57 @@ html[data-theme='light'] .calculator-screen>span,html[data-theme='light'] .calcu
 @keyframes radar-grid-drift{to{background-position:28px 28px}}
 @media(max-width:760px){.radar-pro{height:380px}.radar-pro__value{font-size:40px}.radar-pro__token{width:58px;height:58px;min-width:58px;min-height:58px;border-radius:16px}.radar-pro__token b{font-size:17px}.radar-pro__token.token-gold{top:14px}.radar-pro__token.token-silver{left:6%;bottom:50px}.radar-pro__token.token-dollar{right:6%;bottom:50px}.radar-pro__ring{width:210px;height:210px}.radar-pro__pulse{width:180px;height:180px}}
 @media(prefers-reduced-motion:reduce){.radar-pro__sweep,.radar-pro__glow,.radar-pro__center,.radar-pro__center-beat,.radar-pro__token,.radar-pro__ring-value,.radar-pro__orbit,.radar-pro__pulse,.radar-pro__grid{animation:none!important}}
+
+/* Mobile stability: no layout jump / flash */
+@media(max-width:900px){
+.hero{grid-template-columns:1fr;gap:18px;min-height:0;padding:18px 0 28px;align-items:stretch}
+.hero-copy{text-align:right;order:1}
+.radar-pro{order:2;height:340px;margin-inline:auto;width:100%;max-width:420px}
+.hero-ticker{grid-template-columns:1fr;margin:-6px 0 28px}
+.ticker-clock{display:none}
+.decision-strip{display:grid;grid-template-columns:1fr;gap:8px}
+.header-inner{gap:10px}
+.header-actions{gap:6px}
+.header-tool{display:none}
+}
+@media(max-width:760px){
+.shell{width:calc(100% - 28px)}
+.hero-reveal,.section-reveal{animation:none!important}
+.radar-pro__glow,.radar-pro__grid,.radar-pro__orbit,.radar-pro__sweep,.radar-pro__pulse,.radar-pro__center-beat,.radar-pro__ring-value,.radar-pro__token{animation:none!important}
+.radar-pro__token.token-gold{transform:translateX(-50%) rotate(-4deg)}
+.radar-pro__token.token-silver{transform:rotate(6deg)}
+.radar-pro__token.token-dollar{transform:rotate(-6deg)}
+.radar-pro__token.is-active.token-gold{transform:translateX(-50%) scale(1.08) rotate(-2deg)}
+.radar-pro__token.is-active.token-silver,.radar-pro__token.is-active.token-dollar{transform:scale(1.08)}
+.market-table tbody tr.quote-updated,.market-table tbody tr.quote-updated td{animation:none!important}
+.ticker-item:before{animation:none!important;display:none}
+.product-grid{grid-template-columns:1fr}
+.topline{flex-wrap:wrap;gap:6px;font-size:10px}
+}
+
+/* Calculator modes + melted UX */
+.calculator-modes{display:flex;gap:6px;margin-top:14px;padding:4px;border-radius:11px;background:var(--surface-soft);border:1px solid var(--border-subtle)}
+.calculator-modes button{flex:1;padding:9px 8px;border:0;border-radius:8px;background:transparent;color:var(--text-secondary);font:700 11px Vazirmatn;cursor:pointer}
+.calculator-modes button.is-on{background:var(--surface-card);color:var(--accent);box-shadow:0 3px 10px var(--shadow)}
+.calculator-source{grid-template-columns:1fr!important}
+.calculator-source>div{display:flex;flex-wrap:wrap;gap:7px}
+.calculator-form--two{grid-template-columns:1fr 1fr!important}
+.number-input.is-readonly{opacity:.85}
+.number-input.is-readonly input{cursor:default;color:var(--text-secondary)}
+@media(max-width:800px){.calculator-form--two{grid-template-columns:1fr!important}.calculator-modes button{font-size:10px;padding:8px 4px}}
+
+/* Bubble history chart */
+.bubble-history{margin-top:28px;padding:22px 22px 16px}
+.bubble-history__head{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:14px;margin-bottom:14px}
+.bubble-history__head h2{margin:4px 0;font-size:22px}
+.bubble-history__head p{margin:0;color:var(--text-secondary);font-size:12px}
+.bubble-history__controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.bubble-history__controls button,.bubble-history__controls select{padding:8px 11px;border:1px solid var(--border-subtle);border-radius:9px;background:var(--surface-soft);color:var(--text-secondary);font:11px Vazirmatn;cursor:pointer}
+.bubble-history__controls button.is-on{border-color:var(--accent);color:var(--accent);background:color-mix(in srgb,var(--accent) 10%,var(--surface-card))}
+.bubble-history__chart{position:relative;height:240px;border:1px solid var(--border-subtle);border-radius:14px;background:var(--surface-raised);overflow:hidden}
+.bubble-history__chart svg{width:100%;height:100%;display:block}
+.bubble-history__empty{display:grid;place-items:center;height:100%;color:var(--text-muted);font-size:12px;padding:20px;text-align:center}
+.bubble-history__legend{display:flex;gap:14px;margin-top:10px;font-size:10px;color:var(--text-secondary)}
+.bubble-history__legend i{display:inline-block;width:16px;height:3px;margin-left:6px;border-radius:2px;vertical-align:middle}
+.bubble-history__legend .is-price{background:var(--accent)}
+.bubble-history__legend .is-bubble{background:var(--success)}

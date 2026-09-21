@@ -7,7 +7,7 @@ export function RelativeTime({ value, prefix = '' }: { value: string; prefix?: s
   const [now, setNow] = useState<number | null>(null);
   useEffect(() => {
     setNow(Date.now());
-    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    const timer = window.setInterval(() => setNow(Date.now()), 30_000);
     return () => window.clearInterval(timer);
   }, []);
   const exact = new Intl.DateTimeFormat('fa-IR', {

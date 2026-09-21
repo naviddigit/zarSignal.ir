@@ -5,7 +5,7 @@ import { readLocalMarket, saveLocalFailure, saveLocalQuotes } from './local-stor
 
 export const HAMRATE_KEY = 'hamrate-web';
 export const HAMRATE_URL = 'https://hamrate.com/';
-export const MIN_POLL_SECONDS = 180;
+export const MIN_POLL_SECONDS = 60;
 export type MarketSourceSettings = { id?: string; key: string; name: string; url: string; enabled: boolean; pollSeconds: number; config: SourceConfig };
 
 export async function defaultHamrateConfig() {
@@ -54,7 +54,18 @@ export async function runHamrateIngestion(settings?: MarketSourceSettings, signa
       await tx.ingestionRun.update({ where: { id: run!.id }, data: { status: 'SUCCEEDED', count: inserted.count, finishedAt: new Date() } });
       return inserted.count;
     });
-    return { count: result, observedAt: quotes[0]?.observedAt ?? null, storage: 'postgresql' as const };
+    const { recordBubbleSnapshots } = await import('@/server/bubble-history');
+    const history = await recordBubbleSnapshots(
+      quotes.map(quote => ({
+        symbol: quote.symbol,
+        buy: Number(quote.buy),
+        sell: Number(quote.sell),
+        observedAt: new Date(quote.observedAt),
+      })),
+      'live',
+    ).catch(() => ({ saved: 0 }));
+    return { count: result, observedAt: quotes[0]?.observedAt ?? null, storage: 'postgresql' as const, snapshots: history.saved };
+
   } catch (error) {
     const message = error instanceof Error ? error.message.slice(0, 300) : 'دریافت داده ناموفق بود.';
     if (run) await db.ingestionRun.update({ where: { id: run.id }, data: { status: 'FAILED', error: message, finishedAt: new Date() } }).catch(() => undefined);

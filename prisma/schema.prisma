@@ -202,6 +202,56 @@ model MarketQuote {
   @@index([symbol, observedAt(sort: Desc)])
 }
 
+model MarketInputSnapshot {
+  id                   String   @id @default(cuid())
+  capturedAt           DateTime @default(now())
+  mode                 String
+  quality              String
+  goldMeltedMid        Decimal? @db.Decimal(24, 6)
+  goldMeltedBid        Decimal? @db.Decimal(24, 6)
+  goldMeltedAsk        Decimal? @db.Decimal(24, 6)
+  goldMeltedObservedAt DateTime?
+  xauUsdMid            Decimal? @db.Decimal(24, 6)
+  xauUsdBid            Decimal? @db.Decimal(24, 6)
+  xauUsdAsk            Decimal? @db.Decimal(24, 6)
+  xauUsdObservedAt     DateTime?
+  usdIrtMid            Decimal? @db.Decimal(24, 6)
+  usdIrtBid            Decimal? @db.Decimal(24, 6)
+  usdIrtAsk            Decimal? @db.Decimal(24, 6)
+  usdIrtObservedAt     DateTime?
+  market18k            Decimal? @db.Decimal(24, 6)
+  mazanehVersion       String?
+  silver999Mid         Decimal? @db.Decimal(24, 6)
+  silver999ObservedAt  DateTime?
+  bubbles              BubbleSnapshot[]
+
+  @@index([capturedAt(sort: Desc)])
+}
+
+model BubbleSnapshot {
+  id                String   @id @default(cuid())
+  inputSnapshotId   String
+  instrumentKey     String
+  formulaId         String
+  formulaVersion    String
+  conversionVersion String?
+  provenance        String
+  marketPrice       Decimal? @db.Decimal(24, 6)
+  marketBid         Decimal? @db.Decimal(24, 6)
+  marketAsk         Decimal? @db.Decimal(24, 6)
+  theoreticalPrice  Decimal? @db.Decimal(24, 6)
+  bubbleAbsolute    Decimal? @db.Decimal(24, 8)
+  bubblePercent     Decimal? @db.Decimal(24, 8)
+  status            String
+  computedAt        DateTime @default(now())
+  capturedAt        DateTime
+  inputSnapshot     MarketInputSnapshot @relation(fields: [inputSnapshotId], references: [id], onDelete: Cascade)
+
+  @@unique([inputSnapshotId, formulaId])
+  @@index([formulaId, capturedAt(sort: Desc)])
+  @@index([instrumentKey, capturedAt(sort: Desc)])
+}
+
 model IngestionRun {
   id         String    @id @default(cuid())
   source     String
