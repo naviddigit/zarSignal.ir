@@ -1,6 +1,6 @@
 import { unstable_cache } from 'next/cache';
 import { db } from '@/lib/db';
-import { FARAZ_KEY } from '@/server/ingestion/faraz';
+import { FARAZ_KEY } from '@/server/ingestion/faraz-meta';
 import { formulaCriticalSymbols, instruments, isStale, type Quote, type Snapshot } from '@/lib/market';
 
 const liveQuotes = unstable_cache(async (): Promise<Snapshot> => {

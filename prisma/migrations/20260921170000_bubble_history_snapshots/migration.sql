@@ -1,5 +1,5 @@
 ﻿-- Historical calculation snapshots (Price + Bubble at time T)
-CREATE TABLE "MarketInputSnapshot" (
+CREATE TABLE IF NOT EXISTS "MarketInputSnapshot" (
     "id" TEXT NOT NULL,
     "capturedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "mode" TEXT NOT NULL,
@@ -23,7 +23,7 @@ CREATE TABLE "MarketInputSnapshot" (
     CONSTRAINT "MarketInputSnapshot_pkey" PRIMARY KEY ("id")
 );
 
-CREATE TABLE "BubbleSnapshot" (
+CREATE TABLE IF NOT EXISTS "BubbleSnapshot" (
     "id" TEXT NOT NULL,
     "inputSnapshotId" TEXT NOT NULL,
     "instrumentKey" TEXT NOT NULL,
@@ -43,9 +43,19 @@ CREATE TABLE "BubbleSnapshot" (
     CONSTRAINT "BubbleSnapshot_pkey" PRIMARY KEY ("id")
 );
 
-CREATE INDEX "MarketInputSnapshot_capturedAt_idx" ON "MarketInputSnapshot"("capturedAt" DESC);
-CREATE UNIQUE INDEX "BubbleSnapshot_inputSnapshotId_formulaId_key" ON "BubbleSnapshot"("inputSnapshotId", "formulaId");
-CREATE INDEX "BubbleSnapshot_formulaId_capturedAt_idx" ON "BubbleSnapshot"("formulaId", "capturedAt" DESC);
-CREATE INDEX "BubbleSnapshot_instrumentKey_capturedAt_idx" ON "BubbleSnapshot"("instrumentKey", "capturedAt" DESC);
+CREATE INDEX IF NOT EXISTS "MarketInputSnapshot_capturedAt_idx" ON "MarketInputSnapshot"("capturedAt" DESC);
+CREATE UNIQUE INDEX IF NOT EXISTS "BubbleSnapshot_inputSnapshotId_formulaId_key" ON "BubbleSnapshot"("inputSnapshotId", "formulaId");
+CREATE INDEX IF NOT EXISTS "BubbleSnapshot_formulaId_capturedAt_idx" ON "BubbleSnapshot"("formulaId", "capturedAt" DESC);
+CREATE INDEX IF NOT EXISTS "BubbleSnapshot_instrumentKey_capturedAt_idx" ON "BubbleSnapshot"("instrumentKey", "capturedAt" DESC);
 
-ALTER TABLE "BubbleSnapshot" ADD CONSTRAINT "BubbleSnapshot_inputSnapshotId_fkey" FOREIGN KEY ("inputSnapshotId") REFERENCES "MarketInputSnapshot"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'BubbleSnapshot_inputSnapshotId_fkey'
+  ) THEN
+    ALTER TABLE "BubbleSnapshot"
+      ADD CONSTRAINT "BubbleSnapshot_inputSnapshotId_fkey"
+      FOREIGN KEY ("inputSnapshotId") REFERENCES "MarketInputSnapshot"("id")
+      ON DELETE CASCADE ON UPDATE CASCADE;
+  END IF;
+END $$;

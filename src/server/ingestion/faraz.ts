@@ -2,11 +2,10 @@ import { z } from 'zod';
 import { db } from '@/lib/db';
 import { instruments, type Quote, type Symbol } from '@/lib/market';
 import farazConfig from '../../../config/faraz.json';
+import { FARAZ_KEY, FARAZ_MIN_POLL_SECONDS, FARAZ_URL } from './faraz-meta';
 import { readLocalMarket, saveLocalFailure, saveLocalQuotes } from './local-store';
 
-export const FARAZ_KEY = 'faraz-watchlist-3';
-export const FARAZ_URL = 'https://faraz.io/';
-export const FARAZ_MIN_POLL_SECONDS = 60;
+export { FARAZ_KEY, FARAZ_MIN_POLL_SECONDS, FARAZ_URL } from './faraz-meta';
 
 const symbolEnum = z.enum([
   'GOLD_MELTED', 'GOLD_18K', 'XAU_USD', 'XAG_USD', 'SILVER_999', 'USD', 'AED', 'SEKE_CASH', 'ROB_SEKE',

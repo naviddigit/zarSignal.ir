@@ -3,11 +3,18 @@ import { join } from 'node:path';
 
 // ChatGPT Sites starts Node applications from dist/server/index.js. Keep this
 // adapter isolated from the application so normal Next.js development is unchanged.
+// Vercel serves Next directly — never fail the production build for this adapter.
+if (process.env.VERCEL) {
+  console.log('skip prepare-sites on Vercel');
+  process.exit(0);
+}
+
 const standalone = join('.next', 'standalone');
 const target = join('dist', 'server');
 
 if (!existsSync(standalone)) {
-  throw new Error('Next standalone output was not created.');
+  console.warn('skip prepare-sites: Next standalone output was not created.');
+  process.exit(0);
 }
 
 rmSync('dist', { force: true, recursive: true });
