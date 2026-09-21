@@ -23,9 +23,11 @@ test('live bubbles compute gold and usd from mazaneh even when slightly stale', 
       { symbol: 'XAU_USD', currency: 'USD', unit: 'oz', buy: '4000', sell: '4000', source: 't', sourceUrl: null, observedAt: old, fetchedAt: old },
       { symbol: 'USD', currency: 'TMN', unit: 'دلار', buy: '200000', sell: '200000', source: 't', sourceUrl: null, observedAt: old, fetchedAt: old },
       { symbol: 'XAG_USD', currency: 'USD', unit: 'oz', ...base },
-      { symbol: 'EUR', currency: 'TMN', unit: 'یورو', ...base },
       { symbol: 'AED', currency: 'TMN', unit: 'درهم', ...base },
-      { symbol: 'DUBAI_GOLD_OZ', currency: 'USD', unit: 'oz', ...base },
+      { symbol: 'GOLD_18K', currency: 'TMN', unit: 'گرم', ...base },
+      { symbol: 'SILVER_999', currency: 'TMN', unit: 'گرم', ...base },
+      { symbol: 'SEKE_CASH', currency: 'TMN', unit: 'عدد', ...base },
+      { symbol: 'ROB_SEKE', currency: 'TMN', unit: 'عدد', ...base },
     ],
   };
   const cards = computeLiveBubbles(snapshot);

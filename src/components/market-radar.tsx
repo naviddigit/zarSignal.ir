@@ -18,12 +18,6 @@ function formatPercent(value: number) {
   return `${sign}${new Intl.NumberFormat('fa-IR', { maximumFractionDigits: 2, minimumFractionDigits: 2 }).format(value)}٪`;
 }
 
-function ringOffset(percent: number | null) {
-  const clamped = percent == null || !Number.isFinite(percent) ? 0 : Math.max(-12, Math.min(12, percent));
-  const circumference = 2 * Math.PI * 78;
-  return circumference * (1 - Math.abs(clamped) / 12);
-}
-
 export function MarketRadar({ bubbles }: { bubbles: LiveBubbleCard[] }) {
   const [focus, setFocus] = useState<Focus>('GOLD_BUBBLE');
   const [paused, setPaused] = useState(false);
@@ -43,7 +37,6 @@ export function MarketRadar({ bubbles }: { bubbles: LiveBubbleCard[] }) {
   const locked = Boolean(info.locked || card?.status === 'blocked');
   const ready = !locked && card && (card.status === 'ok' || card.status === 'stale') && card.percent != null;
   const direction = ready ? (card!.percent! >= 0 ? 'up' : 'down') : locked ? 'locked' : 'empty';
-  const circumference = 2 * Math.PI * 78;
 
   return (
     <div
@@ -58,17 +51,20 @@ export function MarketRadar({ bubbles }: { bubbles: LiveBubbleCard[] }) {
       <div className="radar-pro__orbit radar-pro__orbit--b" />
       <div className="radar-pro__orbit radar-pro__orbit--c" />
       <div className="radar-pro__sweep" />
-      <div className="radar-pro__pulse" aria-hidden="true" />
+      <div className="radar-pro__pulse radar-pro__pulse--a" aria-hidden="true" />
+      <div className="radar-pro__pulse radar-pro__pulse--b" aria-hidden="true" />
+      <div className="radar-pro__pulse radar-pro__pulse--c" aria-hidden="true" />
 
       <svg className="radar-pro__ring" viewBox="0 0 200 200" aria-hidden="true">
-        <circle cx="100" cy="100" r="78" className="radar-pro__ring-track" />
+        <circle cx="100" cy="100" r="78" className="radar-pro__ring-track" pathLength="100" />
         <circle
           key={`${focus}-${tick}`}
           cx="100"
           cy="100"
           r="78"
+          pathLength="100"
           className={`radar-pro__ring-value is-${direction}`}
-          style={{ strokeDasharray: circumference, strokeDashoffset: ringOffset(ready ? card!.percent! : null) }}
+          style={{ strokeDasharray: 100, strokeDashoffset: ready ? 100 - Math.min(100, Math.abs(card!.percent!) / 12 * 100) : 100 }}
         />
       </svg>
 

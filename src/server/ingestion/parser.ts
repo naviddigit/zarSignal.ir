@@ -6,7 +6,14 @@ export const sourceConfigSchema = z.object({
   timestampSelector: z.string().min(1),
   timestampAttribute: z.enum(['datetime', 'text']).default('datetime'),
   timeZoneOffset: z.string().regex(/^[+-]\d\d:\d\d$/).optional(),
-  assets: z.array(z.object({ symbol: z.enum(['GOLD_MELTED','XAG_USD','USD','EUR','AED','XAU_USD','DUBAI_GOLD_OZ']), buySelector: z.string().min(1), sellSelector: z.string().min(1), textSuffix: z.enum(['USD']).optional(), currency: z.enum(['TMN','USD']), unit: z.string().min(1) })).min(1),
+  assets: z.array(z.object({
+    symbol: z.enum(['GOLD_MELTED', 'GOLD_18K', 'XAU_USD', 'XAG_USD', 'SILVER_999', 'USD', 'AED', 'SEKE_CASH', 'ROB_SEKE']),
+    buySelector: z.string().min(1),
+    sellSelector: z.string().min(1),
+    textSuffix: z.enum(['USD']).optional(),
+    currency: z.enum(['TMN', 'USD']),
+    unit: z.string().min(1),
+  })).min(1),
 }).refine(config => new Set(config.assets.map(a => a.symbol)).size === config.assets.length, 'Duplicate symbol');
 export type SourceConfig = z.infer<typeof sourceConfigSchema>;
 export function parseDecimal(text: string): string {

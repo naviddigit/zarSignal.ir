@@ -276,6 +276,24 @@ model MarketSource {
   @@index([enabled])
 }
 
+/** OHLC bars seeded from Faraz chart-history (and future sources). Used for per-symbol charts. */
+model SymbolHistoryBar {
+  id         String   @id @default(cuid())
+  symbol     String
+  source     String
+  resolution String
+  openTime   DateTime
+  open       Decimal  @db.Decimal(24, 6)
+  high       Decimal  @db.Decimal(24, 6)
+  low        Decimal  @db.Decimal(24, 6)
+  close      Decimal  @db.Decimal(24, 6)
+  volume     Decimal? @db.Decimal(24, 6)
+  fetchedAt  DateTime @default(now())
+
+  @@unique([source, symbol, resolution, openTime])
+  @@index([symbol, resolution, openTime])
+}
+
 model FormulaVersion {
   id           String   @id @default(cuid())
   key          String

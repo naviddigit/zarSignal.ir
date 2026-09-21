@@ -6,6 +6,7 @@ import { AssetMark } from '@/components/market-board';
 import { RelativeTime } from '@/components/relative-time';
 import { FaqAccordion } from '@/components/faq-accordion';
 import { JsonLd } from '@/components/json-ld';
+import { SymbolHistoryChart } from '@/components/symbol-history-chart';
 import { formatPrice, instruments } from '@/lib/market';
 import { getPublicSnapshot } from '@/server/quotes';
 
@@ -56,6 +57,8 @@ export default async function AssetPage({ params }: Props) {
       <div className="asset-price-main secondary"><span>قیمت خرید</span><strong>{quote ? formatPrice(quote.buy, quote.currency) : '—'}</strong><small>هر {asset.unit}</small></div>
       <dl className="asset-facts"><div><dt><Database size={15}/> منبع</dt><dd>{quote?.sourceUrl ? <a href={quote.sourceUrl} target="_blank" rel="noreferrer">{quote.source}</a> : quote?.source ?? 'در دسترس نیست'}</dd></div><div><dt><Clock3 size={15}/> زمان مشاهده</dt><dd>{quote ? <RelativeTime value={quote.observedAt}/> : '—'}</dd></div><div><dt><Scale size={15}/> واحد و ارز</dt><dd>{asset.unit} · {asset.currency === 'TMN' ? 'تومان' : 'دلار'}</dd></div></dl>
     </section>
+
+    <SymbolHistoryChart symbol={asset.symbol} name={asset.name} />
 
     <section className="asset-content-grid">
       <article className="panel asset-explainer"><Info size={22}/><span className="eyebrow">HOW TO READ</span><h2>این قیمت را چطور بخوانیم؟</h2><p>قیمت خرید و فروش دو سمت بازار هستند. برای مقایسه با منبع دیگر، واحد، ارز و زمان مشاهده باید یکسان باشد. نگه‌داشتن نشانگر روی زمان، تاریخ دقیق تهران را نمایش می‌دهد.</p><Link href="/methodology">روش دریافت و کنترل کیفیت <ArrowUpLeft size={15}/></Link></article>

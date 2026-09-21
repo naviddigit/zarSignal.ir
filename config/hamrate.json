@@ -7,9 +7,7 @@
     { "symbol": "GOLD_MELTED", "buySelector": "#irangold-meltedHavaleh-buy", "sellSelector": "#irangold-meltedHavaleh-sell", "currency": "TMN", "unit": "مثقال" },
     { "symbol": "XAG_USD", "buySelector": "#gold-XAGUSD-buy", "sellSelector": "#gold-XAGUSD-sell", "currency": "USD", "unit": "اونس تروا" },
     { "symbol": "USD", "buySelector": "#fiatGrid [data-code='USD'] [data-buy='USD']", "sellSelector": "#fiatGrid [data-code='USD'] [data-sell='USD']", "currency": "TMN", "unit": "دلار" },
-    { "symbol": "EUR", "buySelector": "#fiatGrid [data-code='EUR'] [data-buy='EUR']", "sellSelector": "#fiatGrid [data-code='EUR'] [data-sell='EUR']", "currency": "TMN", "unit": "یورو" },
     { "symbol": "AED", "buySelector": "#fiatGrid [data-code='AED'] [data-buy='AED']", "sellSelector": "#fiatGrid [data-code='AED'] [data-sell='AED']", "currency": "TMN", "unit": "درهم" },
-    { "symbol": "XAU_USD", "buySelector": "#gold-ONS-buy", "sellSelector": "#gold-ONS-sell", "currency": "USD", "unit": "اونس تروا" },
-    { "symbol": "DUBAI_GOLD_OZ", "buySelector": "#dubai-ounce-buy", "sellSelector": "#dubai-ounce-sell", "textSuffix": "USD", "currency": "USD", "unit": "اونس دبی" }
+    { "symbol": "XAU_USD", "buySelector": "#gold-ONS-buy", "sellSelector": "#gold-ONS-sell", "currency": "USD", "unit": "اونس تروا" }
   ]
 }

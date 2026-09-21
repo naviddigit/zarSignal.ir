@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { runHamrateIngestion } from '@/server/ingestion/hamrate';
+import { runApprovedMarketIngestion } from '@/server/ingestion/run-market';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -18,8 +18,8 @@ export async function GET(request: Request) {
     return NextResponse.json({ ok: false, skipped: true, reason: 'MARKET_MODE is not live' }, { status: 200 });
   }
   try {
-    const result = await runHamrateIngestion();
-    return NextResponse.json({ ok: true, ...result });
+    const result = await runApprovedMarketIngestion();
+    return NextResponse.json(result);
   } catch (error) {
     return NextResponse.json({ ok: false, error: error instanceof Error ? error.message : 'ingestion_failed' }, { status: 502 });
   }

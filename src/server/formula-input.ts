@@ -3,9 +3,15 @@ import { z } from 'zod';
 export const formulaKeys = ['GOLD_BUBBLE', 'SILVER_BUBBLE', 'USD_BUBBLE'] as const;
 export const formulaStatuses = ['DRAFT', 'REVIEW', 'APPROVED', 'ARCHIVED'] as const;
 export const formulaMarketInputs = [
-  'GOLD_MELTED.buy', 'GOLD_MELTED.sell', 'XAG_USD.buy', 'XAG_USD.sell',
-  'USD.buy', 'USD.sell', 'EUR.buy', 'EUR.sell', 'AED.buy', 'AED.sell',
-  'XAU_USD.buy', 'XAU_USD.sell', 'DUBAI_GOLD_OZ.buy', 'DUBAI_GOLD_OZ.sell',
+  'GOLD_MELTED.buy', 'GOLD_MELTED.sell',
+  'GOLD_18K.buy', 'GOLD_18K.sell',
+  'XAG_USD.buy', 'XAG_USD.sell',
+  'SILVER_999.buy', 'SILVER_999.sell',
+  'USD.buy', 'USD.sell',
+  'AED.buy', 'AED.sell',
+  'XAU_USD.buy', 'XAU_USD.sell',
+  'SEKE_CASH.buy', 'SEKE_CASH.sell',
+  'ROB_SEKE.buy', 'ROB_SEKE.sell',
 ] as const;
 
 export const formulaInput = z.object({

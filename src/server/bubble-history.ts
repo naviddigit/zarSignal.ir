@@ -22,11 +22,13 @@ export async function recordBubbleSnapshots(quotes: QuoteRow[], mode: 'live' | '
   const melted = pick(quotes, 'GOLD_MELTED');
   const xau = pick(quotes, 'XAU_USD');
   const usd = pick(quotes, 'USD');
+  const silver999 = pick(quotes, 'SILVER_999');
   const capturedAt = new Date();
 
   const goldMeltedMid = melted ? mid(melted.buy, melted.sell) : null;
   const xauUsdMid = xau ? mid(xau.buy, xau.sell) : null;
   const usdIrtMid = usd ? mid(usd.buy, usd.sell) : null;
+  const silver999Mid = silver999 ? mid(silver999.buy, silver999.sell) : null;
 
   let market18k: number | null = null;
   let quality: 'ok' | 'partial' = 'partial';
@@ -56,6 +58,8 @@ export async function recordBubbleSnapshots(quotes: QuoteRow[], mode: 'live' | '
       usdIrtObservedAt: usd?.observedAt ?? null,
       market18k,
       mazanehVersion: market18k ? MAZANEH_TO_18K_VERSION : null,
+      silver999Mid,
+      silver999ObservedAt: silver999?.observedAt ?? null,
     },
   });
 

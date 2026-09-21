@@ -25,7 +25,20 @@ export async function getHamrateSettings(): Promise<MarketSourceSettings> {
     const row = await db.marketSource.findUnique({ where: { key: HAMRATE_KEY } });
     if (!row) return fallback;
     return { ...fallback, id: row.id, name: row.name, url: row.url, enabled: row.enabled, pollSeconds: row.pollSeconds, config: sourceConfigSchema.parse(row.config) };
-  } catch { const local = await readLocalMarket(); return local.source ?? fallback; }
+  } catch {
+    const local = await readLocalMarket();
+    if (local.source?.key === HAMRATE_KEY) {
+      return {
+        ...fallback,
+        name: local.source.name,
+        url: local.source.url,
+        enabled: local.source.enabled,
+        pollSeconds: local.source.pollSeconds,
+        config: sourceConfigSchema.parse(local.source.config),
+      };
+    }
+    return fallback;
+  }
 }
 
 async function fetchHtml(url: string, signal?: AbortSignal) {

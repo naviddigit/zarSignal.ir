@@ -1,0 +1,18 @@
+{
+  "verified": true,
+  "baseUrl": "https://faraz.io",
+  "watchlistLabel": "دیده‌بان ۳",
+  "historyResolution": "1D",
+  "historyDays": 90,
+  "assets": [
+    { "farazSymbol": "robSekkeEstjt", "symbol": "ROB_SEKE", "currency": "TMN", "unit": "عدد" },
+    { "farazSymbol": "sekkeNaghdi", "symbol": "SEKE_CASH", "currency": "TMN", "unit": "عدد" },
+    { "farazSymbol": "geramTalaHejdah", "symbol": "GOLD_18K", "currency": "TMN", "unit": "گرم" },
+    { "farazSymbol": "USDTIRT", "symbol": "USD", "currency": "TMN", "unit": "دلار" },
+    { "farazSymbol": "abshodeNaghdi", "symbol": "GOLD_MELTED", "currency": "TMN", "unit": "مثقال" },
+    { "farazSymbol": "FOREXCOM_XAGUSD", "symbol": "XAG_USD", "currency": "USD", "unit": "اونس تروا" },
+    { "farazSymbol": "FOREXCOM_XAUUSD", "symbol": "XAU_USD", "currency": "USD", "unit": "اونس تروا" },
+    { "farazSymbol": "derham", "symbol": "AED", "currency": "TMN", "unit": "درهم" },
+    { "farazSymbol": "geramNoghre999", "symbol": "SILVER_999", "currency": "TMN", "unit": "گرم" }
+  ]
+}

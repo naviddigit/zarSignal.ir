@@ -3,7 +3,7 @@ import { ActivityIndicator, Linking, Pressable, RefreshControl, SafeAreaView, Sc
 import { StatusBar } from 'expo-status-bar';
 type Quote = { symbol:string; buy:string; sell:string; currency:string; unit:string; observedAt:string };
 type Snapshot = { mode:'demo'|'live'; status:'demo'|'ok'|'stale'|'unavailable'; quotes:Quote[] };
-const labels:Record<string,string> = {USD:'دلار آمریکا',EUR:'یورو',AED:'درهم امارات',GOLD_MELTED:'طلای آب‌شده',XAG_USD:'اونس نقره',XAU_USD:'اونس طلا'};
+const labels:Record<string,string> = {USD:'دلار / تتر',AED:'درهم امارات',GOLD_MELTED:'طلای آب‌شده نقدی',GOLD_18K:'گرم طلای ۱۸ عیار',XAG_USD:'اونس نقره',XAU_USD:'اونس طلا',SILVER_999:'گرم نقره ۹۹۹',SEKE_CASH:'سکه نقدی',ROB_SEKE:'ربع سکه'};
 const baseUrl = process.env.EXPO_PUBLIC_API_URL;
 function validate(value:unknown):Snapshot {
   if (!value || typeof value !== 'object') throw new Error('Invalid response');
