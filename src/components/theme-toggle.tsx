@@ -27,7 +27,8 @@ export function ThemeToggle() {
   // The first client render must match SSR, even with a saved preference.
   const [preference, setPreference] = useState<ThemePreference>('system');
   useEffect(() => {
-    const initial = document.documentElement.dataset.themePreference;
+    let initial: string | null = null;
+    try { initial = localStorage.getItem('zarsignal-theme'); } catch { /* Optional storage. */ }
     setPreference(initial === 'light' || initial === 'dark' ? initial : 'system');
   }, []);
   useEffect(() => {

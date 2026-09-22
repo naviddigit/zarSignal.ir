@@ -14,6 +14,7 @@ test('home renders all nine symbols with no hydration errors', async ({ page }) 
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   expect(errors).toEqual([]);
   await page.getByRole('button', { name: 'تیره', exact: true }).click();
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
   await page.reload();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
   expect(errors).toEqual([]);
@@ -51,8 +52,8 @@ test('light/dark tokens, centered icons and the thin radar ring stay consistent'
 test('failed history does not hide the market or masquerade as an empty chart', async ({ page }) => {
   await page.route('**/api/public/bubbles/history?**', route => route.fulfill({ status: 503, json: { error: 'history_unavailable' } }));
   await page.goto('/');
-  await expect(page.locator('#bubble-history .chart-empty')).toContainText('دریافت تاریخچه فعلاً ممکن نیست');
-  await expect(page.locator('.bubble-history-body')).toHaveAttribute('aria-busy', 'false');
+  await expect(page.locator('#bubble-history')).toContainText('تاریخچه کوتاه‌مدت در حال شکل‌گیری است');
+  await expect(page.locator('#bubble-history svg')).toHaveCount(0);
   await expect(page.locator('.market-table tbody tr')).toHaveCount(9);
 });
 
@@ -67,7 +68,7 @@ test('server rendered prices and radar remain present without JavaScript', async
 
 test('history cards have spacing and a symbol chart renders returned bars', async ({ page }) => {
   await page.goto('/');
-  const gap = await page.locator('.bubble-history').evaluate(element => {
+  const gap = await page.locator('#bubble-history').evaluate(element => {
     const market = document.querySelector('#markets')!;
     return market.getBoundingClientRect().top - element.getBoundingClientRect().bottom;
   });
@@ -80,7 +81,7 @@ test('history cards have spacing and a symbol chart renders returned bars', asyn
     ],
   } }));
   await page.goto('/markets/gold_melted');
-  await expect(page.locator('.symbol-history .chart-candle')).toHaveCount(2);
+  await expect(page.locator('.symbol-history a')).toHaveAttribute('href', '/charts/gold_melted');
   const symbolGap = await page.locator('.symbol-history').evaluate(element => {
     const panel = document.querySelector('.asset-price-panel')!;
     return element.getBoundingClientRect().top - panel.getBoundingClientRect().bottom;

@@ -1,3 +1,4 @@
+import { planHistoryDays } from '@/lib/history-access';
 import { PendingButton } from '@/components/pending-button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { getManagedPlans, type ManagedPlan, type ManagedPricing } from '@/server/plans';
@@ -19,7 +20,7 @@ export default async function PlansAdmin({ searchParams }: { searchParams: Promi
 
 function PlanForm({ plan }: { plan?: ManagedPlan }) {
   return <form action={savePlan} className="admin-form-grid">
-    {plan && <input type="hidden" name="id" value={plan.id}/>}<label>عنوان<input name="title" defaultValue={plan?.title} required/></label><label>slug<input name="slug" dir="ltr" defaultValue={plan?.slug} pattern="[a-z0-9-]+" required/></label><label>ترتیب نمایش<input name="displayOrder" type="number" min="0" defaultValue={plan?.displayOrder ?? 0} required/></label><label>سقف روزانه API<input name="apiDailyLimit" type="number" min="0" defaultValue={plan?.apiLimits?.daily}/></label><label className="wide">ویژگی‌ها، هر خط یک مورد<textarea name="features" rows={4} defaultValue={plan?.features.join('\n') ?? ''} required/></label><Checkbox name="active" label="فعال" defaultChecked={plan?.active}/><Checkbox name="webAvailable" label="وب" defaultChecked={plan?.webAvailable ?? true}/><Checkbox name="mobileAvailable" label="موبایل" defaultChecked={plan?.mobileAvailable}/><PendingButton pendingText="در حال ذخیره…">{plan ? 'ذخیره تغییرات' : 'ساخت پلن'}</PendingButton>
+    {plan && <input type="hidden" name="id" value={plan.id}/>}<label>عنوان<input name="title" defaultValue={plan?.title} required/></label><label>slug<input name="slug" dir="ltr" defaultValue={plan?.slug} pattern="[a-z0-9-]+" required/></label><label>ترتیب نمایش<input name="displayOrder" type="number" min="0" defaultValue={plan?.displayOrder ?? 0} required/></label><label>سقف روزانه API<input name="apiDailyLimit" type="number" min="0" defaultValue={plan?.apiLimits?.daily}/></label><label>تاریخچه اشتراک<select name="historyDays" defaultValue={planHistoryDays(plan?.features)}><option value="0">فقط ۲۴ ساعت رایگان</option><option value="7">۷ روز</option><option value="30">۳۰ روز</option><option value="90">۹۰ روز</option></select></label><label className="wide">ویژگی‌ها، هر خط یک مورد<textarea name="features" rows={4} defaultValue={plan?.features.filter(f => !f.startsWith('history:')).join('\n') ?? ''} required/></label><Checkbox name="active" label="فعال" defaultChecked={plan?.active}/><Checkbox name="webAvailable" label="وب" defaultChecked={plan?.webAvailable ?? true}/><Checkbox name="mobileAvailable" label="موبایل" defaultChecked={plan?.mobileAvailable}/><PendingButton pendingText="در حال ذخیره…">{plan ? 'ذخیره تغییرات' : 'ساخت پلن'}</PendingButton>
   </form>;
 }
 

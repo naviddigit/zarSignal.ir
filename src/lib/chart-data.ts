@@ -1,4 +1,4 @@
-export type ChartPoint = { t: string; value: number; o?: number; h?: number; l?: number; c?: number };
+export type ChartPoint = { t: string; value: number; o?: number; h?: number; l?: number; c?: number; bubble?: number; bubbleAt?: string };
 
 export function chartPoints(points: ChartPoint[]) {
   return [...new Map(points.filter(p => Number.isFinite(Date.parse(p.t)) && Number.isFinite(p.value))
