@@ -54,13 +54,14 @@ export function GoldCalculator({ quotes }: { quotes: Quote[] }) {
   const [toWeight, setToWeight] = useState<WeightUnit>('gram');
   const [fromPurity, setFromPurity] = useState<Purity>('18k');
   const [toPurity, setToPurity] = useState<Purity>('24k');
-  const [derived18k, setDerived18k] = useState<{ market18k: number; formulaVersion: string } | null>(null);
+  const [derived18k, setDerived18k] = useState<{ market18k: number; formulaVersion: string; reverse: number } | null>(null);
 
   const meltedTotal = useMemo(
     () => numericValue(weight) * numericValue(gramPrice) + numericValue(fee),
     [weight, gramPrice, fee],
   );
   useEffect(() => {
+    setDerived18k(null);
     const value = numericValue(mazaneh);
     if (!value) { setDerived18k(null); return; }
     const controller = new AbortController();
@@ -70,13 +71,13 @@ export function GoldCalculator({ quotes }: { quotes: Quote[] }) {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ operation: 'mazanehTo18k', value }), signal: controller.signal,
         });
-        const result = await response.json() as { value?: number; version?: string };
-        setDerived18k(response.ok && result.value ? { market18k: result.value, formulaVersion: result.version ?? '' } : null);
+        const result = await response.json() as { value?: number; version?: string; reverse?: number };
+        setDerived18k(response.ok && result.value ? { market18k: result.value, formulaVersion: result.version ?? '', reverse: result.reverse ?? 0 } : null);
       } catch { if (!controller.signal.aborted) setDerived18k(null); }
     }, 180);
     return () => { window.clearTimeout(timer); controller.abort(); };
   }, [mazaneh]);
-  const reverseMazaneh = derived18k ? numericValue(mazaneh) : null;
+  const reverseMazaneh = derived18k?.reverse ?? null;
   const converted = useMemo(() => mode === 'weight'
     ? convertWeight(numericValue(conversionValue), fromWeight, toWeight)
     : mode === 'purity'

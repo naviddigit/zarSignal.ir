@@ -6,12 +6,13 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json() as { operation?: string; value?: unknown };
+    if (typeof body.value !== 'number' && typeof body.value !== 'string') throw new Error('invalid_value');
     const value = Number(body.value);
     if (!Number.isFinite(value) || value <= 0) throw new Error('invalid_value');
 
     if (body.operation === 'mazanehTo18k') {
       const result = mazanehTo18k(value);
-      return Response.json({ value: result.market18k, version: result.formulaVersion });
+      return Response.json({ value: result.market18k, version: result.formulaVersion, reverse: market18kToMazaneh(result.market18k) });
     }
     if (body.operation === 'market18kToMazaneh') {
       return Response.json({ value: market18kToMazaneh(value) });

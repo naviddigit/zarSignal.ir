@@ -282,6 +282,21 @@ html[data-theme='light'] .calculator-screen>span,html[data-theme='light'] .calcu
 .market-panel{margin-block:28px;min-width:0}.market-panel .table-scroll{width:100%;overflow-x:auto}.market-table{width:100%;table-layout:auto}.market-table th{white-space:nowrap}.market-table td{vertical-align:middle}.market-table .price-cell strong{white-space:nowrap;font-variant-numeric:tabular-nums}
 @media(max-width:760px){.asset-price-panel.is-single-price{grid-template-columns:1fr}.symbol-history,.bubble-history{padding:18px}.market-panel{padding:16px}.market-table{min-width:670px}.market-table th:nth-child(4),.market-table td:nth-child(4),.market-table th:nth-child(5),.market-table td:nth-child(5){display:table-cell}.market-table td{padding:12px 10px}.chart-tooltip{gap:12px;font-size:12px}.chart-tooltip time{width:100%}.chart-caption{padding:12px}}
 .premium-decoration{left:8px!important;top:30px!important;width:150px;height:150px;color:var(--accent)!important;opacity:.07;font-size:0!important;transform:rotate(20deg);pointer-events:none}.premium-decoration path{fill:none;stroke:currentColor;stroke-width:7;stroke-linecap:round}
+.home-market-first>.topline{padding-block:18px 12px;margin:0;position:static}
+.home-market-first>#markets{margin:0 0 32px;padding:22px 24px 0}
+.home-market-first .market-heading h2{font-size:25px;margin:0}
+.home-market-first .market-heading .eyebrow{display:none}
+.home-market-first .market-heading p{font-size:13px;margin-top:4px}
+.home-market-first .market-toolbar{margin-top:16px}
+.home-market-first .market-table{border-spacing:0;border-collapse:separate}
+.home-market-first .market-table td{padding:9px 12px;border:0;border-bottom:1px solid var(--border-subtle);border-radius:0;background:transparent}
+.home-market-first .market-table tbody tr:last-child td{border-bottom:0}
+.home-market-first .market-table tbody tr:hover{transform:none;background:var(--surface-soft)}
+.home-market-first .market-asset-mark{width:36px;height:36px;display:flex;align-items:center;justify-content:center;padding:0}
+.home-market-first .price-cell strong{font-size:14px}
+.home-market-first .source-disclosure.is-live{padding:6px 10px;margin-block:12px 4px}
+.home-market-first>.hero{margin-top:0}
+@media(max-width:760px){.home-market-first>#markets{padding:16px 12px 0;margin-bottom:24px}.home-market-first .market-heading{display:flex;gap:10px;flex-wrap:wrap}.home-market-first .market-heading p{display:none}.home-market-first .market-table td{padding:10px 7px}.home-market-first .price-cell strong{font-size:12px}.home-market-first .asset-name{gap:7px}.home-market-first .topline{font-size:10px}.home-market-first .source-disclosure span{font-size:11px}}
 .oauth-callback{display:grid;gap:6px;margin:16px 0;padding:12px;border:1px solid var(--border-subtle);border-radius:9px;background:var(--surface-soft)}.oauth-callback span{font-size:10px;color:var(--text-secondary)}.oauth-callback code{direction:ltr;overflow-wrap:anywhere;color:var(--accent);font-size:11px}
 .calculator-form--conversion{grid-template-columns:1.3fr 1fr 1fr!important}.calculator-field select{display:block;width:100%;margin-top:6px;border:1px solid var(--border-subtle);background:var(--surface-input);color:var(--text-primary);border-radius:9px;padding:11px;outline:none}.calculator-field select:focus-visible{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 16%,transparent)}
 @media(max-width:760px){.calculator-form--conversion{grid-template-columns:1fr 1fr!important}.calculator-form--conversion>.calculator-field:first-child{grid-column:span 2}}

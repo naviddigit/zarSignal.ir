@@ -10,7 +10,7 @@ test('home renders all nine symbols with no hydration errors', async ({ page }) 
   await expect(page.locator('#markets')).toBeVisible();
   await expect(page.locator('.market-table tbody tr')).toHaveCount(9);
   await expect(page.locator('.radar-pro')).toBeVisible();
-  const firstMarketStrip = await page.locator('.hero-ticker').evaluate(element => element.getBoundingClientRect().top);
+  const firstMarketStrip = await page.locator('#markets').evaluate(element => element.getBoundingClientRect().top);
   const heroTop = await page.locator('.hero').evaluate(element => element.getBoundingClientRect().top);
   expect(firstMarketStrip).toBeLessThan(heroTop);
   await expect(page.locator('.premium-decoration')).toHaveCount(1);
@@ -74,7 +74,7 @@ test('server rendered prices and radar remain present without JavaScript', async
 test('history cards have spacing and a symbol chart renders returned bars', async ({ page }) => {
   await page.goto('/');
   const gap = await page.locator('#bubble-history').evaluate(element => {
-    const market = document.querySelector('#markets')!;
+    const market = element.nextElementSibling!;
     return market.getBoundingClientRect().top - element.getBoundingClientRect().bottom;
   });
   expect(gap).toBeGreaterThanOrEqual(24);
