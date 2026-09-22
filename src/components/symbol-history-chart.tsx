@@ -28,7 +28,7 @@ export function SymbolHistoryChart({ symbol, name }: { symbol: string; name: str
     const controller = new AbortController();
     setLoading(true);
     fetch(`/api/public/markets/${symbol.toLowerCase()}/history?days=${days}&resolution=1D`, {
-      signal: controller.signal,
+      signal: AbortSignal.any([controller.signal, AbortSignal.timeout(10_000)]),
       cache: 'no-store',
     })
       .then(async response => {
@@ -68,7 +68,7 @@ export function SymbolHistoryChart({ symbol, name }: { symbol: string; name: str
         </div>
         <div className="bubble-history__controls" role="group" aria-label="بازه تاریخچه">
           {[30, 90].map(value => (
-            <button key={value} type="button" className={days === value ? 'is-active' : ''} onClick={() => setDays(value)}>
+            <button key={value} type="button" className={days === value ? 'is-on' : ''} aria-pressed={days === value} onClick={() => setDays(value)}>
               {value} روز
             </button>
           ))}
@@ -77,7 +77,7 @@ export function SymbolHistoryChart({ symbol, name }: { symbol: string; name: str
       {loading ? <p className="bubble-history__empty">در حال بارگذاری…</p> : null}
       {!loading && error ? <p className="bubble-history__empty">تاریخچه در دسترس نیست.</p> : null}
       {!loading && !error && !closes.length ? (
-        <p className="bubble-history__empty">هنوز تاریخچه‌ای ثبت نشده. از ادمین «دریافت فراز + همگام‌سازی تاریخچه» را بزنید.</p>
+        <p className="bubble-history__empty">هنوز تاریخچه‌ای برای این نماد ثبت نشده است.</p>
       ) : null}
       {!loading && closes.length > 0 ? (
         <>

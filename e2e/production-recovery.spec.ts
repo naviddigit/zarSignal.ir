@@ -64,3 +64,26 @@ test('server rendered prices and radar remain present without JavaScript', async
   await expect(page.locator('.radar-pro')).toBeVisible();
   await context.close();
 });
+
+test('history cards have spacing and a symbol chart renders returned bars', async ({ page }) => {
+  await page.goto('/');
+  const gap = await page.locator('.bubble-history').evaluate(element => {
+    const market = document.querySelector('#markets')!;
+    return market.getBoundingClientRect().top - element.getBoundingClientRect().bottom;
+  });
+  expect(gap).toBeGreaterThanOrEqual(24);
+
+  await page.route('**/api/public/markets/gold_melted/history?**', route => route.fulfill({ json: {
+    bars: [
+      { t: '2026-09-20T00:00:00Z', o: 100, h: 103, l: 99, c: 102, v: null },
+      { t: '2026-09-21T00:00:00Z', o: 102, h: 104, l: 101, c: 103, v: null },
+    ],
+  } }));
+  await page.goto('/markets/gold_melted');
+  await expect(page.locator('.symbol-history svg path')).toHaveAttribute('d', /^M.+L/);
+  const symbolGap = await page.locator('.symbol-history').evaluate(element => {
+    const panel = document.querySelector('.asset-price-panel')!;
+    return element.getBoundingClientRect().top - panel.getBoundingClientRect().bottom;
+  });
+  expect(symbolGap).toBeGreaterThanOrEqual(24);
+});

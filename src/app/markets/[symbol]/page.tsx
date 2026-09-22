@@ -7,10 +7,12 @@ import { RelativeTime } from '@/components/relative-time';
 import { FaqAccordion } from '@/components/faq-accordion';
 import { JsonLd } from '@/components/json-ld';
 import { SymbolHistoryChart } from '@/components/symbol-history-chart';
-import { formatPrice, instruments } from '@/lib/market';
+import { formatPrice, instruments, isStale } from '@/lib/market';
 import { getPublicSnapshot } from '@/server/quotes';
 
 type Props = { params: Promise<{ symbol: string }> };
+
+export const dynamic = 'force-dynamic';
 
 export function generateStaticParams() { return instruments.map(asset => ({ symbol: asset.symbol.toLowerCase() })); }
 
@@ -49,7 +51,7 @@ export default async function AssetPage({ params }: Props) {
 
     <header className="asset-hero">
       <div className="asset-identity"><AssetMark symbol={asset.symbol} category={asset.category}/><div><span className="eyebrow" dir="ltr">{asset.symbol.replaceAll('_', ' / ')}</span><h1>قیمت {asset.name}</h1><p>{asset.description}</p></div></div>
-      <div className={`asset-live-state ${quote ? 'is-live' : ''}`}><span/><strong>{quote ? 'داده متصل' : 'در انتظار منبع'}</strong>{quote && <RelativeTime value={quote.fetchedAt} prefix="آخرین دریافت: "/>}</div>
+      <div className={`asset-live-state ${quote && !isStale(quote) ? 'is-live' : ''}`}><span/><strong>{quote ? isStale(quote) ? 'داده قدیمی' : 'داده متصل' : 'در انتظار منبع'}</strong>{quote && <RelativeTime value={quote.fetchedAt} prefix="آخرین دریافت: "/>}</div>
     </header>
 
     <section className="asset-price-panel panel" aria-label={`قیمت ${asset.name}`}>

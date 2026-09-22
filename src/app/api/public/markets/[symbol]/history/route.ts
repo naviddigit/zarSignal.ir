@@ -1,13 +1,14 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { instruments } from '@/lib/market';
+import { withDeadline } from '@/lib/with-deadline';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-export async function GET(request: Request) {
+export async function GET(request: Request, context: { params: Promise<{ symbol: string }> }) {
   const { searchParams } = new URL(request.url);
-  const symbolRaw = (searchParams.get('symbol') ?? '').toUpperCase();
+  const symbolRaw = (await context.params).symbol.toUpperCase();
   const asset = instruments.find(item => item.symbol === symbolRaw);
   if (!asset) return NextResponse.json({ error: 'unknown_symbol' }, { status: 404 });
 
@@ -16,7 +17,7 @@ export async function GET(request: Request) {
   const since = new Date(Date.now() - days * 86_400_000);
 
   try {
-    const rows = await db.symbolHistoryBar.findMany({
+    const rows = await withDeadline(db.symbolHistoryBar.findMany({
       where: { symbol: asset.symbol, resolution, openTime: { gte: since } },
       orderBy: { openTime: 'asc' },
       select: {
@@ -27,7 +28,7 @@ export async function GET(request: Request) {
         close: true,
         volume: true,
       },
-    });
+    }), 5_000);
 
     return NextResponse.json({
       symbol: asset.symbol,
@@ -44,6 +45,6 @@ export async function GET(request: Request) {
       })),
     });
   } catch {
-    return NextResponse.json({ symbol: asset.symbol, name: asset.name, resolution, days, bars: [] });
+    return NextResponse.json({ error: 'history_unavailable' }, { status: 503, headers: { 'Cache-Control': 'no-store' } });
   }
 }
