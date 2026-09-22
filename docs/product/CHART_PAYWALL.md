@@ -7,7 +7,7 @@
 - Anonymous and ordinary accounts: last 24 hours. All nine current prices and current bubble numbers remain public. A daily price feed may have too few bars in 24 hours; the UI says so rather than inventing intraday candles.
 - Both price-history and bubble-history APIs return 403 with **no older data** when entitlement is absent. Responses are private/no-store. No blur-only paywall or client-only enforcement.
 - Active, started, unexpired Subscription.product must equal an active web Plan.slug. Its explicit feature `history:7d`, `history:30d`, or `history:90d` grants that depth. Role alone (including API_CUSTOMER) grants nothing. DB/auth failure denies access.
-- Admin Plans has a history-depth selector. The capability is stored in existing Plan.features JSON and is hidden from marketing copy; `/pricing` renders its human-readable depth. No schema migration, new price or payment gateway is introduced.
+- Admin Plans has a history-depth selector. The capability is stored in existing Plan.features JSON and is hidden from marketing copy; `/pricing` renders its human-readable depth. No schema migration or payment gateway is introduced. Launch pricing was subsequently delegated by Navid and is initialized through Plan/PricingVersion.
 - Current Subscription has no Plan FK: product/slug is the existing reference. Keep slugs stable while subscriptions exist. A future FK migration should follow subscription issuance/payment implementation.
 
 ## Backfill contract
@@ -27,18 +27,27 @@ Live `recordBubbleSnapshots` and refreshProductionMarket are unchanged. Reconstr
 - Existing protected recover POST supports `?action=backfill-bubbles` and a read-only `?action=history-audit` for counts/migration records/plan configuration. Neither exposes credentials. GET does not mutate.
 - No build migrations or minute Hobby cron. CRON_SECRET was configured as a Vercel Secret; the fixed emergency credential and query-string authentication were removed. Only authenticated POST is accepted for recovery. No credentials belong in this document.
 
-## Monetization proposal for Navid
+## Launch pricing authorized by Navid — 2026-09-22
 
-Keep the free price/radar/calculator useful. Sell historical context rather than restricting basic quotes. The exact benefit at the paywall is “price and bubble from the same historical day”; show actual available coverage, not a claim of guaranteed profit.
+Navid explicitly delegated pricing. Idempotent protected POST action `initialize-chart-plans` creates Free (0), Home (149,000 toman/month; 30 days), Professional (299,000 toman/month; 90 days). It does not overwrite existing plan or pricing edits. These are launch experiment prices, not a validated market benchmark. No fabricated discount, scarcity, returns or profit promise.
 
-Existing product priorities name Free / Home / Professional / API. **PROPOSAL:** Home gets 30 days, Professional 90 days; API remains separate. Admin chooses depth explicitly. Alerts, exports and expanded watchlists remain future work, not purchasable claims in this release.
+The free price/radar/calculator remains useful. Sell historical context: price and bubble from the same day. Show actual available coverage. Alerts, exports, expanded watchlists, API and native apps are not included as delivered benefits. The responsive website works on mobile.
 
-Existing development presets include 249,000 / 799,000 / 1,490,000 toman but are explicitly test prices; they are not production pricing approval. Use only published Plan/PricingVersion records. No new price is proposed or silently published here. Payment checkout is not implemented; upgrade CTA leads to existing pricing/login, not a simulated successful purchase.
+The symbol page now includes a compact ChartWorkspace; the homepage stays a teaser. Longer windows hard-gate on the server. A 90-day allowance does not imply 90 valid bubble days: production backfill currently has 63 matched days (2026-06-25 through 2026-09-21), 126 results across gold and USD. Repeating the job created zero duplicate snapshots.
 
-Measure the funnel: chart visits → longer-range attempts → pricing visits → authenticated users → verified paid activation; then 7/30-day chart retention and subscription renewal. Instrument these events when analytics/consent is configured. First validate willingness to pay with real cohorts; 100,000 buyers is a growth goal, not a promised outcome.
+## Private owner review
+
+`/charts/preview` is noindex. A random CHART_PREVIEW_SECRET, stored only in Vercel and an ignored local owner-code file, grants a signed HttpOnly/Secure/SameSite=Strict cookie for two hours. It unlocks read-only chart history up to 90 days, not admin. POST requires same-origin; no key in URL or git. Logout clears the cookie; secret rotation invalidates existing cookies. Normal anonymous requests still receive 403 beyond 24h.
+
+## Mobile reliability
+
+Client fetch uses AbortController plus a timer, without AbortSignal.any/timeout (older Safari lacks these static methods). Cancellation and HTTP403 are tested. Quote retrieval was reduced from eleven simultaneous database queries to two to reduce connection-pool contention. This is not a capacity claim for 50,000 concurrent users.
 
 ## Remaining release dependencies
 
-- Configure production identity provider and payment/subscription issuance before claiming self-serve purchasing works.
-- Assign history depths to approved production plans; API-only plans should remain at zero unless explicitly sold a chart entitlement.
-- Verify a real paid account end-to-end once an active subscription exists. Synthetic fixtures are test-only and never inserted as market prices.
+- Payment checkout and verified subscription issuance are not implemented; published prices are not a working checkout. Configure gateway and test real activation/refund before selling.
+- Verify production identity provider end-to-end with a real account, then paid activation/expiration.
+- Subscription.product remains a plan slug, not a foreign key.
+- Vercel env pull returned redacted placeholders, not usable DB credentials; operations used the authenticated production runtime. No claim of direct local DB connectivity.
+- Migration ledger has an unfinished old bubble-history migration despite present usable tables. Reconcile against the actual schema using Prisma's documented resolve workflow once direct credentials are available. Never add migrations back into the Vercel build.
+- Growth and price validation: see GROWTH_50000.md.

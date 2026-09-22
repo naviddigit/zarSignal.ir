@@ -1,10 +1,13 @@
 import { db } from '@/lib/db';
 import { canAccessHistory, planHistoryDays, validHistorySubscription } from '@/lib/history-access';
 import { withDeadline } from '@/lib/with-deadline';
+import { previewCookie, validPreviewSession } from '@/server/chart-preview';
 
 export async function historyAccess(hours: number) {
   if (canAccessHistory(hours)) return true;
   try {
+    const { cookies } = await import('next/headers');
+    if (validPreviewSession((await cookies()).get(previewCookie)?.value)) return hours <= 90 * 24;
     // Imported lazily: anonymous 24h requests never depend on authentication availability.
     const { auth } = await import('@/auth');
     const session = await withDeadline(auth(), 4_000);

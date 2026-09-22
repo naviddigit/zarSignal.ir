@@ -4,15 +4,17 @@ import { withDeadline } from '@/lib/with-deadline';
 import { FARAZ_KEY } from '@/server/ingestion/faraz-meta';
 import { formulaCriticalSymbols, instruments, isStale, type Quote, type Snapshot } from '@/lib/market';
 import { refreshProductionMarket } from '@/server/refresh-market';
+import { Prisma, type MarketQuote } from '@prisma/client';
 
 async function readLiveQuotes(): Promise<Snapshot> {
-  const [rows, farazSource, hamrateSource] = await Promise.all([
-    Promise.all(instruments.map(asset =>
-      db.marketQuote.findFirst({ where: { symbol: asset.symbol }, orderBy: { observedAt: 'desc' } }),
-    )),
-    db.marketSource.findUnique({ where: { key: FARAZ_KEY }, select: { pollSeconds: true, enabled: true } }),
-    db.marketSource.findUnique({ where: { key: 'hamrate-web' }, select: { pollSeconds: true, enabled: true } }),
+  const [rows, sources] = await Promise.all([
+    db.$queryRaw<MarketQuote[]>(Prisma.sql`SELECT DISTINCT ON ("symbol") * FROM "MarketQuote"
+      WHERE "symbol" IN (${Prisma.join(instruments.map(asset => asset.symbol))})
+      ORDER BY "symbol", "observedAt" DESC, "fetchedAt" DESC`),
+    db.marketSource.findMany({ where: { key: { in: [FARAZ_KEY, 'hamrate-web'] } }, select: { key: true, pollSeconds: true, enabled: true } }),
   ]);
+  const farazSource = sources.find(source => source.key === FARAZ_KEY);
+  const hamrateSource = sources.find(source => source.key === 'hamrate-web');
   const quotes = rows.flatMap(row => row ? [{
     symbol: row.symbol as Quote['symbol'],
     buy: row.buy.toString(),

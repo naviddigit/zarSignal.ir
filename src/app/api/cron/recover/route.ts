@@ -23,6 +23,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, reason: 'MARKET_MODE is not live' }, { status: 200 });
   }
   const action = new URL(request.url).searchParams.get('action');
+  if (action === 'initialize-chart-plans') {
+    const { initializeChartPlans } = await import('@/server/launch-plans');
+    return NextResponse.json(await initializeChartPlans(), { headers: { 'Cache-Control': 'no-store' } });
+  }
   if (action === 'backfill-bubbles') {
     const { backfillBubbleHistory } = await import('@/server/backfill-bubbles');
     const result = await backfillBubbleHistory({ days: 90 });

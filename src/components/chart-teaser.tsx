@@ -2,15 +2,16 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { enoughHistory, chartDomain, type ChartPoint } from '@/lib/chart-data';
-import { snapshotChartPoints } from '@/lib/chart-history';
+import { snapshotChartPoints, type BubblePoint } from '@/lib/chart-history';
+import { fetchJson } from '@/lib/fetch-json';
 
 export function ChartTeaser() {
   const [count, setCount] = useState<number | null>(null);
   const [points, setPoints] = useState<ChartPoint[]>([]);
   useEffect(() => {
     const controller = new AbortController();
-    fetch('/api/public/bubbles/history?formula=GOLD_BUBBLE&range=24h', { signal: AbortSignal.any([controller.signal, AbortSignal.timeout(10_000)]), cache: 'no-store' })
-      .then(r => { if (!r.ok) throw new Error('unavailable'); return r.json(); }).then(data => { if (!controller.signal.aborted) { const points = snapshotChartPoints(data.points ?? [], 'GOLD_MELTED'); setCount(enoughHistory(points) ? points.length : 0); setPoints(points); } }).catch(() => { if (!controller.signal.aborted) setCount(0); });
+    fetchJson<{ points?: BubblePoint[] }>('/api/public/bubbles/history?formula=GOLD_BUBBLE&range=24h', controller.signal, 10_000)
+      .then(data => { if (!controller.signal.aborted) { const points = snapshotChartPoints(data.points ?? [], 'GOLD_MELTED'); setCount(enoughHistory(points) ? points.length : 0); setPoints(points); } }).catch(() => { if (!controller.signal.aborted) setCount(0); });
     return () => controller.abort();
   }, []);
   return <section id="bubble-history" className="panel chart-teaser"><div><span className="eyebrow">PRICE + BUBBLE</span><h2>قیمت و حباب، در یک نگاه</h2><p>{count === null ? 'در حال بررسی تاریخچه…' : count ? `${new Intl.NumberFormat('fa-IR').format(count)} مشاهده در ۲۴ ساعت اخیر · مقیاس‌های مستقل` : 'تاریخچه کوتاه‌مدت در حال شکل‌گیری است؛ قیمت‌های فعلی در جدول بازار در دسترس‌اند.'}</p></div>{Boolean(count) && <div className="teaser-sparks">{(['value','bubble'] as const).map(key => {

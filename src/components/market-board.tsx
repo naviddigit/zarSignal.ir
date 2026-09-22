@@ -1,4 +1,5 @@
 'use client';
+import { fetchJson } from '@/lib/fetch-json';
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
@@ -62,9 +63,7 @@ export function MarketBoard({ initial, bubbles = [] }: { initial: Snapshot; bubb
       if (document.hidden) return;
       setRefreshing(true);
       try {
-        const response = await fetch('/api/public/markets', { signal: AbortSignal.any([controller.signal, AbortSignal.timeout(10_000)]), cache: 'no-store' });
-        if (!response.ok) throw new Error('market refresh failed');
-        const next: Snapshot = await response.json();
+        const next = await fetchJson<Snapshot>('/api/public/markets', controller.signal, 10_000);
         setSnapshot(current => {
           const changed = next.quotes.filter(quote => {
             const previous = current.quotes.find(item => item.symbol === quote.symbol);

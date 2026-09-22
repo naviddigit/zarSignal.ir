@@ -81,7 +81,7 @@ test('history cards have spacing and a symbol chart renders returned bars', asyn
     ],
   } }));
   await page.goto('/markets/gold_melted');
-  await expect(page.locator('.symbol-history a')).toHaveAttribute('href', '/charts/gold_melted');
+  await expect(page.locator('.symbol-history.chart-workspace')).toBeVisible();
   const symbolGap = await page.locator('.symbol-history').evaluate(element => {
     const panel = document.querySelector('.asset-price-panel')!;
     return element.getBoundingClientRect().top - panel.getBoundingClientRect().bottom;

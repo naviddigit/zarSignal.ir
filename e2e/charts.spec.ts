@@ -5,6 +5,23 @@ const bars = Array.from({ length: 89 }, (_, i) => ({ t: new Date(Date.UTC(2026, 
 const daily = bars.map(b => ({ t: b.t.slice(0, 10) + 'T23:59:59.999Z', marketPrice: b.c, bubblePercent: 2, cadence: 'daily' }));
 const snapshots = [0, 300000, 600000].map(t => ({ t: new Date(t).toISOString(), marketPrice: 100, bubblePercent: 1, cadence: 'snapshot' }));
 
+test('older mobile browsers without AbortSignal helpers can load home and symbol chart', async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(AbortSignal, 'any', { value: undefined, configurable: true });
+    Object.defineProperty(AbortSignal, 'timeout', { value: undefined, configurable: true });
+  });
+  const errors: string[] = [];
+  page.on('pageerror', error => errors.push(error.message));
+  await page.route('**/api/public/bubbles/history?**', route => route.fulfill({ json: { points: snapshots } }));
+  await page.goto('/');
+  await expect(page.locator('#markets')).toBeVisible();
+  await expect(page.locator('.teaser-sparks svg')).toHaveCount(2);
+  await page.goto('/markets/gold_melted');
+  await expect(page.locator('.chart-workspace .market-chart')).toHaveCount(1);
+  await expect(page.getByText('بارگذاری کامل نشد')).toHaveCount(0);
+  expect(errors).toEqual([]);
+});
+
 test('full chart overlays 89 daily candles and historical bubble with two axes', async ({ page }) => {
   await page.route('**/api/public/markets/gold_melted/history?**', route => route.fulfill({ json: { bars } }));
   await page.route('**/api/public/bubbles/history?**', route => route.fulfill({ json: { points: daily } }));
