@@ -167,8 +167,8 @@ export function mapQuotes(payload: FarazQuotePayload, config: FarazConfig, now: 
       sell: value,
       currency: asset.currency,
       unit: asset.unit,
-      source: 'Faraz',
-      sourceUrl: FARAZ_URL,
+      source: 'زرسیگنال',
+      sourceUrl: null,
       observedAt: now.toISOString(),
       fetchedAt: now.toISOString(),
     };
@@ -228,6 +228,8 @@ export async function syncFarazHistory(settings?: FarazSourceSettings, signal?: 
 export async function runFarazIngestion(settings?: FarazSourceSettings, signal?: AbortSignal, opts?: { syncHistory?: boolean }) {
   const source = settings ?? await getFarazSettings();
   if (!source.enabled) throw new Error('منبع فراز در پنل مدیریت غیرفعال است.');
+  const { ensureHistorySchema } = await import('@/server/ensure-schema');
+  await ensureHistorySchema().catch(() => undefined);
   let run: { id: string } | null = null;
   try {
     run = await db.ingestionRun.create({ data: { source: FARAZ_KEY, status: 'RUNNING' } });
@@ -253,7 +255,7 @@ export async function runFarazIngestion(settings?: FarazSourceSettings, signal?:
           currency: quote.currency,
           unit: quote.unit,
           source: quote.source,
-          sourceUrl: quote.sourceUrl ?? FARAZ_URL,
+          sourceUrl: quote.sourceUrl ?? '',
           observedAt: new Date(quote.observedAt),
           fetchedAt: new Date(quote.fetchedAt),
         })),

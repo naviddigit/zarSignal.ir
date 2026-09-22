@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getBubbleHistory } from '@/server/bubble-history';
 import { withDeadline } from '@/lib/with-deadline';
+import { ensureHistorySchema } from '@/server/ensure-schema';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -18,6 +19,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'range must be 24h, 7d, or 30d' }, { status: 400 });
   }
   try {
+    await ensureHistorySchema().catch(() => undefined);
     const points = await withDeadline(getBubbleHistory(formula, ranges[range as keyof typeof ranges]), 5_000);
     return NextResponse.json({
       formula,
@@ -28,6 +30,14 @@ export async function GET(request: Request) {
       note: 'Historical bubble is stored at capture time and never recomputed from live XAU/USD.',
     });
   } catch {
-    return NextResponse.json({ error: 'history_unavailable' }, { status: 503, headers: { 'Cache-Control': 'no-store' } });
+    return NextResponse.json({
+      formula,
+      range,
+      freeWindowHours: 24,
+      gated: range !== '24h',
+      points: [],
+      error: 'history_unavailable',
+      note: 'Historical bubble is stored at capture time and never recomputed from live XAU/USD.',
+    }, { status: 200, headers: { 'Cache-Control': 'no-store' } });
   }
 }

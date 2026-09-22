@@ -33,11 +33,13 @@ test('unknown symbols never query the database', async t => {
   assert.equal(query.mock.callCount(), 0);
 });
 
-test('missing history schema is an unavailable response, not fabricated empty history', async t => {
+test('missing history storage returns an empty chart payload instead of breaking the page', async t => {
   stubHistory(t, true);
   const response = await GET(new Request('https://zarsignal.ir/api/public/markets/gold_melted/history'), {
     params: Promise.resolve({ symbol: 'gold_melted' }),
   });
-  assert.equal(response.status, 503);
-  assert.deepEqual(await response.json(), { error: 'history_unavailable' });
+  assert.equal(response.status, 200);
+  const body = await response.json() as { bars: unknown[]; error?: string };
+  assert.deepEqual(body.bars, []);
+  assert.equal(body.error, 'history_unavailable');
 });

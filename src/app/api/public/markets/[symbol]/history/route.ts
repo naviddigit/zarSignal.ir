@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { instruments } from '@/lib/market';
 import { withDeadline } from '@/lib/with-deadline';
+import { ensureHistorySchema } from '@/server/ensure-schema';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -17,6 +18,7 @@ export async function GET(request: Request, context: { params: Promise<{ symbol:
   const since = new Date(Date.now() - days * 86_400_000);
 
   try {
+    await ensureHistorySchema().catch(() => undefined);
     const rows = await withDeadline(db.symbolHistoryBar.findMany({
       where: { symbol: asset.symbol, resolution, openTime: { gte: since } },
       orderBy: { openTime: 'asc' },
@@ -45,6 +47,13 @@ export async function GET(request: Request, context: { params: Promise<{ symbol:
       })),
     });
   } catch {
-    return NextResponse.json({ error: 'history_unavailable' }, { status: 503, headers: { 'Cache-Control': 'no-store' } });
+    return NextResponse.json({
+      symbol: asset.symbol,
+      name: asset.name,
+      resolution,
+      days,
+      bars: [],
+      error: 'history_unavailable',
+    }, { status: 200, headers: { 'Cache-Control': 'no-store' } });
   }
 }
