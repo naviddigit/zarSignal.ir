@@ -17,6 +17,10 @@ async function main() {
   if (process.argv.includes('--history')) {
     console.info(JSON.stringify({ event: 'history_saved', ...await syncFarazHistory() }));
   }
+  if (process.argv.includes('--backfill-bubbles')) {
+    const { backfillBubbleHistory } = await import('../src/server/backfill-bubbles');
+    console.info(JSON.stringify({ event: 'bubble_backfill', ...await backfillBubbleHistory({ days: 90 }) }));
+  }
 }
 
 main().catch(() => {

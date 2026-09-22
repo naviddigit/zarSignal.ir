@@ -16,7 +16,7 @@ function stubHistory(t: TestContext, fail = false) {
 
 test('history reads the route symbol without requiring a duplicate query parameter', async t => {
   const query = stubHistory(t);
-  const response = await GET(new Request('https://zarsignal.ir/api/public/markets/gold_melted/history?days=90'), {
+  const response = await GET(new Request('https://zarsignal.ir/api/public/markets/gold_melted/history?days=1'), {
     params: Promise.resolve({ symbol: 'gold_melted' }),
   });
   assert.equal(response.status, 200);

@@ -3,6 +3,7 @@ import { db } from '@/lib/db';
 import { instruments } from '@/lib/market';
 import { withDeadline } from '@/lib/with-deadline';
 import { ensureHistorySchema } from '@/server/ensure-schema';
+import { historyAccess, privateHistoryHeaders } from '@/server/history-access';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -13,8 +14,11 @@ export async function GET(request: Request, context: { params: Promise<{ symbol:
   const asset = instruments.find(item => item.symbol === symbolRaw);
   if (!asset) return NextResponse.json({ error: 'unknown_symbol' }, { status: 404 });
 
-  const days = Math.min(Math.max(Number(searchParams.get('days') ?? 90) || 90, 7), 400);
+  const days = Number(searchParams.get('days') ?? 1);
+  if (![1, 7, 30, 90].includes(days)) return NextResponse.json({ error: 'invalid_days' }, { status: 400 });
   const resolution = searchParams.get('resolution') ?? '1D';
+  if (resolution !== '1D') return NextResponse.json({ error: 'invalid_resolution' }, { status: 400 });
+  if (!await historyAccess(days * 24)) return NextResponse.json({ symbol: asset.symbol, gated: true, freeWindowHours: 24, bars: [], upgradeUrl: '/pricing' }, { status: 403, headers: privateHistoryHeaders });
   const since = new Date(Date.now() - days * 86_400_000);
 
   try {
@@ -45,7 +49,7 @@ export async function GET(request: Request, context: { params: Promise<{ symbol:
         c: Number(row.close),
         v: row.volume == null ? null : Number(row.volume),
       })),
-    });
+    }, { headers: privateHistoryHeaders });
   } catch {
     return NextResponse.json({
       symbol: asset.symbol,

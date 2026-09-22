@@ -128,7 +128,7 @@ export async function recordBubbleSnapshots(quotes: QuoteRow[], mode: 'live' | '
 export async function getBubbleHistory(formulaId: 'GOLD_BUBBLE' | 'USD_GAP', rangeHours: number) {
   const since = new Date(Date.now() - rangeHours * 3_600_000);
   const rows = await db.bubbleSnapshot.findMany({
-    where: { formulaId, capturedAt: { gte: since }, status: 'ok', bubblePercent: { not: null } },
+    where: { formulaId, capturedAt: { gte: since, lte: new Date() }, status: 'ok', bubblePercent: { not: null } },
     orderBy: { capturedAt: 'asc' },
     select: {
       capturedAt: true,
@@ -136,6 +136,7 @@ export async function getBubbleHistory(formulaId: 'GOLD_BUBBLE' | 'USD_GAP', ran
       theoreticalPrice: true,
       bubblePercent: true,
       status: true,
+      provenance: true,
     },
   });
   return rows.map(row => ({
@@ -144,5 +145,6 @@ export async function getBubbleHistory(formulaId: 'GOLD_BUBBLE' | 'USD_GAP', ran
     theoreticalPrice: row.theoreticalPrice == null ? null : Number(row.theoreticalPrice),
     bubblePercent: row.bubblePercent == null ? null : Number(row.bubblePercent),
     status: row.status,
+    cadence: row.provenance === 'faraz-daily-sync-v1' ? 'daily' : 'snapshot',
   }));
 }
