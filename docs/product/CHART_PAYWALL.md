@@ -51,3 +51,12 @@ Client fetch uses AbortController plus a timer, without AbortSignal.any/timeout 
 - Vercel env pull returned redacted placeholders, not usable DB credentials; operations used the authenticated production runtime. No claim of direct local DB connectivity.
 - Migration ledger has an unfinished old bubble-history migration despite present usable tables. Reconcile against the actual schema using Prisma's documented resolve workflow once direct credentials are available. Never add migrations back into the Vercel build.
 - Growth and price validation: see GROWTH_50000.md.
+
+## Production verification — 2026-09-22
+
+- Vercel deployment 9972700 reached Ready and aliases include www.zarsignal.ir.
+- Pricing initialization ran twice successfully; three plans use 0 / 149000 / 299000 toman monthly.
+- Owner preview opened 90 daily candles and 63 daily bubble results on the live symbol page. Anonymous 90-day API remains 403.
+- Local validation: 53 unit tests, 20 desktop/mobile browser cases, typecheck and production build passed.
+- WebKit iPhone-sized stable homepage and chart checks supplement Chromium mobile emulation; this is browser-engine testing, not a physical iPhone test.
+- Production logs exposed a missing Auth.js secret; a new random AUTH_SECRET was stored as a Vercel Secret. No secret is recorded here.
