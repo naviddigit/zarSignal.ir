@@ -12,6 +12,7 @@ import { computeLiveBubbles } from '@/server/live-bubbles';
 
 // Do not freeze an unavailable/stale snapshot into the deployment's static HTML.
 export const dynamic = 'force-dynamic';
+export const maxDuration = 60;
 
 export default async function Home() {
   const snapshot = await getPublicSnapshot();

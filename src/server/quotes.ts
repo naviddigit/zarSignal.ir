@@ -3,8 +3,9 @@ import { db } from '@/lib/db';
 import { withDeadline } from '@/lib/with-deadline';
 import { FARAZ_KEY } from '@/server/ingestion/faraz-meta';
 import { formulaCriticalSymbols, instruments, isStale, type Quote, type Snapshot } from '@/lib/market';
+import { refreshProductionMarket } from '@/server/refresh-market';
 
-const liveQuotes = unstable_cache(async (): Promise<Snapshot> => {
+async function readLiveQuotes(): Promise<Snapshot> {
   const [rows, farazSource, hamrateSource] = await Promise.all([
     Promise.all(instruments.map(asset =>
       db.marketQuote.findFirst({ where: { symbol: asset.symbol }, orderBy: { observedAt: 'desc' } }),
@@ -28,14 +29,22 @@ const liveQuotes = unstable_cache(async (): Promise<Snapshot> => {
     const quote = bySymbol.get(symbol);
     return quote && !isStale(quote);
   });
-  const status = !quotes.length ? 'unavailable' : criticalOk ? 'ok' : 'stale';
+  const missingCritical = formulaCriticalSymbols.some(symbol => !bySymbol.get(symbol));
+  const missingInstruments = instruments.some(asset => !bySymbol.get(asset.symbol));
+  const status = !quotes.length || missingCritical
+    ? 'unavailable'
+    : criticalOk && !missingInstruments
+      ? 'ok'
+      : 'stale';
   const pollSeconds = farazSource?.enabled
     ? farazSource.pollSeconds
     : hamrateSource?.enabled
       ? hamrateSource.pollSeconds
       : 60;
   return { mode: 'live', status, quotes, pollSeconds };
-}, ['market-quotes-v2'], { revalidate: 60 });
+}
+
+const liveQuotes = unstable_cache(readLiveQuotes, ['market-quotes-v2'], { revalidate: 60, tags: ['market-quotes-v2'] });
 
 export async function getSnapshot(): Promise<Snapshot> {
   if (process.env.MARKET_MODE === 'demo' || (!process.env.MARKET_MODE && process.env.NODE_ENV !== 'production')) {
@@ -54,7 +63,15 @@ export async function getSnapshot(): Promise<Snapshot> {
     }
   }
   try {
-    return await withDeadline(liveQuotes(), 5_000);
+    let snapshot = await withDeadline(liveQuotes(), 5_000);
+    const needsRefresh = snapshot.status !== 'ok'
+      || snapshot.quotes.length < instruments.length
+      || snapshot.quotes.some(quote => isStale(quote));
+    if (needsRefresh && process.env.MARKET_MODE === 'live') {
+      await withDeadline(refreshProductionMarket({ history: true }), 55_000).catch(() => null);
+      snapshot = await withDeadline(readLiveQuotes(), 5_000);
+    }
+    return snapshot;
   } catch {
     if (process.env.NODE_ENV !== 'production') {
       const { readLocalMarket } = await import('@/server/ingestion/local-store');

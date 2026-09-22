@@ -13,6 +13,7 @@ import { getPublicSnapshot } from '@/server/quotes';
 type Props = { params: Promise<{ symbol: string }> };
 
 export const dynamic = 'force-dynamic';
+export const maxDuration = 60;
 
 export function generateStaticParams() { return instruments.map(asset => ({ symbol: asset.symbol.toLowerCase() })); }
 

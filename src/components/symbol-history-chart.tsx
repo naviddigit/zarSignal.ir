@@ -32,10 +32,11 @@ export function SymbolHistoryChart({ symbol, name }: { symbol: string; name: str
       cache: 'no-store',
     })
       .then(async response => {
-        if (!response.ok) throw new Error('history_failed');
-        const data = await response.json();
-        setBars(Array.isArray(data.bars) ? data.bars : []);
-        setError(null);
+        const data = await response.json().catch(() => ({}));
+        const bars = Array.isArray(data.bars) ? data.bars : [];
+        setBars(bars);
+        // Empty chart with an explicit storage flag is not a hard failure.
+        setError(response.ok || bars.length ? null : 'history_failed');
       })
       .catch(err => {
         if (!controller.signal.aborted) {
