@@ -10,10 +10,12 @@ export function RelativeTime({ value, prefix = '' }: { value: string; prefix?: s
     const timer = window.setInterval(() => setNow(Date.now()), 30_000);
     return () => window.clearInterval(timer);
   }, []);
-  const exact = new Intl.DateTimeFormat('fa-IR', {
+  const date = new Date(value);
+  const valid = Number.isFinite(date.getTime());
+  const exact = valid ? new Intl.DateTimeFormat('fa-IR', {
     dateStyle: 'medium', timeStyle: 'medium', timeZone: 'Asia/Tehran',
-  }).format(new Date(value));
-  return <time dateTime={value} title={exact} suppressHydrationWarning>
-    {prefix}{now === null ? 'در حال محاسبه…' : formatRelativeTime(value, now)}
+  }).format(date) : 'زمان نامشخص';
+  return <time dateTime={valid ? value : undefined} title={exact}>
+    {prefix}{now === null || !valid ? exact : formatRelativeTime(value, now)}
   </time>;
 }

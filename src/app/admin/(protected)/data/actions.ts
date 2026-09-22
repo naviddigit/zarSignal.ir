@@ -71,20 +71,28 @@ export async function saveFarazSource(formData: FormData) {
 export async function runFarazSourceNow() {
   await requireAdmin();
   let count = 0;
-  let historyBars = 0;
   try {
-    const result = await runFarazIngestion(undefined, undefined, { syncHistory: true });
+    const result = await runFarazIngestion();
     count = result.count;
-    historyBars = result.historyBars ?? 0;
-    if (historyBars === 0) {
-      historyBars = (await syncFarazHistory().catch(() => ({ bars: 0 }))).bars;
-    }
     revalidatePath('/admin/data');
     revalidatePath('/');
   } catch (error) {
     done('error', error instanceof Error ? error.message : 'دریافت فراز ناموفق بود.');
   }
-  done('ok', `${count} قیمت زنده و ${historyBars} میلهٔ تاریخچه ثبت شد.`);
+  done('ok', `${count} قیمت دریافت و ثبت شد. همگام‌سازی تاریخچه جداگانه اجرا می‌شود.`);
+}
+
+export async function syncFarazHistoryNow() {
+  await requireAdmin();
+  let bars = 0;
+  try {
+    bars = (await syncFarazHistory()).bars;
+    revalidatePath('/admin/data');
+    revalidatePath('/');
+  } catch {
+    done('error', 'ثبت تاریخچه ناموفق بود؛ وضعیت migrationهای تاریخچه و اتصال منبع را بررسی کنید.');
+  }
+  done('ok', `${bars} میلهٔ تاریخچه همگام شد.`);
 }
 
 export async function runHamrateSourceNow() {
@@ -103,14 +111,16 @@ export async function runHamrateSourceNow() {
 
 export async function runApprovedSourcesNow() {
   await requireAdmin();
+  let count = 0;
   try {
     const result = await runApprovedMarketIngestion();
+    count = result.count;
     revalidatePath('/admin/data');
     revalidatePath('/');
-    done('ok', `${result.count} رکورد از ${result.results.map(item => item.source).join(' + ')} ثبت شد.`);
   } catch (error) {
     done('error', error instanceof Error ? error.message : 'دریافت منابع تأیید‌شده ناموفق بود.');
   }
+  done('ok', `${count} رکورد از منابع فعال ثبت شد.`);
 }
 
 /** @deprecated use saveHamrateSource / saveFarazSource */

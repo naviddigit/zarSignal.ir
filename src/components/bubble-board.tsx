@@ -4,7 +4,7 @@ import type { LiveBubbleCard } from '@/lib/bubbles';
 
 const cards = [
   { key: 'GOLD_BUBBLE' as const, name: 'طلا', symbol: 'Au', type: 'gold', desc: 'فاصله قیمت ۱۸عیار مشتق‌شده از مظنه با ارزش محاسباتی اونس × دلار' },
-  { key: 'SILVER_BUBBLE' as const, name: 'نقره', symbol: 'Ag', type: 'silver', desc: 'تا قیمت نقره ۹۹۹ داخلی تأیید شود قفل است' },
+  { key: 'SILVER_BUBBLE' as const, name: 'نقره', symbol: 'Ag', type: 'silver', desc: 'پس از تأیید مدل محاسبه، فاصله قیمت داخلی و ارزش محاسباتی نمایش داده می‌شود' },
   { key: 'USD_BUBBLE' as const, name: 'دلار', symbol: '$', type: 'currency', desc: 'فاصله دلار بازار با دلار ضمنی از طلا — نه ارزش بنیادی دلار' },
 ];
 
@@ -40,7 +40,7 @@ export function BubbleBoard({ bubbles }: { bubbles: LiveBubbleCard[] }) {
                 <span className="muted">۰{index + 1}</span>
               </div>
               <div className={`bubble-value ${ready ? (state.percent! >= 0 ? 'is-up' : 'is-down') : ''}`}>
-                {ready ? formatPercent(state.percent!) : '—'}
+                <bdi dir="ltr">{ready ? formatPercent(state.percent!) : '—'}</bdi>
                 <span>{state.reason}</span>
               </div>
               <div className="gauge" aria-hidden="true">

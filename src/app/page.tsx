@@ -10,10 +10,13 @@ import { BubbleHistoryChart } from '@/components/bubble-history-chart';
 import { getPublicSnapshot } from '@/server/quotes';
 import { computeLiveBubbles } from '@/server/live-bubbles';
 
+// Do not freeze an unavailable/stale snapshot into the deployment's static HTML.
+export const dynamic = 'force-dynamic';
+
 export default async function Home() {
   const snapshot = await getPublicSnapshot();
   const bubbles = computeLiveBubbles(snapshot);
-  return <main id="main" className="shell"><div className="topline"><span><span className="status-dot"/> دیده‌بان هوشمند بازار ایران</span><span>{snapshot.mode === 'demo' ? 'نسخهٔ پیش‌نمایش · دادهٔ نمونه' : 'قیمت زنده · حباب محاسبه‌شده'}</span></div>
+  return <main id="main" className="shell"><div className="topline"><span><span className="status-dot"/> دیده‌بان هوشمند بازار ایران</span><span>{snapshot.status === 'ok' ? 'قیمت دریافت‌شده · محاسبه شفاف' : snapshot.status === 'stale' ? 'آخرین داده ثبت‌شده · قیمت‌ها قدیمی‌اند' : 'در انتظار دریافت داده معتبر'}</span></div>
     <section className="hero"><div className="hero-copy hero-reveal"><span className="eyebrow gold-text"><span className="tiny-line"/> یک قدم آگاهانه‌تر</span><h1>بازار را واضح ببین.<br/><span className="gold-text">با آگاهی تصمیم بگیر.</span></h1><p>قیمت را ببین؛ فاصله‌اش با ارزش محاسباتی را هم ببین.<br/>ساده، شفاف، بدون ادعای تضمین سود.</p><div className="hero-actions"><Link href="#bubbles" className="button">مشاهده حباب‌ها <ArrowUpLeft size={18}/></Link><Link href="/#markets" className="text-link">رفتن به قیمت‌ها <ChevronLeft size={16}/></Link></div><div className="decision-strip" aria-label="سه پاسخ اصلی زر‌سیگنال"><span><Gauge size={15}/><b>الان چه خبر است؟</b><small>نبض بازار</small></span><span><CircleHelp size={15}/><b>چرا؟</b><small>حباب و روش</small></span><span><ShieldAlert size={15}/><b>ریسک من چیست؟</b><small>بدون سیگنال کور</small></span></div><div className="hero-features"><span><ShieldCheck size={16}/> زمان دریافت مشخص</span><span><Activity size={16}/> حباب طلا و دلار</span><span><Layers3 size={16}/> زبان ساده</span></div></div>
     <MarketRadar bubbles={bubbles}/></section>
     <HeroTicker quotes={snapshot.quotes} mode={snapshot.mode}/>

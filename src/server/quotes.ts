@@ -1,5 +1,6 @@
 import { unstable_cache } from 'next/cache';
 import { db } from '@/lib/db';
+import { withDeadline } from '@/lib/with-deadline';
 import { FARAZ_KEY } from '@/server/ingestion/faraz-meta';
 import { formulaCriticalSymbols, instruments, isStale, type Quote, type Snapshot } from '@/lib/market';
 
@@ -53,7 +54,7 @@ export async function getSnapshot(): Promise<Snapshot> {
     }
   }
   try {
-    return await liveQuotes();
+    return await withDeadline(liveQuotes(), 5_000);
   } catch {
     if (process.env.NODE_ENV !== 'production') {
       const { readLocalMarket } = await import('@/server/ingestion/local-store');

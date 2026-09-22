@@ -52,16 +52,15 @@ export function MarketRadar({ bubbles }: { bubbles: LiveBubbleCard[] }) {
       <div className="radar-pro__orbit radar-pro__orbit--c" />
       <div className="radar-pro__sweep" />
       <div className="radar-pro__pulse radar-pro__pulse--a" aria-hidden="true" />
-      <div className="radar-pro__pulse radar-pro__pulse--b" aria-hidden="true" />
-      <div className="radar-pro__pulse radar-pro__pulse--c" aria-hidden="true" />
 
       <svg className="radar-pro__ring" viewBox="0 0 200 200" aria-hidden="true">
-        <circle cx="100" cy="100" r="78" className="radar-pro__ring-track" pathLength="100" />
+        <circle cx="100" cy="100" r="78" fill="none" className="radar-pro__ring-track" pathLength="100" />
         <circle
           key={`${focus}-${tick}`}
           cx="100"
           cy="100"
           r="78"
+          fill="none"
           pathLength="100"
           className={`radar-pro__ring-value is-${direction}`}
           style={{ strokeDasharray: 100, strokeDashoffset: ready ? 100 - Math.min(100, Math.abs(card!.percent!) / 12 * 100) : 100 }}
@@ -71,16 +70,16 @@ export function MarketRadar({ bubbles }: { bubbles: LiveBubbleCard[] }) {
       <div className="radar-pro__center" aria-live="polite" key={focus}>
         <div className="radar-pro__center-beat">
           <span className="radar-pro__eyebrow">{locked ? `${info.short} · قفل` : info.label}</span>
-          <strong className={`radar-pro__value is-${direction}`}>
+          <strong dir="ltr" className={`radar-pro__value is-${direction}`}>
             {ready ? formatPercent(card!.percent!) : locked ? 'قفل' : '—'}
           </strong>
           <span className="radar-pro__status">
             {ready
               ? card!.status === 'stale'
-                ? 'داده کمی قدیمی · سیگنال معامله نیست'
+                ? 'داده قدیمی · سیگنال معامله نیست'
                 : 'محاسبه زنده · سیگنال معامله نیست'
               : locked
-                ? 'با اشتراک پریمیوم باز می‌شود'
+                ? 'در انتظار مدل محاسباتی تأییدشده'
                 : card?.reason ?? 'در انتظار داده'}
           </span>
           <div className="radar-pro__pips" aria-hidden="true">

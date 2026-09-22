@@ -42,7 +42,7 @@ export function BubbleHistoryChart() {
   useEffect(() => {
     const controller = new AbortController();
     setLoading(true);
-    fetch(`/api/public/bubbles/history?formula=${formula}&range=${range}`, { signal: controller.signal, cache: 'no-store' })
+    fetch(`/api/public/bubbles/history?formula=${formula}&range=${range}`, { signal: AbortSignal.any([controller.signal, AbortSignal.timeout(10_000)]), cache: 'no-store' })
       .then(async response => {
         if (!response.ok) throw new Error('history_failed');
         const data = await response.json();
@@ -94,7 +94,9 @@ export function BubbleHistoryChart() {
       <div className="bubble-history__chart" aria-busy={loading}>
         {loading ? (
           <div className="bubble-history__empty">در حال بارگذاری تاریخچه…</div>
-        ) : error || points.length < 2 ? (
+        ) : error ? (
+          <div className="bubble-history__empty" role="status">دریافت تاریخچه فعلاً ممکن نیست. قیمت‌های ثبت‌شده در جدول بازار در دسترس‌اند.</div>
+        ) : points.length < 2 ? (
           <div className="bubble-history__empty">
             هنوز نقطهٔ کافی ذخیره نشده. با هر دریافت قیمت (هدف: هر دقیقه) تاریخچه ساخته می‌شود.
           </div>

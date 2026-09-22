@@ -61,7 +61,7 @@ export function MarketBoard({ initial, bubbles = [] }: { initial: Snapshot; bubb
       if (document.hidden) return;
       setRefreshing(true);
       try {
-        const response = await fetch('/api/public/markets', { signal: controller.signal, cache: 'no-store' });
+        const response = await fetch('/api/public/markets', { signal: AbortSignal.any([controller.signal, AbortSignal.timeout(10_000)]), cache: 'no-store' });
         if (!response.ok) throw new Error('market refresh failed');
         const next: Snapshot = await response.json();
         setSnapshot(current => {
@@ -77,6 +77,7 @@ export function MarketBoard({ initial, bubbles = [] }: { initial: Snapshot; bubb
       } catch { if (!controller.signal.aborted) setError(true); }
       finally { setRefreshing(false); }
     };
+    if (initial.status === 'unavailable') void refresh();
     const interval = window.setInterval(refresh, Math.max(30, snapshot.pollSeconds ?? 60) * 1000);
     return () => { window.clearInterval(interval); controller.abort(); };
   }, [snapshot.pollSeconds]);
@@ -111,7 +112,7 @@ export function MarketBoard({ initial, bubbles = [] }: { initial: Snapshot; bubb
     </div>
     <div className={`source-disclosure ${fresh ? 'is-live' : stale ? 'is-stale' : ''}`} role="status">
       <strong>{error ? 'به‌روزرسانی ناموفق بود' : fresh ? 'داده زنده ثبت شده' : stale ? 'قیمت‌ها قدیمی‌اند' : 'قیمت نمایشی حذف شده است'}</strong>
-      <span>{fresh ? 'زمان دریافت هر ردیف زنده است؛ برای زمان دقیق نشانگر را نگه دارید.' : stale ? 'از ادمین → منبع فراز را فعال کنید و «دریافت فراز» را بزنید تا قیمت‌ها تازه شوند.' : 'تا دریافت موفق از منبع معتبر، هیچ عددی به عنوان قیمت بازار نمایش داده نمی‌شود.'}</span>
+      <span>{fresh ? 'زمان دریافت هر ردیف مشخص است؛ برای زمان دقیق نشانگر را نگه دارید.' : stale ? 'آخرین قیمت ثبت‌شده نمایش داده می‌شود؛ تا دریافت تازه، این اعداد قیمت لحظه‌ای نیستند.' : 'تا دریافت موفق از منبع معتبر، هیچ عددی به عنوان قیمت بازار نمایش داده نمی‌شود.'}</span>
     </div>
     <div className="table-scroll"><table className="market-table"><thead><tr><th>دارایی</th><th>فروش</th><th>خرید</th><th>منبع و زمان</th><th>تحلیل</th><th aria-label="علاقه‌مندی"/></tr></thead><tbody>{assets.map(asset => {
       const quote = snapshot.quotes.find(item => item.symbol === asset.symbol);
@@ -134,4 +135,3 @@ export function MarketBoard({ initial, bubbles = [] }: { initial: Snapshot; bubb
     <footer className="table-footer"><span>هر عدد همراه واحد، منبع و زمان</span><Link href="/methodology">روش کنترل کیفیت داده <ArrowUpLeft size={14}/></Link></footer>
   </section>;
 }
-

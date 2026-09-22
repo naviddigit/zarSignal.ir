@@ -4,7 +4,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { getAdminOverview } from '@/server/admin-overview';
 import { getFarazSettings } from '@/server/ingestion/faraz';
 import { getHamrateSettings } from '@/server/ingestion/hamrate';
-import { runApprovedSourcesNow, runFarazSourceNow, runHamrateSourceNow, saveFarazSource, saveHamrateSource } from './actions';
+import { runApprovedSourcesNow, runFarazSourceNow, runHamrateSourceNow, saveFarazSource, saveHamrateSource, syncFarazHistoryNow } from './actions';
 
 const time = (value: Date) => value.getTime() ? new Intl.DateTimeFormat('fa-IR', { dateStyle: 'short', timeStyle: 'medium', timeZone: 'Asia/Tehran' }).format(value) : '—';
 
@@ -64,7 +64,12 @@ export default async function AdminData({ searchParams }: { searchParams: Promis
         </div>
         <form action={runFarazSourceNow}>
           <PendingButton className="button source-run" pendingText="در حال دریافت…" disabled={!faraz.enabled || data.database === 'unavailable'}>
-            <Play size={15} /> دریافت فراز + همگام‌سازی تاریخچه
+            <Play size={15} /> دریافت قیمت‌های فراز
+          </PendingButton>
+        </form>
+        <form action={syncFarazHistoryNow}>
+          <PendingButton className="button source-run" pendingText="در حال همگام‌سازی تاریخچه…" disabled={!faraz.enabled || data.database === 'unavailable'}>
+            همگام‌سازی تاریخچه نمودارها
           </PendingButton>
         </form>
       </article>

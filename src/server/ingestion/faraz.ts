@@ -1,4 +1,6 @@
 import { z } from 'zod';
+import { Prisma } from '@prisma/client';
+import { randomUUID } from 'node:crypto';
 import { db } from '@/lib/db';
 import { instruments, type Quote, type Symbol } from '@/lib/market';
 import farazConfig from '../../../config/faraz.json';
@@ -105,16 +107,15 @@ export async function getFarazSettings(): Promise<FarazSourceSettings> {
   }
 }
 
-function priceToFixed(price: number): string {
+export function priceToFixed(price: number): string {
   if (!Number.isFinite(price) || price <= 0) throw new Error('قیمت نامعتبر از فراز');
-  if (price >= 1000) return String(Math.round(price));
   const fixed = price.toFixed(6).replace(/\.?0+$/, '');
   return fixed.includes('.') ? fixed : `${fixed}.0`;
 }
 
 async function fetchFarazQuotes(config: FarazConfig, signal?: AbortSignal): Promise<FarazQuotePayload> {
   const names = config.assets.map(asset => asset.farazSymbol);
-  const url = new URL('/api/public/market/get-data', config.baseUrl);
+  const url = new URL('/api/public/market/get-data', validateFarazUrl(config.baseUrl));
   url.searchParams.set('symbolNames', JSON.stringify(names));
   const response = await fetch(url, {
     cache: 'no-store',
@@ -134,7 +135,7 @@ async function fetchFarazHistory(config: FarazConfig, farazSymbols: string[], si
   const merged: FarazHistoryPayload = {};
   for (let i = 0; i < farazSymbols.length; i += 11) {
     const chunk = farazSymbols.slice(i, i + 11);
-    const url = new URL('/api/public/trading-view/chart-history', config.baseUrl);
+    const url = new URL('/api/public/trading-view/chart-history', validateFarazUrl(config.baseUrl));
     url.searchParams.set('symbolNames', JSON.stringify(chunk));
     url.searchParams.set('resolution', config.historyResolution);
     const response = await fetch(url, {
@@ -151,7 +152,7 @@ async function fetchFarazHistory(config: FarazConfig, farazSymbols: string[], si
   return merged;
 }
 
-function mapQuotes(payload: FarazQuotePayload, config: FarazConfig, now: Date): Quote[] {
+export function mapQuotes(payload: FarazQuotePayload, config: FarazConfig, now: Date): Quote[] {
   return config.assets.map(asset => {
     const known = instruments.find(item => item.symbol === asset.symbol);
     if (!known) throw new Error(`نماد داخلی ناشناخته: ${asset.symbol}`);
@@ -208,38 +209,18 @@ export async function syncFarazHistory(settings?: FarazSourceSettings, signal?: 
       }];
     });
     if (!rows.length) continue;
-    for (const row of rows) {
-      await db.symbolHistoryBar.upsert({
-        where: {
-          source_symbol_resolution_openTime: {
-            source: row.source,
-            symbol: row.symbol,
-            resolution: row.resolution,
-            openTime: row.openTime,
-          },
-        },
-        create: {
-          symbol: row.symbol,
-          source: row.source,
-          resolution: row.resolution,
-          openTime: row.openTime,
-          open: row.open,
-          high: row.high,
-          low: row.low,
-          close: row.close,
-          volume: row.volume,
-        },
-        update: {
-          open: row.open,
-          high: row.high,
-          low: row.low,
-          close: row.close,
-          volume: row.volume,
-          fetchedAt: new Date(),
-        },
-      });
-      saved += 1;
-    }
+    // One parameterized query per symbol, not hundreds of network round trips.
+    saved += await db.$executeRaw(Prisma.sql`
+      INSERT INTO "SymbolHistoryBar"
+        ("id", "symbol", "source", "resolution", "openTime", "open", "high", "low", "close", "volume", "fetchedAt")
+      VALUES ${Prisma.join(rows.map(row => Prisma.sql`(
+        ${randomUUID()}, ${row.symbol}, ${row.source}, ${row.resolution}, ${row.openTime},
+        ${row.open}, ${row.high}, ${row.low}, ${row.close}, ${row.volume}, ${new Date()}
+      )`))}
+      ON CONFLICT ("source", "symbol", "resolution", "openTime") DO UPDATE SET
+        "open" = EXCLUDED."open", "high" = EXCLUDED."high", "low" = EXCLUDED."low",
+        "close" = EXCLUDED."close", "volume" = EXCLUDED."volume", "fetchedAt" = EXCLUDED."fetchedAt"
+    `);
   }
   return { bars: saved };
 }
@@ -255,8 +236,8 @@ export async function runFarazIngestion(settings?: FarazSourceSettings, signal?:
   }
 
   try {
-    const now = new Date();
-    const quotes = mapQuotes(await fetchFarazQuotes(source.config, signal), source.config, now);
+    const payload = await fetchFarazQuotes(source.config, signal);
+    const quotes = mapQuotes(payload, source.config, new Date());
     if (!run) {
       await saveLocalQuotes(quotes);
       return { count: quotes.length, observedAt: quotes[0]?.observedAt ?? null, storage: 'local' as const, historyBars: 0 };
@@ -297,7 +278,7 @@ export async function runFarazIngestion(settings?: FarazSourceSettings, signal?:
     ).catch(() => ({ saved: 0 }));
 
     let historyBars = 0;
-    if (opts?.syncHistory !== false) {
+    if (opts?.syncHistory === true) {
       const shouldSeed = await db.symbolHistoryBar.count({
         where: {
           source: FARAZ_KEY,

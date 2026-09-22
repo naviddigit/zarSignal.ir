@@ -21,7 +21,7 @@ export function computeLiveBubbles(snapshot: Snapshot): LiveBubbleCard[] {
     status: 'blocked',
     percent: null,
     theoretical: null,
-    reason: 'قیمت نقره ۹۹۹ داخلی هنوز در فید نیست',
+    reason: 'مدل محاسباتی نقره هنوز تأیید نشده است',
   };
 
   if (snapshot.mode !== 'live' || snapshot.status === 'unavailable' || snapshot.status === 'demo') {
@@ -51,7 +51,7 @@ export function computeLiveBubbles(snapshot: Snapshot): LiveBubbleCard[] {
     const dollar = usdGap({ xauUsd: xau.value, market18k: derived.market18k, actualUsd: usd.value });
     const stale = melted.stale || xau.stale || usd.stale;
     const status = stale ? 'stale' as const : 'ok' as const;
-    const freshness = stale ? 'داده کمی قدیمی است · هنوز محاسبه شده' : 'محاسبه زنده از مظنه';
+    const freshness = stale ? 'محاسبه از داده قدیمی · قیمت لحظه‌ای نیست' : 'محاسبه از آخرین مظنه دریافت‌شده';
     return [
       {
         key: 'GOLD_BUBBLE',
