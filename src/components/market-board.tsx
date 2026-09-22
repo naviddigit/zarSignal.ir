@@ -47,6 +47,7 @@ export function MarketBoard({ initial, bubbles = [] }: { initial: Snapshot; bubb
   const [error, setError] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [updated, setUpdated] = useState<Symbol[]>([]);
+  useEffect(() => { setSnapshot(initial); }, [initial]);
 
   useEffect(() => {
     try {
@@ -77,7 +78,7 @@ export function MarketBoard({ initial, bubbles = [] }: { initial: Snapshot; bubb
       } catch { if (!controller.signal.aborted) setError(true); }
       finally { setRefreshing(false); }
     };
-    if (initial.status === 'unavailable') void refresh();
+    void refresh();
     const interval = window.setInterval(refresh, Math.max(30, snapshot.pollSeconds ?? 60) * 1000);
     return () => { window.clearInterval(interval); controller.abort(); };
   }, [snapshot.pollSeconds]);
@@ -120,9 +121,9 @@ export function MarketBoard({ initial, bubbles = [] }: { initial: Snapshot; bubb
       const ready = analysis && (analysis.status === 'ok' || analysis.status === 'stale') && analysis.percent != null;
       return <tr className={updated.includes(asset.symbol) ? 'quote-updated' : ''} key={asset.symbol}>
         <td><Link className="asset-name" href={`/markets/${asset.symbol.toLowerCase()}`}><AssetMark symbol={asset.symbol} category={asset.category}/><span><strong>{asset.name}</strong><small>{asset.unit}</small></span></Link></td>
-        <td className="price-cell"><strong>{quote ? formatPrice(quote.sell, quote.currency) : '—'}</strong><small>{quote ? 'قیمت فروش' : 'در انتظار منبع'}</small></td>
-        <td className="price-cell"><strong>{quote ? formatPrice(quote.buy, quote.currency) : '—'}</strong><small>{quote ? 'قیمت خرید' : 'در انتظار منبع'}</small></td>
-        <td>{quote ? <div className="quote-source"><strong>{quote.source}</strong><small><Clock3 size={12}/><RelativeTime value={quote.fetchedAt}/></small></div> : <span className="no-source">متصل نیست</span>}</td>
+        <td className="price-cell"><strong>{quote ? formatPrice(quote.sell, quote.currency) : '—'}</strong><small>{quote ? Number(quote.buy) === Number(quote.sell) ? 'قیمت دیده‌بان' : 'قیمت فروش' : 'در انتظار منبع'}</small></td>
+        <td className="price-cell"><strong>{quote && Number(quote.buy) !== Number(quote.sell) ? formatPrice(quote.buy, quote.currency) : '—'}</strong><small>{quote ? Number(quote.buy) === Number(quote.sell) ? 'بدون اسپرد' : 'قیمت خرید' : 'در انتظار منبع'}</small></td>
+        <td>{quote ? <div className="quote-source"><strong>زرسیگنال</strong><small><Clock3 size={12}/><RelativeTime value={quote.fetchedAt}/></small></div> : <span className="no-source">متصل نیست</span>}</td>
         <td>
           {!analysis ? <span className="status-pill">—</span>
             : analysis.status === 'blocked' ? <span className="status-pill is-blocked">قفل Spec</span>

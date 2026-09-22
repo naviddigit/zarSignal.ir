@@ -51,8 +51,8 @@ test('light/dark tokens, centered icons and the thin radar ring stay consistent'
 test('failed history does not hide the market or masquerade as an empty chart', async ({ page }) => {
   await page.route('**/api/public/bubbles/history?**', route => route.fulfill({ status: 503, json: { error: 'history_unavailable' } }));
   await page.goto('/');
-  await expect(page.locator('.bubble-history__empty')).toContainText('دریافت تاریخچه فعلاً ممکن نیست');
-  await expect(page.locator('.bubble-history__chart')).toHaveAttribute('aria-busy', 'false');
+  await expect(page.locator('#bubble-history .chart-empty')).toContainText('دریافت تاریخچه فعلاً ممکن نیست');
+  await expect(page.locator('.bubble-history-body')).toHaveAttribute('aria-busy', 'false');
   await expect(page.locator('.market-table tbody tr')).toHaveCount(9);
 });
 
@@ -80,7 +80,7 @@ test('history cards have spacing and a symbol chart renders returned bars', asyn
     ],
   } }));
   await page.goto('/markets/gold_melted');
-  await expect(page.locator('.symbol-history svg path')).toHaveAttribute('d', /^M.+L/);
+  await expect(page.locator('.symbol-history .chart-candle')).toHaveCount(2);
   const symbolGap = await page.locator('.symbol-history').evaluate(element => {
     const panel = document.querySelector('.asset-price-panel')!;
     return element.getBoundingClientRect().top - panel.getBoundingClientRect().bottom;

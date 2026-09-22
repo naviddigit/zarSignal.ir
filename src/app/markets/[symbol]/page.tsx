@@ -36,6 +36,7 @@ export default async function AssetPage({ params }: Props) {
   if (!asset) notFound();
   const snapshot = await getPublicSnapshot();
   const quote = snapshot.quotes.find(item => item.symbol === asset.symbol);
+  const singlePrice = quote && Number(quote.buy) === Number(quote.sell);
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://zarsignal.ir';
   const url = `${siteUrl}/markets/${symbol}`;
   const related = instruments.filter(item => item.symbol !== asset.symbol && item.category === asset.category).slice(0, 3);
@@ -55,9 +56,9 @@ export default async function AssetPage({ params }: Props) {
       <div className={`asset-live-state ${quote && !isStale(quote) ? 'is-live' : ''}`}><span/><strong>{quote ? isStale(quote) ? 'داده قدیمی' : 'داده متصل' : 'در انتظار منبع'}</strong>{quote && <RelativeTime value={quote.fetchedAt} prefix="آخرین دریافت: "/>}</div>
     </header>
 
-    <section className="asset-price-panel panel" aria-label={`قیمت ${asset.name}`}>
-      <div className="asset-price-main"><span>قیمت فروش</span><strong>{quote ? formatPrice(quote.sell, quote.currency) : '—'}</strong><small>هر {asset.unit}</small></div>
-      <div className="asset-price-main secondary"><span>قیمت خرید</span><strong>{quote ? formatPrice(quote.buy, quote.currency) : '—'}</strong><small>هر {asset.unit}</small></div>
+    <section className={`asset-price-panel panel ${singlePrice ? 'is-single-price' : ''}`} aria-label={`قیمت ${asset.name}`}>
+      <div className="asset-price-main"><span>{singlePrice ? 'قیمت دیده‌بان (بدون اسپرد)' : 'قیمت فروش'}</span><strong>{quote ? formatPrice(quote.sell, quote.currency) : '—'}</strong><small>هر {asset.unit}{singlePrice ? ' · نرخ خرید و فروش جداگانه ارائه نشده است' : ''}</small></div>
+      {!singlePrice && <div className="asset-price-main secondary"><span>قیمت خرید</span><strong>{quote ? formatPrice(quote.buy, quote.currency) : '—'}</strong><small>هر {asset.unit}</small></div>}
       <dl className="asset-facts"><div><dt><Database size={15}/> منبع</dt><dd>{quote?.sourceUrl ? <a href={quote.sourceUrl} target="_blank" rel="noreferrer">{quote.source}</a> : quote?.source ?? 'در دسترس نیست'}</dd></div><div><dt><Clock3 size={15}/> زمان مشاهده</dt><dd>{quote ? <RelativeTime value={quote.observedAt}/> : '—'}</dd></div><div><dt><Scale size={15}/> واحد و ارز</dt><dd>{asset.unit} · {asset.currency === 'TMN' ? 'تومان' : 'دلار'}</dd></div></dl>
     </section>
 
