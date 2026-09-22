@@ -1,10 +1,11 @@
 import { Activity, Mail, Smartphone } from 'lucide-react';
 import Link from 'next/link';
-import { auth, authCapabilities, signIn, signOut } from '@/auth';
+import { auth, getAuthCapabilities, signIn, signOut } from '@/auth';
 import { PendingButton } from '@/components/pending-button';
 export const dynamic='force-dynamic';
 export default async function LoginPage(){
  const session=await auth().catch(()=>null);
+ const authCapabilities=await getAuthCapabilities();
  return <main id="main" className="auth-page"><section className="auth-card">
   <Link href="/" className="brand"><span className="brand-mark"><Activity size={26}/></span><span>زر<span className="gold-text">سیگنال</span></span></Link>
   {session?.user?<><h1>خوش آمدید</h1><p>{session.user.email??session.user.name}</p><form action={async()=>{'use server';await signOut({redirectTo:'/'});}}><PendingButton pendingText="در حال خروج…">خروج از حساب</PendingButton></form></>:<>

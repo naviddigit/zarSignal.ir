@@ -10,6 +10,11 @@ test('home renders all nine symbols with no hydration errors', async ({ page }) 
   await expect(page.locator('#markets')).toBeVisible();
   await expect(page.locator('.market-table tbody tr')).toHaveCount(9);
   await expect(page.locator('.radar-pro')).toBeVisible();
+  const firstMarketStrip = await page.locator('.hero-ticker').evaluate(element => element.getBoundingClientRect().top);
+  const heroTop = await page.locator('.hero').evaluate(element => element.getBoundingClientRect().top);
+  expect(firstMarketStrip).toBeLessThan(heroTop);
+  await expect(page.locator('.premium-decoration')).toHaveCount(1);
+  await expect(page.locator('.premium-card')).not.toContainText('✳');
   await expect(page.locator('.route-loading')).toHaveCount(0);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   expect(errors).toEqual([]);

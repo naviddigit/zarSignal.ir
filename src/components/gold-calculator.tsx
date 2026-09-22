@@ -1,12 +1,12 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Calculator, DatabaseZap, RotateCcw } from 'lucide-react';
 import { formatNumericInput, numericValue, sanitizeNumericInput } from '@/lib/numeric-input';
-import { mazanehTo18k, market18kToMazaneh } from '@/lib/mazaneh-to-18k';
+import { convertPurityPrice, convertWeight, purityOptions, weightUnits, type Purity, type WeightUnit } from '@/lib/calculator-conversions';
 import type { Quote } from '@/lib/market';
 
-type Mode = 'melted' | 'mazaneh';
+type Mode = 'melted' | 'mazaneh' | 'weight' | 'purity';
 
 type NumberFieldProps = {
   label: string;
@@ -49,23 +49,43 @@ export function GoldCalculator({ quotes }: { quotes: Quote[] }) {
   const [fee, setFee] = useState('');
   const [mazaneh, setMazaneh] = useState('');
   const [loadedSide, setLoadedSide] = useState<'buy' | 'sell' | null>(null);
+  const [conversionValue, setConversionValue] = useState('');
+  const [fromWeight, setFromWeight] = useState<WeightUnit>('mesghal');
+  const [toWeight, setToWeight] = useState<WeightUnit>('gram');
+  const [fromPurity, setFromPurity] = useState<Purity>('18k');
+  const [toPurity, setToPurity] = useState<Purity>('24k');
+  const [derived18k, setDerived18k] = useState<{ market18k: number; formulaVersion: string } | null>(null);
 
   const meltedTotal = useMemo(
     () => numericValue(weight) * numericValue(gramPrice) + numericValue(fee),
     [weight, gramPrice, fee],
   );
-  const derived18k = useMemo(() => {
+  useEffect(() => {
     const value = numericValue(mazaneh);
-    if (!value) return null;
-    try { return mazanehTo18k(value); } catch { return null; }
+    if (!value) { setDerived18k(null); return; }
+    const controller = new AbortController();
+    const timer = window.setTimeout(async () => {
+      try {
+        const response = await fetch('/api/public/calculator', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ operation: 'mazanehTo18k', value }), signal: controller.signal,
+        });
+        const result = await response.json() as { value?: number; version?: string };
+        setDerived18k(response.ok && result.value ? { market18k: result.value, formulaVersion: result.version ?? '' } : null);
+      } catch { if (!controller.signal.aborted) setDerived18k(null); }
+    }, 180);
+    return () => { window.clearTimeout(timer); controller.abort(); };
   }, [mazaneh]);
-  const reverseMazaneh = useMemo(() => {
-    if (!derived18k) return null;
-    try { return market18kToMazaneh(derived18k.market18k); } catch { return null; }
-  }, [derived18k]);
+  const reverseMazaneh = derived18k ? numericValue(mazaneh) : null;
+  const converted = useMemo(() => mode === 'weight'
+    ? convertWeight(numericValue(conversionValue), fromWeight, toWeight)
+    : mode === 'purity'
+      ? convertPurityPrice(numericValue(conversionValue), fromPurity, toPurity)
+      : 0, [mode, conversionValue, fromWeight, toWeight, fromPurity, toPurity]);
 
   const hasMeltedInput = Boolean(weight || gramPrice || fee);
   const hasMazanehInput = Boolean(mazaneh);
+  const hasConversionInput = Boolean(conversionValue);
 
   function loadMazaneh(side: 'buy' | 'sell') {
     if (!meltedQuote) return;
@@ -73,11 +93,13 @@ export function GoldCalculator({ quotes }: { quotes: Quote[] }) {
     setLoadedSide(side);
   }
 
-  function loadGramFromMazaneh(side: 'buy' | 'sell') {
+  async function loadGramFromMazaneh(side: 'buy' | 'sell') {
     if (!meltedQuote) return;
     try {
-      const derived = mazanehTo18k(Number(meltedQuote[side]));
-      setGramPrice(sanitizeNumericInput(String(Math.round(derived.market18k)), 0));
+      const response = await fetch('/api/public/calculator', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ operation: 'mazanehTo18k', value: meltedQuote[side] }) });
+      const derived = await response.json() as { value?: number };
+      if (!response.ok || !derived.value) return;
+      setGramPrice(sanitizeNumericInput(String(Math.round(derived.value)), 0));
       setLoadedSide(side);
     } catch { /* ignore */ }
   }
@@ -87,6 +109,7 @@ export function GoldCalculator({ quotes }: { quotes: Quote[] }) {
     setGramPrice('');
     setFee('');
     setMazaneh('');
+    setConversionValue('');
     setLoadedSide(null);
   }
 
@@ -99,15 +122,17 @@ export function GoldCalculator({ quotes }: { quotes: Quote[] }) {
         <div className="calculator-modes" role="tablist" aria-label="نوع محاسبه">
           <button type="button" role="tab" aria-selected={mode === 'melted'} className={mode === 'melted' ? 'is-on' : ''} onClick={() => setMode('melted')}>مبلغ آب‌شده</button>
           <button type="button" role="tab" aria-selected={mode === 'mazaneh'} className={mode === 'mazaneh' ? 'is-on' : ''} onClick={() => setMode('mazaneh')}>مظنه → ۱۸عیار</button>
+          <button type="button" role="tab" aria-selected={mode === 'weight'} className={mode === 'weight' ? 'is-on' : ''} onClick={() => setMode('weight')}>تبدیل وزن</button>
+          <button type="button" role="tab" aria-selected={mode === 'purity'} className={mode === 'purity' ? 'is-on' : ''} onClick={() => setMode('purity')}>تبدیل عیار</button>
         </div>
         <div className="calculator-rule">
-          <span>محاسبهٔ فعلی</span>
-          <code>{mode === 'melted' ? 'وزن(گرم) × قیمت هر گرم + هزینه' : 'MARKET_18K = مظنه × 750 / (705 × 4.608)'}</code>
+          <span>روش محاسبه</span>
+          <strong>{mode === 'melted' ? 'مبلغ ساده با ورودی‌های خودتان' : mode === 'mazaneh' ? 'تبدیل استاندارد مظنه ۷۰۵ و طلای ۱۸ عیار' : mode === 'weight' ? 'تبدیل با معادل گرمی واحدها' : 'تبدیل ارزش بر پایه خلوص'}</strong>
         </div>
         <small>
           {mode === 'melted'
             ? 'عیار، مالیات و اجرت تا تأیید Spec مجتبی اضافه نمی‌شود.'
-            : 'فرمول تأییدشدهٔ MAZANEH_TO_18K · خروجی مشتق است، نه فید مستقیم.'}
+            : mode === 'mazaneh' ? 'بر اساس سند مرجع ماشین‌حساب · خروجی مشتق است، نه فید مستقیم.' : 'ضرایب در موتور محاسبه نگهداری می‌شوند و در رابط عمومی نمایش داده نمی‌شوند.'}
         </small>
       </div>
 
@@ -132,7 +157,7 @@ export function GoldCalculator({ quotes }: { quotes: Quote[] }) {
               <NumberField label="هزینه یا کارمزد" unit="تومان" value={fee} placeholder="اختیاری" decimals={0} onChange={setFee} />
             </div>
           </>
-        ) : (
+        ) : mode === 'mazaneh' ? (
           <>
             <div className="calculator-source">
               <div>
@@ -157,8 +182,21 @@ export function GoldCalculator({ quotes }: { quotes: Quote[] }) {
               </label>
             </div>
           </>
+        ) : (
+          <>
+            <div className="calculator-screen" aria-live="polite">
+              <span>{mode === 'weight' ? 'وزن تبدیل‌شده' : 'قیمت معادل عیار مقصد'}</span>
+              <strong dir="rtl">{conversionValue ? money(converted, 4) : '—'} <small>{mode === 'weight' ? weightUnits[toWeight].label : 'تومان / گرم'}</small></strong>
+              <em>{conversionValue ? 'نتیجه بر اساس ورودی شما' : 'عدد را وارد و واحدها را انتخاب کنید'}</em>
+            </div>
+            <div className="calculator-form calculator-form--conversion">
+              <NumberField label={mode === 'weight' ? 'مقدار وزن' : 'قیمت هر گرم'} unit={mode === 'weight' ? weightUnits[fromWeight].label : 'تومان'} value={conversionValue} placeholder={mode === 'weight' ? 'مثلاً ۳٫۵' : 'مثلاً ۷۵۰۰۰۰۰'} decimals={mode === 'weight' ? 4 : 0} onChange={setConversionValue}/>
+              <label className="calculator-field"><span>از</span><select value={mode === 'weight' ? fromWeight : fromPurity} onChange={event => mode === 'weight' ? setFromWeight(event.target.value as WeightUnit) : setFromPurity(event.target.value as Purity)}>{Object.entries(mode === 'weight' ? weightUnits : purityOptions).map(([key, item]) => <option key={key} value={key}>{item.label}</option>)}</select></label>
+              <label className="calculator-field"><span>به</span><select value={mode === 'weight' ? toWeight : toPurity} onChange={event => mode === 'weight' ? setToWeight(event.target.value as WeightUnit) : setToPurity(event.target.value as Purity)}>{Object.entries(mode === 'weight' ? weightUnits : purityOptions).map(([key, item]) => <option key={key} value={key}>{item.label}</option>)}</select></label>
+            </div>
+          </>
         )}
-        <button type="button" className="calculator-reset" onClick={reset} disabled={!(hasMeltedInput || hasMazanehInput)}>
+        <button type="button" className="calculator-reset" onClick={reset} disabled={!(hasMeltedInput || hasMazanehInput || hasConversionInput)}>
           <RotateCcw size={14} /> پاک‌کردن
         </button>
       </div>
