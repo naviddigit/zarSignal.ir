@@ -18,8 +18,8 @@ export default async function Home() {
   return (
     <main id="main" className="shell home-page">
       <div className="topline">
-        <span><span className="status-dot" /> دیده‌بان هوشمند بازار ایران</span>
-        <span>{snapshot.status === 'ok' ? 'قیمت دریافت‌شده · محاسبه شفاف' : snapshot.status === 'stale' ? 'آخرین داده ثبت‌شده · قیمت‌ها قدیمی‌اند' : 'در انتظار دریافت داده معتبر'}</span>
+        <span className="topline__watch"><span className="status-dot" /> دیده‌بان هوشمند بازار ایران</span>
+        <span className="topline__status">{snapshot.status === 'ok' ? 'قیمت دریافت‌شده · محاسبه شفاف' : snapshot.status === 'stale' ? 'آخرین داده ثبت‌شده · قیمت‌ها قدیمی‌اند' : 'در انتظار دریافت داده معتبر'}</span>
       </div>
 
       <section className="hero">
@@ -31,12 +31,12 @@ export default async function Home() {
             <Link href="/markets" className="button">تخته قیمت‌ها <ArrowUpLeft size={18} /></Link>
             <Link href="#bubbles" className="text-link">مشاهده حباب‌ها <ChevronLeft size={16} /></Link>
           </div>
-          <div className="decision-strip" aria-label="سه پاسخ اصلی زر‌سیگنال">
+          <div className="decision-strip hero-screen-down" aria-label="سه پاسخ اصلی زر‌سیگنال">
             <span><Gauge size={15} /><b>الان چه خبر است؟</b><small>نبض بازار</small></span>
             <span><CircleHelp size={15} /><b>چرا؟</b><small>حباب و روش</small></span>
             <span><ShieldAlert size={15} /><b>ریسک من چیست؟</b><small>بدون سیگنال کور</small></span>
           </div>
-          <div className="hero-features">
+          <div className="hero-features hero-screen-down">
             <span><ShieldCheck size={16} /> زمان دریافت مشخص</span>
             <span><Activity size={16} /> حباب طلا و دلار</span>
             <span><Layers3 size={16} /> زبان ساده</span>

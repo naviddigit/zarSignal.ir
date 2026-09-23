@@ -275,7 +275,8 @@ html[data-theme='light'] .calculator-screen>span,html[data-theme='light'] .calcu
 .header-tool{display:none}
 }
 @media(max-width:760px){
-.shell{width:calc(100% - 28px)}
+.shell{width:calc(100% - 20px)}
+.hero{padding:0;gap:0;min-height:0}
 .hero-reveal,.section-reveal{animation:none!important}
 .radar-pro__sweep,.radar-pro__grid,.radar-pro__token{animation:none!important}
 .radar-pro__glow,.radar-pro__orbit,.radar-pro__pulse,.radar-pro__center-beat,.radar-pro__ring-value{animation-duration:2.4s}
@@ -288,6 +289,8 @@ html[data-theme='light'] .calculator-screen>span,html[data-theme='light'] .calcu
 .ticker-item:before{animation:none!important;display:none}
 .product-grid{grid-template-columns:1fr}
 .topline{flex-wrap:wrap;gap:6px;font-size:10px}
+.site-header{position:sticky;top:0;z-index:30;backdrop-filter:blur(14px)}
+.header-inner{height:56px}
 }
 
 /* Calculator modes + melted UX */
@@ -444,25 +447,99 @@ html[data-theme='light'] .calculator-screen>span,html[data-theme='light'] .calcu
 .has-mobile-tabs{padding-bottom:0}
 .mobile-tab-bar{display:none}
 @media(max-width:760px){
-  .home-page>.market-teaser{order:1}
-  .home-page>.hero{order:2}
-  .market-teaser{padding:14px 12px 12px;margin-bottom:18px}
-  .market-teaser__head{flex-direction:column;align-items:stretch;gap:12px}
-  .market-teaser__actions{justify-content:space-between}
-  .price-card-grid,.price-card-grid--teaser{grid-template-columns:1fr 1fr;gap:8px}
-  .price-card__main{grid-template-columns:minmax(0,1fr) 56px;padding:12px;gap:8px;min-height:104px}
-  .price-card__side{width:56px}
-  .price-card__spark{width:56px}
-  .price-card__price bdi{font-size:15px}
-  .price-fav{width:32px;height:32px;border-radius:10px}
-  .price-list-board{border-radius:12px}
-  .price-list-row__main{grid-template-columns:minmax(0,1.2fr) minmax(0,.9fr) 72px;gap:8px;padding:10px 12px;min-height:52px}
-  .price-list-row.has-fav .price-list-row__main{padding-inline-end:4px}
+  /* App shell: radar first, then prices, then short hero — no watchlist / screen-down */
+  .home-page>.topline{order:0;padding:6px 0;margin:0;font-size:10px;justify-content:center}
+  .topline__watch{display:none}
+  .home-page>.hero{display:contents}
+  .radar-pro{order:1;height:300px;margin:4px 0 8px;max-width:none}
+  .home-page>.market-teaser{order:2;margin:0 0 14px;padding:10px 0 8px;border:0;border-radius:0;background:transparent;box-shadow:none}
+  .hero-copy{order:3;padding:8px 0 18px}
+  .hero-copy>h1{font-size:22px;line-height:1.45;margin:8px 0}
+  .hero-copy>p{display:none}
+  .hero-copy>.eyebrow{font-size:10px}
+  .hero-actions{gap:10px;margin-top:10px}
+  .hero-actions .button{min-height:44px;padding:0 16px;font-size:13px;border-radius:12px}
+  .hero-screen-down{display:none!important}
+  .radar-pro__caption{font-size:10px;bottom:4px}
+
+  .market-teaser__head{flex-direction:column;align-items:stretch;gap:8px;margin-bottom:10px;padding:0 2px}
+  .market-teaser__head .eyebrow{font-size:9px}
+  .market-teaser__head h2{font-size:17px;margin:2px 0}
+  .market-teaser__head p{display:none}
+  .market-teaser__actions{justify-content:space-between;gap:8px}
+  .market-teaser__actions .button{min-height:36px;padding:0 12px;font-size:12px;border-radius:10px}
+  .layout-toggle{padding:2px;border-radius:10px}
+  .layout-toggle button{min-height:32px;padding:0 10px;font-size:11px;border-radius:8px;gap:4px}
+
+  /* Exchange-dense price tiles */
+  .price-card-grid,.price-card-grid--teaser{grid-template-columns:1fr 1fr;gap:6px;margin:6px 0 0}
+  .price-card{border-radius:12px}
+  .price-card:hover{transform:none;border-radius:12px;box-shadow:none}
+  .price-card__main{grid-template-columns:minmax(0,1fr) 48px;padding:10px;gap:6px;min-height:92px}
+  .price-card__body{gap:5px}
+  .price-card__title strong{font-size:11px}
+  .price-card__title small{font-size:9px}
+  .price-card__price bdi{font-size:14px}
+  .price-card__side{width:48px;gap:4px;min-height:48px}
+  .price-card__spark{width:48px;height:16px}
+  .price-card__foot{font-size:9px;min-height:18px;gap:6px}
+  .price-card__bubble{padding:2px 6px;font-size:9px}
+  .price-card__bubble-slot{min-width:52px;min-height:18px}
+  .price-fav{width:28px;height:28px;border-radius:8px}
+  .price-fav svg{width:13px;height:13px}
+  .mini-spark.is-compact,.mini-spark.is-compact svg{width:48px;height:16px}
+
+  .price-list-board{border-radius:12px;margin:6px 0 0}
+  .price-list-row:hover{background:color-mix(in srgb,var(--surface-soft) 70%,transparent)}
+  .price-list-row__main{grid-template-columns:minmax(0,1.3fr) minmax(0,1fr) 56px;gap:6px;padding:8px 10px;min-height:48px}
+  .price-list-row.has-fav .price-list-row__main{padding-inline-end:2px}
+  .price-list-row__asset strong{font-size:12px}
+  .price-list-row__asset small{font-size:9px}
+  .price-list-row__price bdi{font-size:14px}
   .price-list-row__meta{display:none}
-  .price-list-row__spark{width:72px}
-  .price-list-row.has-fav{grid-template-columns:minmax(0,1fr) 44px}
-  .price-list-row__fav{width:44px;padding-inline-end:6px}
+  .price-list-row__spark{width:56px;height:16px}
+  .price-list-row.has-fav{grid-template-columns:minmax(0,1fr) 40px}
+  .price-list-row__fav{width:40px;padding-inline-end:4px}
   .market-teaser__row{grid-template-columns:1fr auto;gap:8px 12px}
+
+  /* Markets board denser */
+  .market-board-window{padding:12px 0 0}
+  .markets-page{padding-top:12px}
+  .market-toolbar{gap:8px;margin-bottom:8px}
+  .market-toolbar .search{min-height:40px;border-radius:12px}
+  .chips{gap:6px}
+  .chips button{min-height:34px;padding:0 12px;font-size:11px;border-radius:999px}
+
+  /* Pricing — vertical app plan cards */
+  .content-page{padding-block:18px 88px}
+  .content-page>h1{font-size:22px;margin:8px 0}
+  .content-page>.lead{font-size:13px;margin-bottom:16px}
+  .pricing-grid{display:grid;gap:10px;margin-top:12px}
+  .pricing-grid>.panel{padding:14px 14px 16px;border-radius:14px;display:grid;gap:8px}
+  .pricing-grid>.panel h2{font-size:16px;margin:0}
+  .pricing-grid>.panel .eyebrow{font-size:9px}
+  .pricing-grid .plan-price{margin:0}
+  .pricing-grid .plan-price strong{font-size:28px;line-height:1}
+  .pricing-grid .plan-price small{font-size:11px;margin-top:2px}
+  .pricing-grid>.panel>p{font-size:12px;margin:0;color:var(--text-secondary)}
+  .pricing-grid>.panel ul{margin:4px 0 8px;padding:0;list-style:none;display:grid;gap:6px}
+  .pricing-grid>.panel li{font-size:12px;padding:8px 10px;border-radius:10px;background:var(--surface-soft);color:var(--text-secondary)}
+  .pricing-grid>.panel .button{width:100%;min-height:44px;justify-content:center;border-radius:12px;margin-top:4px}
+  .pricing-empty{padding:16px;margin-top:12px;border-radius:14px}
+  .pricing-empty h2{font-size:15px;margin:0 0 6px}
+  .pricing-empty p{font-size:12px;margin:0}
+
+  /* Home product / calc teaser */
+  .calc-preview{margin-block:12px;padding:14px;gap:12px;border-radius:14px}
+  .calc-preview h2{font-size:18px;margin:6px 0}
+  .calc-preview p{font-size:12px;margin:0}
+  .calc-preview .button{width:100%;min-height:44px;justify-content:center;border-radius:12px}
+  .product-grid{gap:10px;margin-top:12px}
+  .product-grid .panel{padding:16px;border-radius:14px}
+  .product-grid h2,.product-grid h3{font-size:17px}
+  .product-grid p{font-size:12px}
+  .product-grid .button{min-height:42px;border-radius:12px}
+
   body:has(.mobile-tab-bar){padding-bottom:calc(72px + env(safe-area-inset-bottom))}
   body:has(.mobile-tab-bar) .footer{margin-bottom:12px}
   .mobile-tab-bar{display:block;position:fixed;inset-inline:0;bottom:0;z-index:40;padding:0 10px calc(8px + env(safe-area-inset-bottom));pointer-events:none}
