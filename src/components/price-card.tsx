@@ -63,9 +63,9 @@ export function PriceCard({ item, href }: { item: PriceCardModel; href: string }
 
 /** Minimal wide row for list mode. */
 export function PriceListRow({ item, href }: { item: PriceCardModel; href: string }) {
-  const spark = item.spark?.price?.length ? item.spark.price : undefined;
+  const spark = item.spark?.price?.length && item.spark.price.length >= 2 ? item.spark.price : undefined;
   return (
-    <article className={`price-list-row${item.updated ? ' quote-updated' : ''}`}>
+    <article className={`price-list-row${item.updated ? ' quote-updated' : ''}${spark ? ' has-spark' : ''}`}>
       <Link href={href} className="price-list-row__main">
         <span className="price-list-row__asset">
           <AssetMark symbol={item.symbol} category={item.category} />
@@ -74,11 +74,11 @@ export function PriceListRow({ item, href }: { item: PriceCardModel; href: strin
             <small>{item.unit}</small>
           </span>
         </span>
-        {spark?.length ? (
+        {spark ? (
           <span className="price-list-row__spark">
             <Sparkline values={spark} label="" tone="price" />
           </span>
-        ) : <span className="price-list-row__spark is-empty" aria-hidden="true" />}
+        ) : null}
         <span className="price-list-row__price">
           <bdi>{item.quote ? formatPrice(item.quote.sell, item.quote.currency) : '—'}</bdi>
         </span>
