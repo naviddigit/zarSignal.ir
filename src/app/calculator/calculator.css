@@ -114,7 +114,7 @@
   .calc-weight-swap{width:28px;height:28px}
   .calc-weight-widget__factor{margin-top:5px;padding:5px 7px;font-size:9px}
 
-  .calc-popular{margin:0 0 6px;order:0}
+  .calc-popular{margin:0 0 6px}
   .calc-popular__head{display:none}
   .calc-popular__chips{gap:4px}
   .calc-popular__chips button{min-height:28px;padding:0 9px;font-size:10px}
@@ -127,7 +127,7 @@
   .calc-live-strip__grid small{font-size:8px}
   .calc-live-strip__grid bdi{font-size:10px}
 
-  .calc-keypad-wrap{display:block;margin:0;flex:1 1 auto;display:flex;flex-direction:column;justify-content:flex-end}
+  .calc-keypad-wrap{display:flex;margin:0;flex:1 1 auto;flex-direction:column;justify-content:flex-end}
   .calc-keypad{gap:5px;max-width:100%}
   .calc-keypad button{min-height:clamp(40px,11vw,48px);border-radius:10px;font-size:16px}
   .calc-keypad button.is-accent{font-size:18px}
