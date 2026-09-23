@@ -58,18 +58,29 @@ export function CalculatorAppHeader({ live }: { live: boolean }) {
 }
 
 /** Icon category row. */
-export function CalculatorProductTiles({ value, onChange }: { value: CalcProduct; onChange: (next: CalcProduct) => void }) {
+export function CalculatorProductTiles({
+  value,
+  onChange,
+  locked = [],
+}: {
+  value: CalcProduct;
+  onChange: (next: CalcProduct) => void;
+  locked?: CalcProduct[];
+}) {
   return (
     <div className="calc-product-tiles" role="tablist" aria-label="نوع دارایی">
       {productMeta.map(item => {
         const Icon = item.Icon;
+        const isLocked = locked.includes(item.key);
         return (
           <button
             key={item.key}
             type="button"
             role="tab"
             aria-selected={value === item.key}
-            className={value === item.key ? 'is-on' : ''}
+            aria-disabled={isLocked || undefined}
+            disabled={isLocked}
+            className={value === item.key ? 'is-on' : isLocked ? 'is-locked' : ''}
             onClick={() => onChange(item.key)}
           >
             <span className="calc-product-tiles__icon"><Icon size={18} strokeWidth={1.8} /></span>
