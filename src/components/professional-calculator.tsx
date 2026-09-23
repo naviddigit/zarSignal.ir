@@ -167,7 +167,7 @@ export function ProfessionalCalculator({ snapshot }: { snapshot: Snapshot }) {
     .map(key => ({ value: key, label: calculatorCatalog[key].title }));
 
   return (
-    <section className="professional-calculator" aria-label="ماشین‌حساب حرفه‌ای">
+    <section className={`professional-calculator${tool === 'weight' ? ' is-weight' : ''}`} aria-label="ماشین‌حساب حرفه‌ای">
       <div className="calc-products" role="group" aria-label="نوع دارایی">
         {products.map(([key, label]) => (
           <button
@@ -183,103 +183,75 @@ export function ProfessionalCalculator({ snapshot }: { snapshot: Snapshot }) {
       </div>
       <CalculatorProductTiles value={product} onChange={chooseProduct} locked={lockedProducts} />
 
-      <div className="calc-stage">
-        <div className="calc-stage__main">
-          {tool === 'weight' ? (
-            <WeightConvertWidget amount={weightAmount} onAmountChange={setWeightAmount} />
-          ) : spec ? (
-            <form className="calc-tool-panel" onSubmit={calculate}>
-              <Select
-                label="نوع محاسبه"
-                className="calc-tool-panel__select"
-                value={operation!}
-                onChange={value => choose(value as CalculatorOperation)}
-                options={opOptions}
-              />
-              {spec.fields.map(field => {
-                const input = inputs[field.key] ?? { value: '', provenance: 'MANUAL' as const };
-                const liveAvailable = liveEntry(field, market).provenance === 'LIVE';
-                return (
-                  <div className={`calc-tool-panel__field${input.provenance === 'LIVE' ? ' is-live' : ''}`} key={field.key}>
-                    <div className="calc-tool-panel__meta">
-                      <div className="calc-mode" role="radiogroup" aria-label={`منبع ${field.label}`}>
-                        <button type="button" role="radio" aria-checked={input.provenance === 'LIVE'} className={input.provenance === 'LIVE' ? 'is-on' : ''} disabled={!liveAvailable} onClick={() => setMode(field.key, 'LIVE')}>
-                          لحظه‌ای
-                        </button>
-                        <button type="button" role="radio" aria-checked={input.provenance === 'MANUAL'} className={input.provenance === 'MANUAL' ? 'is-on' : ''} onClick={() => setMode(field.key, 'MANUAL')}>
-                          دستی
-                        </button>
-                      </div>
-                    </div>
-                    <Input
-                      label={field.label}
-                      inputMode="decimal"
-                      autoComplete="off"
-                      dir="ltr"
-                      required
-                      value={formatNumericInput(input.value)}
-                      placeholder="مقدار را وارد کنید"
-                      onChange={event => {
-                        invalidate();
-                        setInputs(current => ({
-                          ...current,
-                          [field.key]: { value: sanitizeNumericInput(event.target.value, 6), provenance: 'MANUAL' },
-                        }));
-                      }}
-                    />
-                    <div className="calc-tool-panel__foot">
-                      <span>{field.unit}</span>
-                      <span className={`calc-provenance is-${input.provenance.toLowerCase()}`}>
-                        {input.provenance === 'LIVE' ? 'LIVE' : 'MANUAL'}
-                        {input.provenance === 'LIVE' && input.observedAt ? <> · <RelativeTime value={input.observedAt} /></> : null}
-                      </span>
-                      <button type="button" className="text-link" onClick={refresh} disabled={pending}>
-                        <RefreshCw size={13} /> تازه‌سازی
+      <div className="calc-stage__main">
+        {tool === 'weight' ? (
+          <WeightConvertWidget amount={weightAmount} onAmountChange={setWeightAmount} />
+        ) : spec ? (
+          <form className="calc-tool-panel" onSubmit={calculate}>
+            <Select
+              label="نوع محاسبه"
+              className="calc-tool-panel__select"
+              value={operation!}
+              onChange={value => choose(value as CalculatorOperation)}
+              options={opOptions}
+            />
+            {spec.fields.map(field => {
+              const input = inputs[field.key] ?? { value: '', provenance: 'MANUAL' as const };
+              const liveAvailable = liveEntry(field, market).provenance === 'LIVE';
+              return (
+                <div className={`calc-tool-panel__field${input.provenance === 'LIVE' ? ' is-live' : ''}`} key={field.key}>
+                  <div className="calc-tool-panel__meta">
+                    <div className="calc-mode" role="radiogroup" aria-label={`منبع ${field.label}`}>
+                      <button type="button" role="radio" aria-checked={input.provenance === 'LIVE'} className={input.provenance === 'LIVE' ? 'is-on' : ''} disabled={!liveAvailable} onClick={() => setMode(field.key, 'LIVE')}>
+                        لحظه‌ای
+                      </button>
+                      <button type="button" role="radio" aria-checked={input.provenance === 'MANUAL'} className={input.provenance === 'MANUAL' ? 'is-on' : ''} onClick={() => setMode(field.key, 'MANUAL')}>
+                        دستی
                       </button>
                     </div>
                   </div>
-                );
-              })}
-              <button className="button calc-tool-panel__go" type="submit" disabled={pending}>
-                {pending ? 'در حال محاسبه…' : 'محاسبه'}
-                <ArrowUpLeft size={15} />
-              </button>
-              {error ? <p className="calc-error" role="alert">{error}</p> : null}
-            </form>
-          ) : (
-            <div className="calc-tool-panel calc-tool-panel--locked">
-              <LockKeyhole size={22} />
-              <strong>به‌زودی</strong>
-              <p>این بخش بعد از تأیید فرمول فعال می‌شود.</p>
-            </div>
-          )}
-        </div>
-
-        <div className="calc-stage__side">
-          {tool === 'weight' ? (
-            <div className="calc-keypad-wrap">
-              <p className="calc-keypad-wrap__label">صفحه‌کلید</p>
-              <CalculatorKeypad value={weightAmount} onChange={setWeightAmount} />
-            </div>
-          ) : (
-            <div className="calc-result-slot" aria-live="polite" aria-busy={pending}>
-              <p className="calc-result-slot__label">نتیجه</p>
-              {result ? (
-                result.outputs.map(output => (
-                  <div className="calc-result-slot__row" key={output.label}>
-                    <span>{output.label}</span>
-                    <strong dir="ltr"><bdi>{number(output.value)}</bdi> <small>{output.unit}</small></strong>
+                  <Input
+                    label={field.label}
+                    inputMode="decimal"
+                    autoComplete="off"
+                    dir="ltr"
+                    required
+                    value={formatNumericInput(input.value)}
+                    placeholder="مقدار را وارد کنید"
+                    onChange={event => {
+                      invalidate();
+                      setInputs(current => ({
+                        ...current,
+                        [field.key]: { value: sanitizeNumericInput(event.target.value, 6), provenance: 'MANUAL' },
+                      }));
+                    }}
+                  />
+                  <div className="calc-tool-panel__foot">
+                    <span>{field.unit}</span>
+                    <span className={`calc-provenance is-${input.provenance.toLowerCase()}`}>
+                      {input.provenance === 'LIVE' ? 'LIVE' : 'MANUAL'}
+                      {input.provenance === 'LIVE' && input.observedAt ? <> · <RelativeTime value={input.observedAt} /></> : null}
+                    </span>
+                    <button type="button" className="text-link" onClick={refresh} disabled={pending}>
+                      <RefreshCw size={13} /> تازه‌سازی
+                    </button>
                   </div>
-                ))
-              ) : (
-                <div className="calc-result-slot__empty">
-                  <Calculator size={28} />
-                  <p>{pending ? 'در حال محاسبه…' : 'مقدار را وارد کنید و محاسبه را بزنید'}</p>
                 </div>
-              )}
-            </div>
-          )}
-        </div>
+              );
+            })}
+            <button className="button calc-tool-panel__go" type="submit" disabled={pending}>
+              {pending ? 'در حال محاسبه…' : 'محاسبه'}
+              <ArrowUpLeft size={15} />
+            </button>
+            {error ? <p className="calc-error" role="alert">{error}</p> : null}
+          </form>
+        ) : (
+          <div className="calc-tool-panel calc-tool-panel--locked">
+            <LockKeyhole size={22} />
+            <strong>به‌زودی</strong>
+            <p>این بخش بعد از تأیید فرمول فعال می‌شود.</p>
+          </div>
+        )}
       </div>
 
       {product === 'gold' ? (
@@ -304,6 +276,32 @@ export function ProfessionalCalculator({ snapshot }: { snapshot: Snapshot }) {
       )}
 
       <CalculatorLiveStrip snapshot={market} />
+
+      <div className="calc-stage__side">
+        {tool === 'weight' ? (
+          <div className="calc-keypad-wrap">
+            <p className="calc-keypad-wrap__label">صفحه‌کلید</p>
+            <CalculatorKeypad value={weightAmount} onChange={setWeightAmount} />
+          </div>
+        ) : (
+          <div className="calc-result-slot" aria-live="polite" aria-busy={pending}>
+            <p className="calc-result-slot__label">نتیجه</p>
+            {result ? (
+              result.outputs.map(output => (
+                <div className="calc-result-slot__row" key={output.label}>
+                  <span>{output.label}</span>
+                  <strong dir="ltr"><bdi>{number(output.value)}</bdi> <small>{output.unit}</small></strong>
+                </div>
+              ))
+            ) : (
+              <div className="calc-result-slot__empty">
+                <Calculator size={28} />
+                <p>{pending ? 'در حال محاسبه…' : 'مقدار را وارد کنید و محاسبه را بزنید'}</p>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </section>
   );
 }

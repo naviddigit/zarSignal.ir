@@ -7,8 +7,8 @@ export const metadata: Metadata = { title: 'ماشین‌حساب حرفه‌ا�
 export default async function CalculatorPage() {
   const snapshot = await getPublicSnapshot();
   return (
-    <main id="main" className="shell professional-page">
-      <header>
+    <main id="main" className="shell professional-page calc-app-page">
+      <header className="calc-app-page__intro">
         <span className="eyebrow">ZARSIGNAL CALCULATOR</span>
         <h1>هر محاسبه، با ورودی روشن.</h1>
         <p>محاسبه را انتخاب کنید، قیمت را وارد یا از بازار دریافت کنید و نتیجه را ببینید.</p>

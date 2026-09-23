@@ -10,7 +10,6 @@ import { formatNumericInput, sanitizeNumericInput } from '@/lib/numeric-input';
 import { isStale, type Snapshot } from '@/lib/market';
 import { mazanehTo18k } from '@/lib/mazaneh-to-18k';
 import { Select } from '@/components/ui/select';
-import { Input } from '@/components/ui/field';
 
 const unitOptions = Object.entries(weightUnits).map(([value, unit]) => ({ value, label: unit.label }));
 
@@ -238,12 +237,14 @@ export function WeightConvertWidget({ amount, onAmountChange }: { amount: string
 
       <div className="calc-weight-widget__pair">
         <div className="calc-weight-box is-in">
-          <div className="calc-weight-box__value">
-            <Input
-              label="مقدار"
+          <span className="ds-field__label">مقدار</span>
+          <div className="calc-weight-box__input-wrap">
+            <input
+              className="ds-input calc-weight-box__input"
               dir="ltr"
               inputMode="decimal"
               autoComplete="off"
+              aria-label="مقدار"
               placeholder="مثلاً 3.5"
               value={formatNumericInput(amount)}
               onChange={event => onAmountChange(sanitizeNumericInput(event.target.value, 8))}
