@@ -109,7 +109,7 @@ export function MarketBoard({ initial, bubbles = [] }: { initial: Snapshot; bubb
         <div>
           <span className="eyebrow">WATCH BOARD</span>
           <h2>تخته نمایش قیمت‌ها</h2>
-          <p>باکس‌های خوانا به‌صورت پیش‌فرض؛ در صورت نیاز به نمای لیست بروید.</p>
+          <p>پیش‌فرض باکس مینیمال؛ لیست هم در دسترس است.</p>
         </div>
         <div className={`feed-state ${fresh ? 'is-live' : stale ? 'is-stale' : 'is-offline'}`}>
           <span />

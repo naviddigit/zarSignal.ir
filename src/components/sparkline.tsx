@@ -9,19 +9,12 @@ type SparklineProps = {
   className?: string;
 };
 
-/** Compact trend path used inside price cards (same spirit as landing chart teaser). */
+/** Compact trend path — hide empty label chrome when label is blank. */
 export function Sparkline({ values, label, tone = 'price', className = '' }: SparklineProps) {
-  if (values.length < 2) {
-    return (
-      <div className={`mini-spark is-empty ${className}`.trim()}>
-        <small>{label}</small>
-        <span className="mini-spark__placeholder" aria-hidden="true" />
-      </div>
-    );
-  }
+  if (values.length < 2) return null;
   const domain = chartDomain(values);
   const w = 120;
-  const h = 36;
+  const h = 28;
   const span = Math.max(values.length - 1, 1);
   const path = values
     .map((value, index) => {
@@ -32,8 +25,8 @@ export function Sparkline({ values, label, tone = 'price', className = '' }: Spa
     .join(' ');
   return (
     <div className={`mini-spark is-${tone} ${className}`.trim()}>
-      <small>{label}</small>
-      <svg viewBox={`0 0 ${w} ${h}`} role="img" aria-label={label} preserveAspectRatio="none">
+      {label ? <small>{label}</small> : null}
+      <svg viewBox={`0 0 ${w} ${h}`} role="img" aria-label={label || 'روند'} preserveAspectRatio="none">
         <path d={path} />
       </svg>
     </div>

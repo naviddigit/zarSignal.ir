@@ -68,7 +68,7 @@ export function MarketTeaser({ snapshot, bubbles }: { snapshot: Snapshot; bubble
         <div>
           <span className="eyebrow">LIVE BOARD</span>
           <h2>نگاهی سریع به قیمت‌ها</h2>
-          <p>باکس‌های زنده با روند کوتاه؛ برای فیلتر کامل به نبض بازار بروید.</p>
+          <p>قیمت زنده در باکس‌های ساده؛ تخته کامل فیلتر و جزئیات دارد.</p>
         </div>
         <div className="market-teaser__actions">
           <LayoutToggle value={layout} onChange={setLayout} />

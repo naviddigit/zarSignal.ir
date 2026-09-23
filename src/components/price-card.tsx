@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Clock3, LayoutGrid, Rows3 } from 'lucide-react';
+import { LayoutGrid, Rows3 } from 'lucide-react';
 import { formatPrice, type Quote, type Symbol as MarketSymbol } from '@/lib/market';
 import { RelativeTime } from '@/components/relative-time';
 import { AssetMark } from '@/components/asset-mark';
@@ -27,58 +27,43 @@ export type PriceCardModel = {
   spark?: SparkSeries;
 };
 
-/** Rich price box — landing chart-teaser spirit with more market fields. */
-export function PriceCard({ item, href, dense = false }: { item: PriceCardModel; href: string; dense?: boolean }) {
-  const same = item.quote && Number(item.quote.buy) === Number(item.quote.sell);
-  const hasSpark = Boolean(item.spark?.price?.length);
+/** Minimal price box — name, price, one spark, optional bubble. */
+export function PriceCard({ item, href }: { item: PriceCardModel; href: string }) {
+  const spark = item.spark?.price?.length ? item.spark.price : item.spark?.bubble;
+  const sparkTone = item.spark?.price?.length ? 'price' : 'bubble';
   return (
-    <article className={`price-card${item.updated ? ' quote-updated' : ''}${dense ? ' is-dense' : ''}${hasSpark ? ' has-spark' : ''}`}>
+    <article className={`price-card${item.updated ? ' quote-updated' : ''}`}>
       <Link href={href} className="price-card__main">
         <header className="price-card__head">
           <AssetMark symbol={item.symbol} category={item.category} />
           <span className="price-card__title">
             <strong>{item.name}</strong>
-            <small>{item.unit}{item.quote ? ` · ${item.quote.currency === 'USD' ? 'دلار' : 'تومان'}` : ''}</small>
+            <small>{item.unit}</small>
           </span>
           {item.bubble != null ? (
             <span className={`price-card__bubble ${item.bubble >= 0 ? 'is-up' : 'is-down'}`}>{formatBubblePercent(item.bubble)}</span>
-          ) : item.analysisLabel ? (
-            <span className="price-card__bubble is-muted">{item.analysisLabel}</span>
           ) : null}
         </header>
-
-        <div className="price-card__body">
-          <div className="price-card__price">
-            <bdi>{item.quote ? formatPrice(item.quote.sell, item.quote.currency) : '—'}</bdi>
-            <small>{item.quote ? (same ? 'قیمت دیده‌بان · بدون اسپرد' : 'فروش') : 'در انتظار منبع'}</small>
-            {item.quote && !same ? <em>خرید {formatPrice(item.quote.buy, item.quote.currency)}</em> : null}
-          </div>
-          <div className="price-card__sparks" aria-hidden={!hasSpark}>
-            <Sparkline values={item.spark?.price ?? []} label="قیمت" tone="price" />
-            {item.spark?.bubble?.length ? <Sparkline values={item.spark.bubble} label="حباب ٪" tone="bubble" /> : null}
-          </div>
+        <div className="price-card__price">
+          <bdi>{item.quote ? formatPrice(item.quote.sell, item.quote.currency) : '—'}</bdi>
         </div>
-
-        <footer className="price-card__foot">
-          <span>
-            <strong>زرسیگنال</strong>
-            {item.quote ? <small><Clock3 size={12} /><RelativeTime value={item.quote.fetchedAt} /></small> : <small>بدون قیمت</small>}
-          </span>
-          <span className="price-card__cta">جزئیات</span>
-        </footer>
+        {spark?.length ? <Sparkline values={spark} label="" tone={sparkTone} className="price-card__spark" /> : null}
+        {item.quote ? (
+          <footer className="price-card__foot">
+            <RelativeTime value={item.quote.fetchedAt} />
+          </footer>
+        ) : null}
       </Link>
       {item.onToggleFavorite ? (
-        <button type="button" className={`price-card__star${item.favorite ? ' is-on' : ''}`} aria-label={`نشان‌کردن ${item.name}`} aria-pressed={Boolean(item.favorite)} onClick={item.onToggleFavorite}>
-          ★
-        </button>
+        <button type="button" className={`price-card__star${item.favorite ? ' is-on' : ''}`} aria-label={`نشان‌کردن ${item.name}`} aria-pressed={Boolean(item.favorite)} onClick={item.onToggleFavorite}>★</button>
       ) : null}
     </article>
   );
 }
 
-/** Wide list row with spark — replaces the old bare list. */
+/** Minimal wide row for list mode. */
 export function PriceListRow({ item, href }: { item: PriceCardModel; href: string }) {
-  const same = item.quote && Number(item.quote.buy) === Number(item.quote.sell);
+  const spark = item.spark?.price?.length ? item.spark.price : undefined;
   return (
     <article className={`price-list-row${item.updated ? ' quote-updated' : ''}`}>
       <Link href={href} className="price-list-row__main">
@@ -89,19 +74,19 @@ export function PriceListRow({ item, href }: { item: PriceCardModel; href: strin
             <small>{item.unit}</small>
           </span>
         </span>
-        <span className="price-list-row__spark">
-          <Sparkline values={item.spark?.price ?? []} label="روند" tone="price" />
-        </span>
+        {spark?.length ? (
+          <span className="price-list-row__spark">
+            <Sparkline values={spark} label="" tone="price" />
+          </span>
+        ) : <span className="price-list-row__spark is-empty" aria-hidden="true" />}
         <span className="price-list-row__price">
           <bdi>{item.quote ? formatPrice(item.quote.sell, item.quote.currency) : '—'}</bdi>
-          <small>{item.quote ? (same ? 'دیده‌بان' : 'فروش') : '—'}</small>
-          {item.quote && !same ? <em>خرید {formatPrice(item.quote.buy, item.quote.currency)}</em> : null}
         </span>
         <span className="price-list-row__meta">
           {item.bubble != null
             ? <span className={`price-card__bubble ${item.bubble >= 0 ? 'is-up' : 'is-down'}`}>{formatBubblePercent(item.bubble)}</span>
-            : <span className="price-card__bubble is-muted">{item.analysisLabel ?? '—'}</span>}
-          {item.quote ? <small><Clock3 size={11} /><RelativeTime value={item.quote.fetchedAt} /></small> : <small>بدون قیمت</small>}
+            : null}
+          {item.quote ? <small><RelativeTime value={item.quote.fetchedAt} /></small> : null}
         </span>
       </Link>
       {item.onToggleFavorite ? (
