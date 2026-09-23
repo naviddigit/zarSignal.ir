@@ -278,12 +278,11 @@ export function ProfessionalCalculator({ snapshot }: { snapshot: Snapshot }) {
       <CalculatorLiveStrip snapshot={market} />
 
       <div className="calc-stage__side">
-        {tool === 'weight' ? (
-          <div className="calc-keypad-wrap">
-            <p className="calc-keypad-wrap__label">صفحه‌کلید</p>
-            <CalculatorKeypad value={weightAmount} onChange={setWeightAmount} />
-          </div>
-        ) : (
+          {tool === 'weight' ? (
+            <div className="calc-keypad-wrap">
+              <CalculatorKeypad value={weightAmount} onChange={setWeightAmount} />
+            </div>
+          ) : (
           <div className="calc-result-slot" aria-live="polite" aria-busy={pending}>
             <p className="calc-result-slot__label">نتیجه</p>
             {result ? (
