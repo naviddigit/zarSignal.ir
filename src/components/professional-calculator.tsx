@@ -2,8 +2,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Calculator, LockKeyhole, RefreshCw, ArrowUpLeft } from 'lucide-react';
 import { Select } from '@/components/ui/select';
-import { Input } from '@/components/ui/field';
-import { RelativeTime } from '@/components/relative-time';
 import { calculatorCatalog, type CalculatorOperation, type CalculatorResult } from '@/lib/calculator-catalog';
 import { isStale, type Snapshot } from '@/lib/market';
 import { formatNumericInput, sanitizeNumericInput } from '@/lib/numeric-input';
@@ -188,19 +186,25 @@ export function ProfessionalCalculator({ snapshot }: { snapshot: Snapshot }) {
           <WeightConvertWidget amount={weightAmount} onAmountChange={setWeightAmount} />
         ) : spec ? (
           <form className="calc-tool-panel" onSubmit={calculate}>
-            <Select
-              label="نوع محاسبه"
-              className="calc-tool-panel__select"
-              value={operation!}
-              onChange={value => choose(value as CalculatorOperation)}
-              options={opOptions}
-            />
+            <div className="calc-tool-panel__toolbar">
+              <Select
+                label="نوع محاسبه"
+                className="calc-tool-panel__select"
+                value={operation!}
+                onChange={value => choose(value as CalculatorOperation)}
+                options={opOptions}
+              />
+              <button type="button" className="calc-tool-panel__refresh" onClick={refresh} disabled={pending} aria-label="تازه‌سازی قیمت‌ها">
+                <RefreshCw size={15} />
+              </button>
+            </div>
             {spec.fields.map(field => {
               const input = inputs[field.key] ?? { value: '', provenance: 'MANUAL' as const };
               const liveAvailable = liveEntry(field, market).provenance === 'LIVE';
               return (
                 <div className={`calc-tool-panel__field${input.provenance === 'LIVE' ? ' is-live' : ''}`} key={field.key}>
-                  <div className="calc-tool-panel__meta">
+                  <div className="calc-tool-panel__head">
+                    <span className="calc-tool-panel__label">{field.label}</span>
                     <div className="calc-mode" role="radiogroup" aria-label={`منبع ${field.label}`}>
                       <button type="button" role="radio" aria-checked={input.provenance === 'LIVE'} className={input.provenance === 'LIVE' ? 'is-on' : ''} disabled={!liveAvailable} onClick={() => setMode(field.key, 'LIVE')}>
                         لحظه‌ای
@@ -210,31 +214,25 @@ export function ProfessionalCalculator({ snapshot }: { snapshot: Snapshot }) {
                       </button>
                     </div>
                   </div>
-                  <Input
-                    label={field.label}
-                    inputMode="decimal"
-                    autoComplete="off"
-                    dir="ltr"
-                    required
-                    value={formatNumericInput(input.value)}
-                    placeholder="مقدار را وارد کنید"
-                    onChange={event => {
-                      invalidate();
-                      setInputs(current => ({
-                        ...current,
-                        [field.key]: { value: sanitizeNumericInput(event.target.value, 6), provenance: 'MANUAL' },
-                      }));
-                    }}
-                  />
-                  <div className="calc-tool-panel__foot">
-                    <span>{field.unit}</span>
-                    <span className={`calc-provenance is-${input.provenance.toLowerCase()}`}>
-                      {input.provenance === 'LIVE' ? 'LIVE' : 'MANUAL'}
-                      {input.provenance === 'LIVE' && input.observedAt ? <> · <RelativeTime value={input.observedAt} /></> : null}
-                    </span>
-                    <button type="button" className="text-link" onClick={refresh} disabled={pending}>
-                      <RefreshCw size={13} /> تازه‌سازی
-                    </button>
+                  <div className="calc-tool-panel__control">
+                    <input
+                      className="ds-input"
+                      inputMode="decimal"
+                      autoComplete="off"
+                      dir="ltr"
+                      required
+                      aria-label={field.label}
+                      value={formatNumericInput(input.value)}
+                      placeholder="0"
+                      onChange={event => {
+                        invalidate();
+                        setInputs(current => ({
+                          ...current,
+                          [field.key]: { value: sanitizeNumericInput(event.target.value, 6), provenance: 'MANUAL' },
+                        }));
+                      }}
+                    />
+                    <span className="calc-tool-panel__unit">{field.unit}</span>
                   </div>
                 </div>
               );

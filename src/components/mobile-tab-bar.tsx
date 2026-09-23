@@ -18,7 +18,7 @@ const tabs = [
  */
 export function MobileTabBar() {
   const pathname = usePathname() || '/';
-  if (pathname.startsWith('/admin') || pathname.startsWith('/login')) return null;
+  if (pathname.startsWith('/admin') || pathname.startsWith('/login') || pathname.startsWith('/calculator')) return null;
 
   return (
     <nav className="mobile-tab-bar" aria-label="منوی موبایل">
