@@ -27,32 +27,41 @@ export type PriceCardModel = {
   spark?: SparkSeries;
 };
 
-/** Minimal price box — name, price, one spark, optional bubble. */
+function resolveSpark(item: PriceCardModel) {
+  if (item.spark?.price && item.spark.price.length >= 2) return { values: item.spark.price, tone: 'price' as const };
+  if (item.spark?.bubble && item.spark.bubble.length >= 2) return { values: item.spark.bubble, tone: 'bubble' as const };
+  return null;
+}
+
+/** Minimal price box — fixed slots so every card aligns. */
 export function PriceCard({ item, href }: { item: PriceCardModel; href: string }) {
-  const spark = item.spark?.price?.length ? item.spark.price : item.spark?.bubble;
-  const sparkTone = item.spark?.price?.length ? 'price' : 'bubble';
+  const spark = resolveSpark(item);
   return (
     <article className={`price-card${item.updated ? ' quote-updated' : ''}`}>
       <Link href={href} className="price-card__main">
-        <header className="price-card__head">
-          <AssetMark symbol={item.symbol} category={item.category} />
-          <span className="price-card__title">
-            <strong>{item.name}</strong>
-            <small>{item.unit}</small>
-          </span>
-          {item.bubble != null ? (
-            <span className={`price-card__bubble ${item.bubble >= 0 ? 'is-up' : 'is-down'}`}>{formatBubblePercent(item.bubble)}</span>
-          ) : null}
-        </header>
-        <div className="price-card__price">
-          <bdi>{item.quote ? formatPrice(item.quote.sell, item.quote.currency) : '—'}</bdi>
-        </div>
-        {spark?.length ? <Sparkline values={spark} label="" tone={sparkTone} className="price-card__spark" /> : null}
-        {item.quote ? (
+        <div className="price-card__body">
+          <header className="price-card__head">
+            <AssetMark symbol={item.symbol} category={item.category} />
+            <span className="price-card__title">
+              <strong>{item.name}</strong>
+              <small>{item.unit}</small>
+            </span>
+          </header>
+          <div className="price-card__price">
+            <bdi>{item.quote ? formatPrice(item.quote.sell, item.quote.currency) : '—'}</bdi>
+          </div>
           <footer className="price-card__foot">
-            <RelativeTime value={item.quote.fetchedAt} />
+            <span className="price-card__bubble-slot">
+              {item.bubble != null ? (
+                <span className={`price-card__bubble ${item.bubble >= 0 ? 'is-up' : 'is-down'}`}>{formatBubblePercent(item.bubble)}</span>
+              ) : null}
+            </span>
+            {item.quote ? <RelativeTime value={item.quote.fetchedAt} /> : null}
           </footer>
-        ) : null}
+        </div>
+        <span className="price-card__spark" aria-hidden={!spark}>
+          {spark ? <Sparkline values={spark.values} label="" tone={spark.tone} compact /> : null}
+        </span>
       </Link>
       {item.onToggleFavorite ? (
         <button type="button" className={`price-card__star${item.favorite ? ' is-on' : ''}`} aria-label={`نشان‌کردن ${item.name}`} aria-pressed={Boolean(item.favorite)} onClick={item.onToggleFavorite}>★</button>
@@ -61,11 +70,11 @@ export function PriceCard({ item, href }: { item: PriceCardModel; href: string }
   );
 }
 
-/** Minimal wide row for list mode. */
+/** Fixed columns: asset | price | change | spark (last / left in RTL). */
 export function PriceListRow({ item, href }: { item: PriceCardModel; href: string }) {
-  const spark = item.spark?.price?.length && item.spark.price.length >= 2 ? item.spark.price : undefined;
+  const spark = resolveSpark(item);
   return (
-    <article className={`price-list-row${item.updated ? ' quote-updated' : ''}${spark ? ' has-spark' : ''}`}>
+    <article className={`price-list-row${item.updated ? ' quote-updated' : ''}`}>
       <Link href={href} className="price-list-row__main">
         <span className="price-list-row__asset">
           <AssetMark symbol={item.symbol} category={item.category} />
@@ -74,19 +83,19 @@ export function PriceListRow({ item, href }: { item: PriceCardModel; href: strin
             <small>{item.unit}</small>
           </span>
         </span>
-        {spark ? (
-          <span className="price-list-row__spark">
-            <Sparkline values={spark} label="" tone="price" />
-          </span>
-        ) : null}
         <span className="price-list-row__price">
           <bdi>{item.quote ? formatPrice(item.quote.sell, item.quote.currency) : '—'}</bdi>
         </span>
         <span className="price-list-row__meta">
-          {item.bubble != null
-            ? <span className={`price-card__bubble ${item.bubble >= 0 ? 'is-up' : 'is-down'}`}>{formatBubblePercent(item.bubble)}</span>
-            : null}
-          {item.quote ? <small><RelativeTime value={item.quote.fetchedAt} /></small> : null}
+          <span className="price-card__bubble-slot">
+            {item.bubble != null ? (
+              <span className={`price-card__bubble ${item.bubble >= 0 ? 'is-up' : 'is-down'}`}>{formatBubblePercent(item.bubble)}</span>
+            ) : null}
+          </span>
+          {item.quote ? <small><RelativeTime value={item.quote.fetchedAt} /></small> : <small className="is-empty" aria-hidden="true" />}
+        </span>
+        <span className="price-list-row__spark" aria-hidden={!spark}>
+          {spark ? <Sparkline values={spark.values} label="" tone={spark.tone} compact /> : null}
         </span>
       </Link>
       {item.onToggleFavorite ? (
