@@ -8,7 +8,7 @@ import { calculatorCatalog, type CalculatorOperation, type CalculatorResult } fr
 import { isStale, type Snapshot } from '@/lib/market';
 import { formatNumericInput, sanitizeNumericInput } from '@/lib/numeric-input';
 import { fetchJson } from '@/lib/fetch-json';
-import { CalculatorLiveStrip, WeightConvertWidget } from '@/components/calculator-mobile-kit';
+import { CalculatorLiveStrip, CalculatorKeypad, WeightConvertWidget } from '@/components/calculator-mobile-kit';
 
 type Product = 'gold' | 'silver' | 'coin' | 'fx' | 'more';
 type Tool = 'weight' | CalculatorOperation;
@@ -52,6 +52,7 @@ function prefill(operation: CalculatorOperation, snapshot: Snapshot): Record<str
 export function ProfessionalCalculator({ snapshot }: { snapshot: Snapshot }) {
   const [product, setProduct] = useState<Product>('gold');
   const [tool, setTool] = useState<Tool>('weight');
+  const [weightAmount, setWeightAmount] = useState('3.5');
   const [market, setMarket] = useState(snapshot);
   const [inputs, setInputs] = useState<Record<string, Entry>>(() => prefill('mazanehTo18k', snapshot));
   const [result, setResult] = useState<CalculatorResult | null>(null);
@@ -146,21 +147,8 @@ export function ProfessionalCalculator({ snapshot }: { snapshot: Snapshot }) {
 
       {available.length ? (
         <>
-          <div className="calc-popular" aria-label="محاسبات محبوب">
-            <div className="calc-popular__head">
-              <strong>محاسبات محبوب</strong>
-            </div>
-            <div className="calc-popular__chips">
-              {available.map(key => (
-                <button type="button" key={key} className={tool === key ? 'is-on' : ''} onClick={() => choose(key)}>
-                  {toolLabel[key]}
-                </button>
-              ))}
-            </div>
-          </div>
-
           {tool === 'weight' ? (
-            <WeightConvertWidget />
+            <WeightConvertWidget amount={weightAmount} onAmountChange={setWeightAmount} />
           ) : (
             <div className="panel calc-workspace">
               <form onSubmit={calculate} className="calc-inputs">
@@ -264,7 +252,26 @@ export function ProfessionalCalculator({ snapshot }: { snapshot: Snapshot }) {
             </div>
           )}
 
+          <div className="calc-popular" aria-label="محاسبات محبوب">
+            <div className="calc-popular__head">
+              <strong>محاسبات محبوب</strong>
+            </div>
+            <div className="calc-popular__chips">
+              {available.map(key => (
+                <button type="button" key={key} className={tool === key ? 'is-on' : ''} onClick={() => choose(key)}>
+                  {toolLabel[key]}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <CalculatorLiveStrip snapshot={market} />
+
+          {tool === 'weight' ? (
+            <div className="calc-keypad-wrap">
+              <CalculatorKeypad value={weightAmount} onChange={setWeightAmount} />
+            </div>
+          ) : null}
         </>
       ) : (
         <div className="panel calc-locked">

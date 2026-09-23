@@ -8,26 +8,25 @@ import { formatPrice, isStale, type Snapshot } from '@/lib/market';
 import { RelativeTime } from '@/components/relative-time';
 import { Select } from '@/components/ui/select';
 
-const popularUnits: WeightUnit[] = ['gram', 'mesghal', 'seer', 'kilogram', 'tola', 'troyOunce'];
 const unitOptions = Object.entries(weightUnits).map(([value, unit]) => ({ value, label: unit.label }));
 
 function fa(value: number, digits = 4) {
   return new Intl.NumberFormat('fa-IR', { maximumFractionDigits: digits, minimumFractionDigits: 0 }).format(value);
 }
 
-/** Compact live strip — 2×2 on mobile, 4-up on desktop. */
+/** Compact live prices — Mojtaba mobile mock. */
 export function CalculatorLiveStrip({ snapshot }: { snapshot: Snapshot }) {
   const cells = [
+    { symbol: 'XAU_USD' as const, label: 'اونس جهانی' },
+    { symbol: 'USD' as const, label: 'دلار آزاد' },
     { symbol: 'GOLD_MELTED' as const, label: 'مظنه تهران' },
-    { symbol: 'GOLD_18K' as const, label: 'گرم ۱۸' },
-    { symbol: 'XAU_USD' as const, label: 'اونس' },
-    { symbol: 'USD' as const, label: 'دلار' },
+    { symbol: 'GOLD_18K' as const, label: 'گرم ۱۸ عیار' },
   ];
   const latest = snapshot.quotes.map(q => q.fetchedAt).sort().at(-1);
   return (
     <section className="calc-live-strip" aria-label="قیمت‌های لحظه‌ای بازار">
       <header>
-        <strong>قیمت لحظه‌ای</strong>
+        <strong>قیمت‌های لحظه‌ای</strong>
         <span>
           <i className={snapshot.status === 'ok' ? 'is-live' : ''} />
           {latest ? <RelativeTime value={latest} /> : '—'}
@@ -49,37 +48,56 @@ export function CalculatorLiveStrip({ snapshot }: { snapshot: Snapshot }) {
   );
 }
 
-export function CalculatorKeypad({ value, onChange, onSubmit }: { value: string; onChange: (next: string) => void; onSubmit?: () => void }) {
+/**
+ * Keypad matching Mojtaba mock:
+ * 7 8 9 ÷
+ * 4 5 6 ×
+ * 1 2 3 −
+ * . 0 ⌫ =
+ * Only ONE equals. Ops are reserved (no-op for weight V1).
+ */
+export function CalculatorKeypad({ value, onChange }: { value: string; onChange: (next: string) => void }) {
   function press(key: string) {
-    if (key === 'C') return onChange('');
+    if (key === '÷' || key === '×' || key === '−' || key === '=') return;
     if (key === '⌫') return onChange(value.slice(0, -1));
     if (key === '.') {
       if (value.includes('.')) return;
       return onChange(value ? `${value}.` : '0.');
     }
-    if (key === '=') return onSubmit?.();
     onChange(sanitizeNumericInput(`${value === '0' ? '' : value}${key}`, 8));
   }
-  const keys = ['7', '8', '9', '⌫', '4', '5', '6', 'C', '1', '2', '3', '=', '0', '00', '.', '⏎'];
+
+  const rows: string[][] = [
+    ['7', '8', '9', '÷'],
+    ['4', '5', '6', '×'],
+    ['1', '2', '3', '−'],
+    ['.', '0', '⌫', '='],
+  ];
+
   return (
     <div className="calc-keypad" role="group" aria-label="صفحه‌کلید عددی">
-      {keys.map(key => (
+      {rows.flat().map(key => (
         <button
           key={key}
           type="button"
-          className={key === '=' || key === '⏎' ? 'is-accent' : key === 'C' ? 'is-danger' : ''}
-          onClick={() => press(key === '⏎' ? '=' : key)}
+          className={key === '=' ? 'is-accent' : key === '÷' || key === '×' || key === '−' ? 'is-op' : ''}
+          aria-label={key === '⌫' ? 'پاک‌کردن آخرین رقم' : key === '=' ? 'تأیید' : key}
+          onClick={() => press(key)}
         >
-          {key === '⌫' ? <Delete size={16} /> : key === '⏎' ? '=' : key}
+          {key === '⌫' ? <Delete size={16} strokeWidth={2.2} /> : key}
         </button>
       ))}
     </div>
   );
 }
 
-/** Weight convert — DS Select only, compact mobile layout. */
-export function WeightConvertWidget() {
-  const [amount, setAmount] = useState('3.5');
+type WeightConvertWidgetProps = {
+  amount: string;
+  onAmountChange: (next: string) => void;
+};
+
+/** Weight convert card — keypad rendered separately below for one-screen fit. */
+export function WeightConvertWidget({ amount, onAmountChange }: WeightConvertWidgetProps) {
   const [from, setFrom] = useState<WeightUnit>('mesghal');
   const [to, setTo] = useState<WeightUnit>('gram');
 
@@ -94,25 +112,27 @@ export function WeightConvertWidget() {
   function swap() {
     setFrom(to);
     setTo(from);
-    if (result != null) setAmount(String(Number(result.toFixed(8))));
+    if (result != null) onAmountChange(String(Number(result.toFixed(8))));
   }
 
   return (
     <section className="calc-weight-widget" aria-label="تبدیل واحد وزن">
       <header className="calc-weight-widget__head">
-        <strong>تبدیل واحد وزن</strong>
-        <small>مثقال · گرم · اونس</small>
+        <div>
+          <strong>تبدیل واحد وزن</strong>
+          <small>پایهٔ محاسبه طلا</small>
+        </div>
       </header>
 
       <div className="calc-weight-widget__pair">
         <div className="calc-weight-box is-in">
-          <span>ورودی</span>
+          <span>مقدار</span>
           <input
             dir="ltr"
             inputMode="decimal"
             aria-label="مقدار ورودی"
             value={formatNumericInput(amount)}
-            onChange={event => setAmount(sanitizeNumericInput(event.target.value, 8))}
+            onChange={event => onAmountChange(sanitizeNumericInput(event.target.value, 8))}
           />
           <Select
             aria-label="واحد مبدأ"
@@ -128,7 +148,7 @@ export function WeightConvertWidget() {
         </button>
 
         <div className="calc-weight-box is-out" aria-live="polite">
-          <span>خروجی</span>
+          <span>نتیجه</span>
           <strong dir="ltr">{result == null ? '—' : fa(result)}</strong>
           <Select
             aria-label="واحد مقصد"
@@ -142,20 +162,8 @@ export function WeightConvertWidget() {
 
       <p className="calc-weight-widget__factor">
         ۱ {weightUnits[from].label} = {fa(factor, 4)} {weightUnits[to].label}
-        {result != null ? `  ·  ${fa(Number(amount), 2)} → ${fa(result)}` : null}
+        {result != null ? ` | ${fa(Number(amount), 2)} ${weightUnits[from].label} = ${fa(result)} ${weightUnits[to].label}` : null}
       </p>
-
-      <div className="calc-unit-chips" role="group" aria-label="میان‌بر واحد مقصد">
-        {popularUnits.map(unit => (
-          <button key={unit} type="button" className={to === unit ? 'is-on' : ''} onClick={() => setTo(unit)}>
-            {weightUnits[unit].label}
-          </button>
-        ))}
-      </div>
-
-      <div className="calc-weight-widget__pad">
-        <CalculatorKeypad value={amount} onChange={setAmount} />
-      </div>
     </section>
   );
 }
