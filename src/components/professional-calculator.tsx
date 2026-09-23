@@ -138,7 +138,7 @@ export function ProfessionalCalculator({ snapshot }: { snapshot: Snapshot }) {
   }
 
   return (
-    <section className="professional-calculator" aria-label="ماشین‌حساب حرفه‌ای">
+    <section className={`professional-calculator${tool === 'weight' ? ' is-app-screen' : ''}`} aria-label="ماشین‌حساب حرفه‌ای">
       <div className="calc-products" role="group" aria-label="نوع دارایی">
         {products.map(([key, label]) => (
           <button type="button" key={key} aria-pressed={product === key} onClick={() => chooseProduct(key)}>{label}</button>
