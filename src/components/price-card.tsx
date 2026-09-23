@@ -40,37 +40,35 @@ function FavoriteStar({ name, on, onToggle }: { name: string; on?: boolean; onTo
       className={`price-fav${on ? ' is-on' : ''}`}
       aria-label={`نشان‌کردن ${name}`}
       aria-pressed={Boolean(on)}
-      onClick={onToggle}
+      onClick={event => {
+        event.preventDefault();
+        event.stopPropagation();
+        onToggle();
+      }}
     >
       <Star size={16} fill={on ? 'currentColor' : 'none'} strokeWidth={2} />
     </button>
   );
 }
 
-/** Clean box: title (+ star), price, thin full-width spark, bubble + time. */
+/** Box: content + compact spark in last (left) column. */
 export function PriceCard({ item, href }: { item: PriceCardModel; href: string }) {
   const spark = resolveSpark(item);
+  const hasFav = Boolean(item.onToggleFavorite);
   return (
-    <article className={`price-card${item.updated ? ' quote-updated' : ''}`}>
-      <div className="price-card__shell">
-        <Link href={href} className="price-card__main">
+    <article className={`price-card${item.updated ? ' quote-updated' : ''}${hasFav ? ' has-fav' : ''}`}>
+      <Link href={href} className="price-card__main">
+        <div className="price-card__body">
           <header className="price-card__head">
             <AssetMark symbol={item.symbol} category={item.category} />
             <span className="price-card__title">
               <strong>{item.name}</strong>
               <small>{item.unit}</small>
             </span>
-            {item.onToggleFavorite ? <span className="price-card__fav-spacer" aria-hidden="true" /> : null}
           </header>
-
           <div className="price-card__price">
             <bdi>{item.quote ? formatPrice(item.quote.sell, item.quote.currency) : '—'}</bdi>
           </div>
-
-          <div className="price-card__spark" aria-hidden={!spark}>
-            {spark ? <Sparkline values={spark.values} label="" tone={spark.tone} /> : null}
-          </div>
-
           <footer className="price-card__foot">
             <span className="price-card__bubble-slot">
               {item.bubble != null ? (
@@ -79,13 +77,16 @@ export function PriceCard({ item, href }: { item: PriceCardModel; href: string }
             </span>
             {item.quote ? <RelativeTime value={item.quote.fetchedAt} /> : <span className="price-card__time-slot" aria-hidden="true" />}
           </footer>
-        </Link>
-        {item.onToggleFavorite ? (
-          <div className="price-card__fav">
+        </div>
+        <aside className="price-card__side">
+          {hasFav && item.onToggleFavorite ? (
             <FavoriteStar name={item.name} on={item.favorite} onToggle={item.onToggleFavorite} />
-          </div>
-        ) : null}
-      </div>
+          ) : null}
+          <span className="price-card__spark" aria-hidden={!spark}>
+            {spark ? <Sparkline values={spark.values} label="" tone={spark.tone} compact /> : null}
+          </span>
+        </aside>
+      </Link>
     </article>
   );
 }
