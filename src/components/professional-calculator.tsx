@@ -159,8 +159,6 @@ export function ProfessionalCalculator({ snapshot }: { snapshot: Snapshot }) {
             </div>
           </div>
 
-          <CalculatorLiveStrip snapshot={market} />
-
           {tool === 'weight' ? (
             <WeightConvertWidget />
           ) : (
@@ -265,6 +263,8 @@ export function ProfessionalCalculator({ snapshot }: { snapshot: Snapshot }) {
               </div>
             </div>
           )}
+
+          <CalculatorLiveStrip snapshot={market} />
         </>
       ) : (
         <div className="panel calc-locked">
