@@ -14,8 +14,8 @@ type SparklineProps = {
 export function Sparkline({ values, label, tone = 'price', className = '', compact = false }: SparklineProps) {
   if (values.length < 2) return null;
   const domain = chartDomain(values);
-  const w = compact ? 64 : 120;
-  const h = compact ? 18 : 28;
+  const w = compact ? 72 : 120;
+  const h = compact ? 20 : 28;
   const span = Math.max(values.length - 1, 1);
   const path = values
     .map((value, index) => {
