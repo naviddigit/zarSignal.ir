@@ -153,11 +153,9 @@ export function ProfessionalCalculator({ snapshot }: { snapshot: Snapshot }) {
     }
   }
 
-  const toolOptions = available.map(key => ({ value: key, label: toolLabel[key] }));
-
   return (
     <section className={`professional-calculator${tool === 'weight' ? ' is-app-screen' : ''}`} aria-label="ماشین‌حساب حرفه‌ای">
-      <CalculatorAppHeader live={market.status === 'ok'} />
+      <CalculatorAppHeader live={market.status === 'ok' || market.status === 'stale'} />
 
       <div className="calc-products calc-products--desktop" role="group" aria-label="نوع دارایی">
         {products.map(([key, label]) => (
@@ -169,13 +167,7 @@ export function ProfessionalCalculator({ snapshot }: { snapshot: Snapshot }) {
       {available.length ? (
         <>
           {tool === 'weight' ? (
-            <WeightConvertWidget
-              amount={weightAmount}
-              onAmountChange={setWeightAmount}
-              tool={tool}
-              toolOptions={toolOptions}
-              onToolChange={value => choose(value as Tool)}
-            />
+            <WeightConvertWidget amount={weightAmount} onAmountChange={setWeightAmount} />
           ) : (
             <div className="panel calc-workspace">
               <form onSubmit={calculate} className="calc-inputs">

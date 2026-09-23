@@ -198,16 +198,8 @@ export function CalculatorPopularRow({
   );
 }
 
-type WeightConvertWidgetProps = {
-  amount: string;
-  onAmountChange: (next: string) => void;
-  toolOptions: { value: string; label: string }[];
-  tool: string;
-  onToolChange: (next: string) => void;
-};
-
 /** Main conversion card — Mojtaba layout. */
-export function WeightConvertWidget({ amount, onAmountChange, toolOptions, tool, onToolChange }: WeightConvertWidgetProps) {
+export function WeightConvertWidget({ amount, onAmountChange }: { amount: string; onAmountChange: (next: string) => void }) {
   const [from, setFrom] = useState<WeightUnit>('mesghal');
   const [to, setTo] = useState<WeightUnit>('gram');
 
@@ -228,18 +220,8 @@ export function WeightConvertWidget({ amount, onAmountChange, toolOptions, tool,
   return (
     <section className="calc-weight-widget" aria-label="تبدیل واحد وزن">
       <header className="calc-weight-widget__head">
-        <div>
-          <strong>تبدیل واحد وزن <ArrowLeftRight size={12} aria-hidden="true" /></strong>
-          <small>پایهٔ محاسبه طلا</small>
-        </div>
-        <Select
-          aria-label="انتخاب محاسبه"
-          className="calc-weight-widget__tool"
-          value={tool}
-          onChange={onToolChange}
-          options={toolOptions}
-          placeholder="انتخاب محاسبه"
-        />
+        <strong>تبدیل واحد وزن</strong>
+        <small>پایهٔ محاسبه طلا</small>
       </header>
 
       <div className="calc-weight-widget__pair">
