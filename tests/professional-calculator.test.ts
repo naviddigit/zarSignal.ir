@@ -1,0 +1,32 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { calculateProfessional } from '../src/server/professional-calculator';
+import { demoQuotes, type Snapshot } from '../src/lib/market';
+const empty: Snapshot = { mode: 'live', status: 'unavailable', quotes: [] };
+const manual = (value: number) => ({ provenance: 'MANUAL', value });
+test('professional calculator runs approved gold and USD Golden Tests through the input engine', () => {
+  const converted = calculateProfessional({ operation: 'mazanehTo18k', inputs: { melted: manual(100000000) } }, empty);
+  assert.ok(Math.abs(converted.outputs[0].value - 23086583.92) < 0.01);
+  const reverse = calculateProfessional({ operation: 'market18kToMazaneh', inputs: { gram: manual(19000000) } }, empty);
+  const inputs = { melted: manual(reverse.outputs[0].value), xau: manual(4000), usd: manual(200000) };
+  const gold = calculateProfessional({ operation: 'goldBubble', inputs }, empty);
+  assert.ok(Math.abs(gold.outputs[0].value - 19290447.94) < 0.01);
+  assert.ok(Math.abs(gold.outputs[2].value - -1.5057) < 0.0001);
+  const usd = calculateProfessional({ operation: 'usdGap', inputs }, empty);
+  assert.ok(Math.abs(usd.outputs[0].value - 196988.69) < 0.01);
+  assert.equal(gold.inputs[0].provenance, 'MANUAL');
+  assert.equal(gold.constants[0].provenance, 'CONSTANT');
+  assert.equal(gold.version, '1.0');
+});
+test('LIVE ignores forged client values and fails closed on demo, stale or wrong-unit sources', () => {
+  const quote = { ...demoQuotes[0], buy: '100000000', sell: '100000000', observedAt: new Date().toISOString() };
+  const snapshot: Snapshot = { mode: 'live', status: 'ok', quotes: [quote] };
+  const request = { operation: 'mazanehTo18k', inputs: { melted: { provenance: 'LIVE', value: 1 } } };
+  assert.equal(calculateProfessional(request, snapshot).inputs[0].value, 100000000);
+  assert.throws(() => calculateProfessional(request, { ...snapshot, mode: 'demo' }));
+  assert.throws(() => calculateProfessional(request, { ...snapshot, quotes: [{ ...quote, currency: 'IRR' }] }));
+  assert.throws(() => calculateProfessional(request, { ...snapshot, quotes: [{ ...quote, observedAt: '2020-01-01' }] }));
+  assert.throws(() => calculateProfessional({ operation: 'silverBubble', inputs: {} }, snapshot));
+  assert.throws(() => calculateProfessional({ operation: 'mazanehTo18k', inputs: { melted: manual(-1) } }, snapshot));
+  assert.throws(() => calculateProfessional({ operation: 'mazanehTo18k', inputs: { melted: { provenance: 'CONSTANT', value: 1 } } }, snapshot));
+});

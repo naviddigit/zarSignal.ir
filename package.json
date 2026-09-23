@@ -10,7 +10,7 @@
     "build": "prisma generate && next build && node scripts/prepare-sites.mjs",
     "start": "next start",
     "typecheck": "tsc --noEmit",
-    "test": "tsx --test tests/access.test.ts tests/bubble-formulas.test.ts tests/calculator-conversions.test.ts tests/chart-data.test.ts tests/chart-preview.test.ts tests/chart-product.test.ts tests/database-health.test.ts tests/formula-input.test.ts tests/input-format.test.ts tests/live-bubbles.test.ts tests/market.test.ts tests/mazaneh-to-18k.test.ts tests/plan-input.test.ts tests/production-recovery.test.ts tests/risk.test.ts tests/symbol-history.test.ts",
+    "test": "tsx --test tests/access.test.ts tests/bubble-formulas.test.ts tests/calculator-conversions.test.ts tests/chart-data.test.ts tests/chart-preview.test.ts tests/chart-product.test.ts tests/database-health.test.ts tests/formula-input.test.ts tests/input-format.test.ts tests/live-bubbles.test.ts tests/market.test.ts tests/mazaneh-to-18k.test.ts tests/plan-input.test.ts tests/production-recovery.test.ts tests/professional-calculator.test.ts tests/risk.test.ts tests/symbol-history.test.ts",
     "test:e2e": "playwright test",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
