@@ -277,6 +277,7 @@ html[data-theme='light'] .calculator-screen>span,html[data-theme='light'] .calcu
 @media(max-width:760px){
 .shell{width:calc(100% - 20px)}
 .hero{padding:0;gap:0;min-height:0}
+.home-page .hero-copy,.home-page .hero-screen-down{display:none!important}
 .hero-reveal,.section-reveal{animation:none!important}
 .radar-pro__sweep,.radar-pro__grid,.radar-pro__token{animation:none!important}
 .radar-pro__glow,.radar-pro__orbit,.radar-pro__pulse,.radar-pro__center-beat,.radar-pro__ring-value{animation-duration:2.4s}
@@ -453,12 +454,7 @@ html[data-theme='light'] .calculator-screen>span,html[data-theme='light'] .calcu
   .home-page>.hero{display:contents}
   .radar-pro{order:1;height:300px;margin:4px 0 8px;max-width:none}
   .home-page>.market-teaser{order:2;margin:0 0 14px;padding:10px 0 8px;border:0;border-radius:0;background:transparent;box-shadow:none}
-  .hero-copy{order:3;padding:8px 0 18px}
-  .hero-copy>h1{font-size:22px;line-height:1.45;margin:8px 0}
-  .hero-copy>p{display:none}
-  .hero-copy>.eyebrow{font-size:10px}
-  .hero-actions{gap:10px;margin-top:10px}
-  .hero-actions .button{min-height:44px;padding:0 16px;font-size:13px;border-radius:12px}
+  .hero-copy{display:none!important}
   .hero-screen-down{display:none!important}
   .radar-pro__caption{font-size:10px;bottom:4px}
 
