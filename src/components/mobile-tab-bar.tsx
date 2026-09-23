@@ -6,10 +6,10 @@ import { Activity, Calculator, Home, Layers3, Store } from 'lucide-react';
 
 const tabs = [
   { href: '/', label: 'خانه', icon: Home, match: (path: string) => path === '/' },
-  { href: '/markets', label: 'بازار', icon: Store, match: (path: string) => path.startsWith('/markets') },
-  { href: '/calculator', label: 'محاسبه', icon: Calculator, match: (path: string) => path.startsWith('/calculator') },
-  { href: '/pricing', label: 'پریمیوم', icon: Layers3, match: (path: string) => path.startsWith('/pricing') },
-  { href: '/methodology', label: 'روش', icon: Activity, match: (path: string) => path.startsWith('/methodology') || path.startsWith('/faq') },
+  { href: '/markets', label: 'قیمت‌ها', icon: Store, match: (path: string) => path.startsWith('/markets') },
+  { href: '/calculator', label: 'ماشین حساب', icon: Calculator, match: (path: string) => path.startsWith('/calculator') },
+  { href: '/methodology', label: 'آموزش', icon: Activity, match: (path: string) => path.startsWith('/methodology') || path.startsWith('/faq') },
+  { href: '/pricing', label: 'بیشتر', icon: Layers3, match: (path: string) => path.startsWith('/pricing') },
 ] as const;
 
 /**

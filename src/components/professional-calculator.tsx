@@ -8,9 +8,18 @@ import { calculatorCatalog, type CalculatorOperation, type CalculatorResult } fr
 import { isStale, type Snapshot } from '@/lib/market';
 import { formatNumericInput, sanitizeNumericInput } from '@/lib/numeric-input';
 import { fetchJson } from '@/lib/fetch-json';
-import { CalculatorLiveStrip, CalculatorKeypad, WeightConvertWidget } from '@/components/calculator-mobile-kit';
+import {
+  CalculatorAppHeader,
+  CalculatorKeypad,
+  CalculatorLiveStrip,
+  CalculatorPopularRow,
+  CalculatorProductTiles,
+  WeightConvertWidget,
+  popularIcons,
+  type CalcProduct,
+} from '@/components/calculator-mobile-kit';
 
-type Product = 'gold' | 'silver' | 'coin' | 'fx' | 'more';
+type Product = CalcProduct;
 type Tool = 'weight' | CalculatorOperation;
 type Entry = { value: string; provenance: 'LIVE' | 'MANUAL'; observedAt?: string };
 const products: [Product, string][] = [['gold', 'طلا'], ['silver', 'نقره'], ['coin', 'سکه'], ['fx', 'ارز'], ['more', 'بیشتر']];
@@ -28,6 +37,13 @@ const toolLabel: Record<Tool, string> = {
   goldBubble: 'حباب طلا',
   usdGap: 'فاصله دلار',
 };
+const popularForGold = [
+  { id: 'weight', label: 'تبدیل وزن', Icon: popularIcons.weight },
+  { id: 'purity', label: 'تبدیل عیار', Icon: popularIcons.purity, locked: true },
+  { id: 'mazanehTo18k', label: 'مظنه ↔ ۱۸', Icon: popularIcons.mazanehTo18k },
+  { id: 'goldBubble', label: 'سکه و حباب', Icon: popularIcons.goldBubble },
+  { id: 'jewelry', label: 'طلای زینتی', Icon: popularIcons.jewelry, locked: true },
+];
 const locked: Record<Product, string[]> = {
   gold: ['تبدیل عیار عمومی: در انتظار fixture مصوب', 'طلای زینتی، اجرت و مالیات', 'سود و زیان و مقایسه سرمایه‌گذاری'],
   silver: ['تبدیل عیارهای نقره و محاسبه ارزش نقره داخلی', 'حباب نقره و نسبت طلا به نقره'],
@@ -137,18 +153,29 @@ export function ProfessionalCalculator({ snapshot }: { snapshot: Snapshot }) {
     }
   }
 
+  const toolOptions = available.map(key => ({ value: key, label: toolLabel[key] }));
+
   return (
     <section className={`professional-calculator${tool === 'weight' ? ' is-app-screen' : ''}`} aria-label="ماشین‌حساب حرفه‌ای">
-      <div className="calc-products" role="group" aria-label="نوع دارایی">
+      <CalculatorAppHeader live={market.status === 'ok'} />
+
+      <div className="calc-products calc-products--desktop" role="group" aria-label="نوع دارایی">
         {products.map(([key, label]) => (
           <button type="button" key={key} aria-pressed={product === key} onClick={() => chooseProduct(key)}>{label}</button>
         ))}
       </div>
+      <CalculatorProductTiles value={product} onChange={chooseProduct} />
 
       {available.length ? (
         <>
           {tool === 'weight' ? (
-            <WeightConvertWidget amount={weightAmount} onAmountChange={setWeightAmount} />
+            <WeightConvertWidget
+              amount={weightAmount}
+              onAmountChange={setWeightAmount}
+              tool={tool}
+              toolOptions={toolOptions}
+              onToolChange={value => choose(value as Tool)}
+            />
           ) : (
             <div className="panel calc-workspace">
               <form onSubmit={calculate} className="calc-inputs">
@@ -252,18 +279,26 @@ export function ProfessionalCalculator({ snapshot }: { snapshot: Snapshot }) {
             </div>
           )}
 
-          <div className="calc-popular" aria-label="محاسبات محبوب">
-            <div className="calc-popular__head">
-              <strong>محاسبات محبوب</strong>
+          {product === 'gold' ? (
+            <CalculatorPopularRow
+              items={popularForGold}
+              active={tool}
+              onPick={id => {
+                if (id === 'purity' || id === 'jewelry') return;
+                choose(id as Tool);
+              }}
+            />
+          ) : (
+            <div className="calc-popular calc-popular--chips" aria-label="محاسبات محبوب">
+              <div className="calc-popular__chips">
+                {available.map(key => (
+                  <button type="button" key={key} className={tool === key ? 'is-on' : ''} onClick={() => choose(key)}>
+                    {toolLabel[key]}
+                  </button>
+                ))}
+              </div>
             </div>
-            <div className="calc-popular__chips">
-              {available.map(key => (
-                <button type="button" key={key} className={tool === key ? 'is-on' : ''} onClick={() => choose(key)}>
-                  {toolLabel[key]}
-                </button>
-              ))}
-            </div>
-          </div>
+          )}
 
           <CalculatorLiveStrip snapshot={market} />
 
@@ -278,6 +313,7 @@ export function ProfessionalCalculator({ snapshot }: { snapshot: Snapshot }) {
           <LockKeyhole size={28} />
           <h2>در حال تکمیل داده/فرمول</h2>
           <p>ابزارهای این بخش پس از تأیید مدل و آزمون عددی فعال می‌شوند.</p>
+          <CalculatorLiveStrip snapshot={market} />
         </div>
       )}
 

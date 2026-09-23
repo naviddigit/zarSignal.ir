@@ -1,20 +1,87 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { ArrowLeftRight, Delete } from 'lucide-react';
+import {
+  ArrowLeftRight, Banknote, ChartNoAxesColumn, CircleDollarSign, Coins, Delete,
+  Gem, Grid2X2, Info, Menu, Percent, Scale, X,
+} from 'lucide-react';
 import { convertWeight, weightUnits, type WeightUnit } from '@/lib/calculator-conversions';
 import { formatNumericInput, sanitizeNumericInput } from '@/lib/numeric-input';
-import { formatPrice, isStale, type Snapshot } from '@/lib/market';
-import { RelativeTime } from '@/components/relative-time';
+import { isStale, type Snapshot } from '@/lib/market';
+import { mazanehTo18k } from '@/lib/mazaneh-to-18k';
 import { Select } from '@/components/ui/select';
 
 const unitOptions = Object.entries(weightUnits).map(([value, unit]) => ({ value, label: unit.label }));
 
 function fa(value: number, digits = 4) {
-  return new Intl.NumberFormat('fa-IR', { maximumFractionDigits: digits, minimumFractionDigits: 0 }).format(value);
+  return new Intl.NumberFormat('en-US', { maximumFractionDigits: digits, minimumFractionDigits: 0 }).format(value);
 }
 
-/** Compact live prices — Mojtaba mobile mock. */
+function money(value: string | number, currency: string) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return '—';
+  const amount = new Intl.NumberFormat('en-US', { maximumFractionDigits: currency === 'USD' ? 2 : 0 }).format(n);
+  return `${amount} ${currency === 'TMN' ? 'تومان' : 'دلار'}`;
+}
+
+function clock(value?: string) {
+  if (!value) return '—';
+  return new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Tehran' }).format(new Date(value));
+}
+
+export type CalcProduct = 'gold' | 'silver' | 'coin' | 'fx' | 'more';
+
+const productMeta: { key: CalcProduct; label: string; Icon: typeof Gem }[] = [
+  { key: 'gold', label: 'طلا', Icon: ChartNoAxesColumn },
+  { key: 'silver', label: 'نقره', Icon: Gem },
+  { key: 'coin', label: 'سکه', Icon: Coins },
+  { key: 'fx', label: 'ارز', Icon: CircleDollarSign },
+  { key: 'more', label: 'بیشتر', Icon: Grid2X2 },
+];
+
+/** App header from Mojtaba mock. */
+export function CalculatorAppHeader({ live }: { live: boolean }) {
+  return (
+    <header className="calc-app-head">
+      <button type="button" className="calc-app-head__menu" aria-label="منو" onClick={() => document.querySelector<HTMLElement>('.mobile-tab-bar')?.focus()}>
+        <Menu size={20} />
+      </button>
+      <div className="calc-app-head__brand">
+        <strong>زرسیگنال <ChartNoAxesColumn size={14} /></strong>
+        <small>ابزار حرفه‌ای بازار طلا، نقره و ارز</small>
+      </div>
+      <span className={`calc-app-head__live${live ? ' is-on' : ''}`}>
+        <i /> قیمت لحظه‌ای
+      </span>
+    </header>
+  );
+}
+
+/** Icon category row. */
+export function CalculatorProductTiles({ value, onChange }: { value: CalcProduct; onChange: (next: CalcProduct) => void }) {
+  return (
+    <div className="calc-product-tiles" role="tablist" aria-label="نوع دارایی">
+      {productMeta.map(item => {
+        const Icon = item.Icon;
+        return (
+          <button
+            key={item.key}
+            type="button"
+            role="tab"
+            aria-selected={value === item.key}
+            className={value === item.key ? 'is-on' : ''}
+            onClick={() => onChange(item.key)}
+          >
+            <span className="calc-product-tiles__icon"><Icon size={18} strokeWidth={1.8} /></span>
+            <small>{item.label}</small>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/** Live prices as compact market cards. */
 export function CalculatorLiveStrip({ snapshot }: { snapshot: Snapshot }) {
   const cells = [
     { symbol: 'XAU_USD' as const, label: 'اونس جهانی' },
@@ -26,20 +93,29 @@ export function CalculatorLiveStrip({ snapshot }: { snapshot: Snapshot }) {
   return (
     <section className="calc-live-strip" aria-label="قیمت‌های لحظه‌ای بازار">
       <header>
-        <strong>قیمت‌های لحظه‌ای</strong>
+        <strong><ChartNoAxesColumn size={12} aria-hidden="true" /> قیمت‌های لحظه‌ای بازار</strong>
         <span>
           <i className={snapshot.status === 'ok' ? 'is-live' : ''} />
-          {latest ? <RelativeTime value={latest} /> : '—'}
+          به‌روزرسانی: {clock(latest)}
         </span>
       </header>
       <div className="calc-live-strip__grid">
         {cells.map(cell => {
           const quote = snapshot.quotes.find(item => item.symbol === cell.symbol);
-          const stale = quote ? isStale(quote) : true;
+          const melted = snapshot.quotes.find(item => item.symbol === 'GOLD_MELTED');
+          const derived18k = !quote && cell.symbol === 'GOLD_18K' && melted
+            ? mazanehTo18k(Number(melted.sell)).market18k
+            : null;
+          const stale = quote ? isStale(quote) : melted && derived18k != null ? isStale(melted) : true;
+          const display = quote
+            ? money(quote.sell, quote.currency)
+            : derived18k != null
+              ? money(Math.round(derived18k), 'TMN')
+              : '—';
           return (
             <article key={cell.symbol} className={stale ? 'is-stale' : ''}>
               <small>{cell.label}</small>
-              <bdi>{quote ? formatPrice(quote.sell, quote.currency) : '—'}</bdi>
+              <bdi>{display}</bdi>
             </article>
           );
         })}
@@ -48,17 +124,10 @@ export function CalculatorLiveStrip({ snapshot }: { snapshot: Snapshot }) {
   );
 }
 
-/**
- * Keypad matching Mojtaba mock:
- * 7 8 9 ÷
- * 4 5 6 ×
- * 1 2 3 −
- * . 0 ⌫ =
- * Only ONE equals. Ops are reserved (no-op for weight V1).
- */
+/** Keypad: numbers + one equals (Mojtaba). */
 export function CalculatorKeypad({ value, onChange }: { value: string; onChange: (next: string) => void }) {
   function press(key: string) {
-    if (key === '÷' || key === '×' || key === '−' || key === '=') return;
+    if (key === '÷' || key === '×' || key === '−' || key === '=' || key === '+') return;
     if (key === '⌫') return onChange(value.slice(0, -1));
     if (key === '.') {
       if (value.includes('.')) return;
@@ -80,24 +149,65 @@ export function CalculatorKeypad({ value, onChange }: { value: string; onChange:
         <button
           key={key}
           type="button"
-          className={key === '=' ? 'is-accent' : key === '÷' || key === '×' || key === '−' ? 'is-op' : ''}
-          aria-label={key === '⌫' ? 'پاک‌کردن آخرین رقم' : key === '=' ? 'تأیید' : key}
+          className={key === '=' ? 'is-accent' : '÷×−+'.includes(key) ? 'is-op' : ''}
+          aria-label={key === '⌫' ? 'پاک‌کردن' : key}
           onClick={() => press(key)}
         >
-          {key === '⌫' ? <Delete size={16} strokeWidth={2.2} /> : key}
+          {key === '⌫' ? <Delete size={15} strokeWidth={2.2} /> : key}
         </button>
       ))}
     </div>
   );
 }
 
+type PopularItem = { id: string; label: string; Icon: typeof Scale; locked?: boolean };
+
+export function CalculatorPopularRow({
+  items,
+  active,
+  onPick,
+}: {
+  items: PopularItem[];
+  active: string;
+  onPick: (id: string) => void;
+}) {
+  return (
+    <section className="calc-popular" aria-label="محاسبات محبوب">
+      <header>
+        <strong>محاسبات محبوب</strong>
+        <span>همه</span>
+      </header>
+      <div className="calc-popular__icons">
+        {items.map(item => {
+          const Icon = item.Icon;
+          return (
+            <button
+              key={item.id}
+              type="button"
+              className={active === item.id ? 'is-on' : ''}
+              disabled={item.locked}
+              onClick={() => onPick(item.id)}
+            >
+              <span><Icon size={16} strokeWidth={1.9} /></span>
+              <small>{item.label}</small>
+            </button>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
 type WeightConvertWidgetProps = {
   amount: string;
   onAmountChange: (next: string) => void;
+  toolOptions: { value: string; label: string }[];
+  tool: string;
+  onToolChange: (next: string) => void;
 };
 
-/** Weight convert card — keypad rendered separately below for one-screen fit. */
-export function WeightConvertWidget({ amount, onAmountChange }: WeightConvertWidgetProps) {
+/** Main conversion card — Mojtaba layout. */
+export function WeightConvertWidget({ amount, onAmountChange, toolOptions, tool, onToolChange }: WeightConvertWidgetProps) {
   const [from, setFrom] = useState<WeightUnit>('mesghal');
   const [to, setTo] = useState<WeightUnit>('gram');
 
@@ -119,21 +229,36 @@ export function WeightConvertWidget({ amount, onAmountChange }: WeightConvertWid
     <section className="calc-weight-widget" aria-label="تبدیل واحد وزن">
       <header className="calc-weight-widget__head">
         <div>
-          <strong>تبدیل واحد وزن</strong>
+          <strong>تبدیل واحد وزن <ArrowLeftRight size={12} aria-hidden="true" /></strong>
           <small>پایهٔ محاسبه طلا</small>
         </div>
+        <Select
+          aria-label="انتخاب محاسبه"
+          className="calc-weight-widget__tool"
+          value={tool}
+          onChange={onToolChange}
+          options={toolOptions}
+          placeholder="انتخاب محاسبه"
+        />
       </header>
 
       <div className="calc-weight-widget__pair">
         <div className="calc-weight-box is-in">
           <span>مقدار</span>
-          <input
-            dir="ltr"
-            inputMode="decimal"
-            aria-label="مقدار ورودی"
-            value={formatNumericInput(amount)}
-            onChange={event => onAmountChange(sanitizeNumericInput(event.target.value, 8))}
-          />
+          <div className="calc-weight-box__value">
+            <input
+              dir="ltr"
+              inputMode="decimal"
+              aria-label="مقدار ورودی"
+              value={formatNumericInput(amount)}
+              onChange={event => onAmountChange(sanitizeNumericInput(event.target.value, 8))}
+            />
+            {amount ? (
+              <button type="button" className="calc-weight-box__clear" aria-label="پاک‌کردن" onClick={() => onAmountChange('')}>
+                <X size={12} />
+              </button>
+            ) : null}
+          </div>
           <Select
             aria-label="واحد مبدأ"
             className="calc-weight-box__select"
@@ -144,7 +269,7 @@ export function WeightConvertWidget({ amount, onAmountChange }: WeightConvertWid
         </div>
 
         <button type="button" className="calc-weight-swap" aria-label="جابه‌جایی واحدها" onClick={swap}>
-          <ArrowLeftRight size={16} />
+          <ArrowLeftRight size={15} />
         </button>
 
         <div className="calc-weight-box is-out" aria-live="polite">
@@ -161,9 +286,22 @@ export function WeightConvertWidget({ amount, onAmountChange }: WeightConvertWid
       </div>
 
       <p className="calc-weight-widget__factor">
-        ۱ {weightUnits[from].label} = {fa(factor, 4)} {weightUnits[to].label}
-        {result != null ? ` | ${fa(Number(amount), 2)} ${weightUnits[from].label} = ${fa(result)} ${weightUnits[to].label}` : null}
+        <Info size={12} aria-hidden="true" />
+        <span>
+          1 {weightUnits[from].label} = {fa(factor, 4)} {weightUnits[to].label}
+          {result != null ? ` | ${fa(Number(amount), 2)} ${weightUnits[from].label} = ${fa(result)} ${weightUnits[to].label}` : null}
+        </span>
       </p>
     </section>
   );
 }
+
+export const popularIcons = {
+  weight: Scale,
+  mazanehTo18k: ChartNoAxesColumn,
+  market18kToMazaneh: Banknote,
+  goldBubble: Percent,
+  purity: Percent,
+  coin: Coins,
+  jewelry: Gem,
+};
