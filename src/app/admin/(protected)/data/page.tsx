@@ -1,6 +1,7 @@
 import { ExternalLink, Play, Save } from 'lucide-react';
 import { PendingButton } from '@/components/pending-button';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Field } from '@/components/ui/field';
 import { getAdminOverview } from '@/server/admin-overview';
 import { getFarazSettings } from '@/server/ingestion/faraz';
 import { getHamrateSettings } from '@/server/ingestion/hamrate';
@@ -46,14 +47,12 @@ export default async function AdminData({ searchParams }: { searchParams: Promis
           </a>
         </div>
         <form action={saveFarazSource} className="source-form">
-          <label>
-            آدرس پایه
-            <input name="url" type="url" dir="ltr" defaultValue={faraz.url} required />
-          </label>
-          <label>
-            فاصله دریافت (ثانیه)
-            <input name="pollSeconds" type="number" min="60" max="86400" defaultValue={faraz.pollSeconds} required />
-          </label>
+          <Field label="آدرس پایه">
+            <input className="ds-input" name="url" type="url" dir="ltr" defaultValue={faraz.url} required />
+          </Field>
+          <Field label="فاصله دریافت (ثانیه)">
+            <input className="ds-input" name="pollSeconds" type="number" min="60" max="86400" defaultValue={faraz.pollSeconds} required />
+          </Field>
           <Checkbox name="enabled" label="این منبع تأیید و فعال باشد" defaultChecked={faraz.enabled} className="source-check" />
           <PendingButton pendingText="در حال ذخیره…"><Save size={15} /> ذخیره فراز</PendingButton>
         </form>
@@ -85,14 +84,12 @@ export default async function AdminData({ searchParams }: { searchParams: Promis
           </a>
         </div>
         <form action={saveHamrateSource} className="source-form">
-          <label>
-            آدرس صفحه
-            <input name="url" type="url" dir="ltr" defaultValue={hamrate.url} required />
-          </label>
-          <label>
-            فاصله دریافت (ثانیه)
-            <input name="pollSeconds" type="number" min="60" max="86400" defaultValue={hamrate.pollSeconds} required />
-          </label>
+          <Field label="آدرس صفحه">
+            <input className="ds-input" name="url" type="url" dir="ltr" defaultValue={hamrate.url} required />
+          </Field>
+          <Field label="فاصله دریافت (ثانیه)">
+            <input className="ds-input" name="pollSeconds" type="number" min="60" max="86400" defaultValue={hamrate.pollSeconds} required />
+          </Field>
           <Checkbox name="enabled" label="این منبع تأیید و فعال باشد" defaultChecked={hamrate.enabled} className="source-check" />
           <PendingButton pendingText="در حال ذخیره…"><Save size={15} /> ذخیره منبع قبلی</PendingButton>
         </form>

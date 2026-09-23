@@ -1,6 +1,7 @@
 import { CheckCircle2, ChevronDown, FlaskConical, History, ShieldAlert } from 'lucide-react';
 import { PendingButton } from '@/components/pending-button';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Select } from '@/components/ui/select';
 import { formatPrice, instruments, type Quote } from '@/lib/market';
 import { getSnapshot } from '@/server/quotes';
 import { formulaCatalog, getManagedFormulas, type FormulaKey, type ManagedFormula } from '@/server/formulas';
@@ -40,7 +41,7 @@ function FormulaCard({ formulaKey, formulas, quotes }: { formulaKey: FormulaKey;
       <label>ثابت‌ها؛ هر خط یک مورد<textarea name="constants" rows={2} dir="ltr" placeholder="نام = مقدار = منبع"/></label>
       <label>قاعدهٔ گردکردن<input name="rounding" placeholder="تعداد رقم اعشار و روش گردکردن" required/></label>
       <div className="formula-form__columns"><label>حالت‌های مرزی؛ هر خط یک مورد<textarea name="edgeCases" rows={3} required/></label><label>نمونهٔ مرجع؛ هر خط ورودی و خروجی مورد انتظار<textarea name="fixtures" rows={3} dir="ltr"/></label></div>
-      <div className="formula-form__row"><label>وضعیت<select name="status" defaultValue="DRAFT"><option value="DRAFT">پیش‌نویس</option><option value="REVIEW">در حال بررسی</option><option value="APPROVED">تأییدشده</option><option value="ARCHIVED">بایگانی</option></select></label><label>تاریخ اجرا<input name="effectiveAt" type="datetime-local" dir="ltr"/></label></div>
+      <div className="formula-form__row"><Select name="status" label="وضعیت" defaultValue="DRAFT" options={[{value:'DRAFT',label:'پیش‌نویس'},{value:'REVIEW',label:'در حال بررسی'},{value:'APPROVED',label:'تأییدشده'},{value:'ARCHIVED',label:'بایگانی'}]}/><label>تاریخ اجرا<input name="effectiveAt" type="datetime-local" dir="ltr"/></label></div>
       <PendingButton pendingText="در حال ثبت نسخه…"><FlaskConical size={16}/> ثبت نسخهٔ جدید</PendingButton>
     </form>
       <div className="formula-history"><h3><History size={16}/> تاریخچه</h3>{formulas.length ? formulas.slice(0, 5).map(item => <div key={item.id}><span><CheckCircle2 size={14}/> نسخه {item.version} · {statusLabel[item.status]}</span><time>{date(item.effectiveAt)}</time></div>) : <p>هنوز نسخه‌ای ثبت نشده است.</p>}</div>

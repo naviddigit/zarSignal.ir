@@ -5,6 +5,7 @@ import { Calculator, DatabaseZap, RotateCcw } from 'lucide-react';
 import { formatNumericInput, numericValue, sanitizeNumericInput } from '@/lib/numeric-input';
 import { convertPurityPrice, convertWeight, purityOptions, weightUnits, type Purity, type WeightUnit } from '@/lib/calculator-conversions';
 import type { Quote } from '@/lib/market';
+import { Select } from '@/components/ui/select';
 
 type Mode = 'melted' | 'mazaneh' | 'weight' | 'purity';
 
@@ -192,8 +193,22 @@ export function GoldCalculator({ quotes }: { quotes: Quote[] }) {
             </div>
             <div className="calculator-form calculator-form--conversion">
               <NumberField label={mode === 'weight' ? 'مقدار وزن' : 'قیمت هر گرم'} unit={mode === 'weight' ? weightUnits[fromWeight].label : 'تومان'} value={conversionValue} placeholder={mode === 'weight' ? 'مثلاً ۳٫۵' : 'مثلاً ۷۵۰۰۰۰۰'} decimals={mode === 'weight' ? 4 : 0} onChange={setConversionValue}/>
-              <label className="calculator-field"><span>از</span><select value={mode === 'weight' ? fromWeight : fromPurity} onChange={event => mode === 'weight' ? setFromWeight(event.target.value as WeightUnit) : setFromPurity(event.target.value as Purity)}>{Object.entries(mode === 'weight' ? weightUnits : purityOptions).map(([key, item]) => <option key={key} value={key}>{item.label}</option>)}</select></label>
-              <label className="calculator-field"><span>به</span><select value={mode === 'weight' ? toWeight : toPurity} onChange={event => mode === 'weight' ? setToWeight(event.target.value as WeightUnit) : setToPurity(event.target.value as Purity)}>{Object.entries(mode === 'weight' ? weightUnits : purityOptions).map(([key, item]) => <option key={key} value={key}>{item.label}</option>)}</select></label>
+              <div className="calculator-field">
+                <Select
+                  label="از"
+                  value={mode === 'weight' ? fromWeight : fromPurity}
+                  onChange={next => mode === 'weight' ? setFromWeight(next as WeightUnit) : setFromPurity(next as Purity)}
+                  options={Object.entries(mode === 'weight' ? weightUnits : purityOptions).map(([key, item]) => ({ value: key, label: item.label }))}
+                />
+              </div>
+              <div className="calculator-field">
+                <Select
+                  label="به"
+                  value={mode === 'weight' ? toWeight : toPurity}
+                  onChange={next => mode === 'weight' ? setToWeight(next as WeightUnit) : setToPurity(next as Purity)}
+                  options={Object.entries(mode === 'weight' ? weightUnits : purityOptions).map(([key, item]) => ({ value: key, label: item.label }))}
+                />
+              </div>
             </div>
           </>
         )}
