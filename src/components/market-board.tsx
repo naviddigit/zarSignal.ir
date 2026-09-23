@@ -2,13 +2,13 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ArrowUpLeft, Clock3, RefreshCw, Search, Star } from 'lucide-react';
+import { ArrowUpLeft, RefreshCw, Search } from 'lucide-react';
 import { fetchJson } from '@/lib/fetch-json';
-import { formatPrice, instruments, type Snapshot, type Symbol } from '@/lib/market';
+import { instruments, type Snapshot, type Symbol } from '@/lib/market';
 import type { LiveBubbleCard } from '@/lib/bubbles';
 import { RelativeTime } from '@/components/relative-time';
-import { AssetMark } from '@/components/asset-mark';
-import { formatBubblePercent, LayoutToggle, PriceCard } from '@/components/price-card';
+import { LayoutToggle, PriceCard, PriceListRow } from '@/components/price-card';
+import { useMarketSparks } from '@/components/use-market-sparks';
 
 export { AssetMark } from '@/components/asset-mark';
 
@@ -26,6 +26,14 @@ function bubbleValue(symbol: Symbol, bubbles: LiveBubbleCard[]) {
   const analysis = analysisFor(symbol, bubbles);
   if (!analysis || analysis.percent == null || (analysis.status !== 'ok' && analysis.status !== 'stale')) return null;
   return analysis.percent;
+}
+
+function analysisLabel(symbol: Symbol, bubbles: LiveBubbleCard[]) {
+  const analysis = analysisFor(symbol, bubbles);
+  if (!analysis) return null;
+  if (analysis.status === 'blocked') return 'قفل Spec';
+  if (analysis.percent == null) return 'در انتظار داده';
+  return null;
 }
 
 /** Price board — default attractive cards, optional list layout. */
@@ -89,6 +97,7 @@ export function MarketBoard({ initial, bubbles = [] }: { initial: Snapshot; bubb
     (category === 'all' || category === asset.category || (category === 'favorites' && favorites.includes(asset.symbol))) &&
     `${asset.name} ${asset.symbol}`.toLowerCase().includes(query.toLowerCase()),
   );
+  const sparks = useMarketSparks(assets.map(asset => asset.symbol));
   const hasQuotes = snapshot.mode === 'live' && snapshot.quotes.length > 0;
   const fresh = hasQuotes && snapshot.status === 'ok';
   const stale = hasQuotes && snapshot.status === 'stale';
@@ -134,7 +143,7 @@ export function MarketBoard({ initial, bubbles = [] }: { initial: Snapshot; bubb
 
       {layout === 'cards' ? (
         <div className="price-card-grid">
-                  {assets.map(asset => {
+          {assets.map(asset => {
             const quote = snapshot.quotes.find(item => item.symbol === asset.symbol);
             return (
               <PriceCard
@@ -147,6 +156,8 @@ export function MarketBoard({ initial, bubbles = [] }: { initial: Snapshot; bubb
                   category: asset.category,
                   quote,
                   bubble: bubbleValue(asset.symbol, bubbles),
+                  analysisLabel: analysisLabel(asset.symbol, bubbles),
+                  spark: sparks[asset.symbol],
                   updated: updated.includes(asset.symbol),
                   favorite: favorites.includes(asset.symbol),
                   onToggleFavorite: () => toggle(asset.symbol),
@@ -157,42 +168,27 @@ export function MarketBoard({ initial, bubbles = [] }: { initial: Snapshot; bubb
           {!assets.length && <p className="empty-state">دارایی‌ای با این عبارت پیدا نشد.</p>}
         </div>
       ) : (
-        <div className="market-board-list" role="list">
-          <div className="market-board-list__head" aria-hidden="true">
-            <span>دارایی</span>
-            <span>قیمت دیده‌بان</span>
-            <span>تحلیل</span>
-            <span>زمان</span>
-          </div>
+        <div className="price-list-board">
           {assets.map(asset => {
             const quote = snapshot.quotes.find(item => item.symbol === asset.symbol);
-            const analysis = analysisFor(asset.symbol, bubbles);
-            const ready = analysis && (analysis.status === 'ok' || analysis.status === 'stale') && analysis.percent != null;
-            const same = quote && Number(quote.buy) === Number(quote.sell);
             return (
-              <article role="listitem" key={asset.symbol} className={`market-board-row${updated.includes(asset.symbol) ? ' quote-updated' : ''}`}>
-                <Link className="market-board-row__asset" href={`/markets/${asset.symbol.toLowerCase()}`}>
-                  <AssetMark symbol={asset.symbol} category={asset.category} />
-                  <span><strong>{asset.name}</strong><small>{asset.unit}</small></span>
-                </Link>
-                <div className="market-board-row__price">
-                  <bdi>{quote ? formatPrice(quote.sell, quote.currency) : '—'}</bdi>
-                  <small>{quote ? (same ? 'قیمت دیده‌بان · بدون اسپرد' : 'فروش') : 'در انتظار منبع'}</small>
-                  {quote && !same ? <em>خرید {formatPrice(quote.buy, quote.currency)}</em> : null}
-                </div>
-                <div className="market-board-row__analysis">
-                  {!analysis ? <span className="status-pill">—</span>
-                    : analysis.status === 'blocked' ? <span className="status-pill is-blocked">قفل Spec</span>
-                      : ready ? <span className={`status-pill is-bubble ${analysis.percent! >= 0 ? 'is-up' : 'is-down'}`}>{formatBubblePercent(analysis.percent!)}</span>
-                        : <span className="status-pill">در انتظار داده</span>}
-                </div>
-                <div className="market-board-row__meta">
-                  {quote ? <><strong>زرسیگنال</strong><small><Clock3 size={12} /><RelativeTime value={quote.fetchedAt} /></small></> : <span className="no-source">متصل نیست</span>}
-                  <button type="button" className="icon-button" onClick={() => toggle(asset.symbol)} aria-label={`نشان‌کردن ${asset.name}`} aria-pressed={favorites.includes(asset.symbol)}>
-                    <Star size={18} fill={favorites.includes(asset.symbol) ? 'currentColor' : 'none'} />
-                  </button>
-                </div>
-              </article>
+              <PriceListRow
+                key={asset.symbol}
+                href={`/markets/${asset.symbol.toLowerCase()}`}
+                item={{
+                  symbol: asset.symbol,
+                  name: asset.name,
+                  unit: asset.unit,
+                  category: asset.category,
+                  quote,
+                  bubble: bubbleValue(asset.symbol, bubbles),
+                  analysisLabel: analysisLabel(asset.symbol, bubbles),
+                  spark: sparks[asset.symbol],
+                  updated: updated.includes(asset.symbol),
+                  favorite: favorites.includes(asset.symbol),
+                  onToggleFavorite: () => toggle(asset.symbol),
+                }}
+              />
             );
           })}
           {!assets.length && <p className="empty-state">دارایی‌ای با این عبارت پیدا نشد.</p>}
