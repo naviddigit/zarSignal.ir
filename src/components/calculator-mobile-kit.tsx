@@ -10,6 +10,7 @@ import { formatNumericInput, sanitizeNumericInput } from '@/lib/numeric-input';
 import { isStale, type Snapshot } from '@/lib/market';
 import { mazanehTo18k } from '@/lib/mazaneh-to-18k';
 import { Select } from '@/components/ui/select';
+import { Input } from '@/components/ui/field';
 
 const unitOptions = Object.entries(weightUnits).map(([value, unit]) => ({ value, label: unit.label }));
 
@@ -237,12 +238,13 @@ export function WeightConvertWidget({ amount, onAmountChange }: { amount: string
 
       <div className="calc-weight-widget__pair">
         <div className="calc-weight-box is-in">
-          <span>مقدار</span>
           <div className="calc-weight-box__value">
-            <input
+            <Input
+              label="مقدار"
               dir="ltr"
               inputMode="decimal"
-              aria-label="مقدار ورودی"
+              autoComplete="off"
+              placeholder="مثلاً 3.5"
               value={formatNumericInput(amount)}
               onChange={event => onAmountChange(sanitizeNumericInput(event.target.value, 8))}
             />
@@ -253,7 +255,7 @@ export function WeightConvertWidget({ amount, onAmountChange }: { amount: string
             ) : null}
           </div>
           <Select
-            aria-label="واحد مبدأ"
+            label="واحد مبدأ"
             className="calc-weight-box__select"
             value={from}
             onChange={value => setFrom(value as WeightUnit)}
@@ -266,10 +268,10 @@ export function WeightConvertWidget({ amount, onAmountChange }: { amount: string
         </button>
 
         <div className="calc-weight-box is-out" aria-live="polite">
-          <span>نتیجه</span>
-          <strong dir="ltr">{result == null ? '—' : fa(result)}</strong>
+          <span className="ds-field__label">نتیجه</span>
+          <strong className="calc-weight-box__result" dir="ltr">{result == null ? '—' : fa(result)}</strong>
           <Select
-            aria-label="واحد مقصد"
+            label="واحد مقصد"
             className="calc-weight-box__select"
             value={to}
             onChange={value => setTo(value as WeightUnit)}
