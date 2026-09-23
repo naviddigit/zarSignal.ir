@@ -1,11 +1,13 @@
-import Link from 'next/link';
-import { ArrowUpLeft, Clock3 } from 'lucide-react';
-import { formatPrice, instruments, type Snapshot } from '@/lib/market';
-import type { LiveBubbleCard } from '@/lib/bubbles';
-import { RelativeTime } from '@/components/relative-time';
-import { AssetMark } from '@/components/market-board';
+'use client';
 
-const spotlight = ['GOLD_MELTED', 'GOLD_18K', 'USD', 'SEKE_CASH', 'SILVER_999'] as const;
+import { useState } from 'react';
+import Link from 'next/link';
+import { ArrowUpLeft } from 'lucide-react';
+import { instruments, formatPrice, type Snapshot } from '@/lib/market';
+import type { LiveBubbleCard } from '@/lib/bubbles';
+import { LayoutToggle, PriceCard } from '@/components/price-card';
+
+const spotlight = ['GOLD_MELTED', 'GOLD_18K', 'USD', 'SEKE_CASH', 'SILVER_999', 'XAU_USD'] as const;
 
 function bubbleFor(symbol: string, bubbles: LiveBubbleCard[]) {
   const key =
@@ -19,8 +21,9 @@ function bubbleFor(symbol: string, bubbles: LiveBubbleCard[]) {
   return card.percent;
 }
 
-/** Compact homepage strip — full board lives on /markets. */
+/** Homepage price preview — cards by default, optional compact list. */
 export function MarketTeaser({ snapshot, bubbles }: { snapshot: Snapshot; bubbles: LiveBubbleCard[] }) {
+  const [layout, setLayout] = useState<'cards' | 'list'>('cards');
   const rows = spotlight
     .map(symbol => {
       const asset = instruments.find(item => item.symbol === symbol);
@@ -36,34 +39,53 @@ export function MarketTeaser({ snapshot, bubbles }: { snapshot: Snapshot; bubble
         <div>
           <span className="eyebrow">LIVE BOARD</span>
           <h2>نگاهی سریع به قیمت‌ها</h2>
-          <p>برای تخته کامل و فیلتر بازارها، صفحهٔ نبض بازار را باز کنید.</p>
+          <p>باکس‌های زنده؛ برای فیلتر کامل به نبض بازار بروید.</p>
         </div>
-        <Link className="button" href="/markets">تخته کامل قیمت‌ها <ArrowUpLeft size={16} /></Link>
+        <div className="market-teaser__actions">
+          <LayoutToggle value={layout} onChange={setLayout} />
+          <Link className="button" href="/markets">تخته کامل <ArrowUpLeft size={16} /></Link>
+        </div>
       </header>
-      <ol className="market-teaser__list">
-        {rows.map(({ asset, quote, bubble }) => (
-          <li key={asset.symbol}>
-            <Link href={`/markets/${asset.symbol.toLowerCase()}`} className="market-teaser__row">
-              <span className="market-teaser__asset">
-                <AssetMark symbol={asset.symbol} category={asset.category} />
-                <span>
+
+      {layout === 'cards' ? (
+        <div className="price-card-grid price-card-grid--teaser">
+          {rows.map(({ asset, quote, bubble }) => (
+            <PriceCard
+              key={asset.symbol}
+              href={`/markets/${asset.symbol.toLowerCase()}`}
+              item={{
+                symbol: asset.symbol,
+                name: asset.name,
+                unit: asset.unit,
+                category: asset.category,
+                quote,
+                bubble,
+              }}
+            />
+          ))}
+        </div>
+      ) : (
+        <ol className="market-teaser__list">
+          {rows.map(({ asset, quote, bubble }) => (
+            <li key={asset.symbol}>
+              <Link href={`/markets/${asset.symbol.toLowerCase()}`} className="market-teaser__row">
+                <span className="market-teaser__asset">
                   <strong>{asset.name}</strong>
                   <small>{asset.unit}</small>
                 </span>
-              </span>
-              <span className="market-teaser__price">
-                <bdi>{quote ? formatPrice(quote.sell, quote.currency) : '—'}</bdi>
-                {quote ? <small><Clock3 size={11} /><RelativeTime value={quote.fetchedAt} /></small> : <small>بدون قیمت</small>}
-              </span>
-              {bubble != null ? (
-                <span className={`market-teaser__bubble ${bubble >= 0 ? 'is-up' : 'is-down'}`}>
-                  {`${bubble > 0 ? '+' : ''}${new Intl.NumberFormat('fa-IR', { maximumFractionDigits: 2 }).format(bubble)}٪`}
+                <span className="market-teaser__price">
+                  <bdi>{quote ? formatPrice(quote.sell, quote.currency) : '—'}</bdi>
                 </span>
-              ) : <span className="market-teaser__bubble is-empty">—</span>}
-            </Link>
-          </li>
-        ))}
-      </ol>
+                {bubble != null ? (
+                  <span className={`market-teaser__bubble ${bubble >= 0 ? 'is-up' : 'is-down'}`}>
+                    {`${bubble > 0 ? '+' : ''}${new Intl.NumberFormat('fa-IR', { maximumFractionDigits: 2 }).format(bubble)}٪`}
+                  </span>
+                ) : <span className="market-teaser__bubble is-empty">—</span>}
+              </Link>
+            </li>
+          ))}
+        </ol>
+      )}
     </section>
   );
 }
