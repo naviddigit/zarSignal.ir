@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { mkdirSync, writeFileSync } from 'node:fs';
 
-const output = 'artifacts/homepage-phase1';
+const output = 'artifacts/homepage-refinement';
 const viewports = [[360, 800], [390, 844], [430, 932], [768, 1024], [1440, 1000]];
 
 test('Phase 1 real viewport, theme, navigation and disclosure acceptance', async ({ page }) => {
@@ -31,6 +31,12 @@ test('Phase 1 real viewport, theme, navigation and disclosure acceptance', async
   }
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/');
+  await expect(page.locator('.hero-orbit')).toHaveAttribute('data-moving', 'true');
+  await page.getByRole('button', { name: 'توقف حرکت نمای مفهومی' }).click();
+  await expect(page.locator('.hero-orbit')).toHaveAttribute('data-moving', 'false');
+  await page.getByRole('button', { name: 'ادامه حرکت نمای مفهومی' }).click();
+  await page.locator('#sample-analysis').scrollIntoViewIfNeeded();
+  await expect(page.locator('.hero-orbit')).toHaveAttribute('data-moving', 'false');
   await page.getByRole('button', { name: 'نمای حرفه‌ای', exact: true }).click();
   await page.locator('.home-professional summary').click();
   await expect(page.locator('.home-professional')).toContainText('هزینه واقعی وارد محاسبه نشده');
@@ -55,6 +61,7 @@ test('Phase 1 real viewport, theme, navigation and disclosure acceptance', async
   await page.keyboard.press('Escape');
   await expect(page.locator('.header-more')).not.toHaveAttribute('open');
   await page.emulateMedia({ reducedMotion: 'reduce' });
+  expect(await page.locator('.ring-middle').evaluate(element => getComputedStyle(element).animationName)).toBe('none');
   await page.evaluate(() => { document.documentElement.style.fontSize = '200%'; document.body.style.fontSize = '200%'; });
   // Text-only enlargement also covers the explicit px typography used by the existing site.
   await page.addStyleTag({ content: '.homepage p,.homepage a,.homepage button,.homepage summary,.homepage .home-label{font-size:24px!important}.homepage h1{font-size:48px!important}' });

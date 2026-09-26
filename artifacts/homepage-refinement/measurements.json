@@ -1,0 +1,75 @@
+{
+  "measurements": [
+    {
+      "theme": "light",
+      "width": 360,
+      "height": 800,
+      "ctaBottom": 352.1875,
+      "horizontalOverflow": false
+    },
+    {
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "ctaBottom": 352.1875,
+      "horizontalOverflow": false
+    },
+    {
+      "theme": "light",
+      "width": 430,
+      "height": 932,
+      "ctaBottom": 352.1875,
+      "horizontalOverflow": false
+    },
+    {
+      "theme": "light",
+      "width": 768,
+      "height": 1024,
+      "ctaBottom": 477.5,
+      "horizontalOverflow": false
+    },
+    {
+      "theme": "light",
+      "width": 1440,
+      "height": 1000,
+      "ctaBottom": 553.671875,
+      "horizontalOverflow": false
+    },
+    {
+      "theme": "dark",
+      "width": 360,
+      "height": 800,
+      "ctaBottom": 352.1875,
+      "horizontalOverflow": false
+    },
+    {
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "ctaBottom": 352.1875,
+      "horizontalOverflow": false
+    },
+    {
+      "theme": "dark",
+      "width": 430,
+      "height": 932,
+      "ctaBottom": 352.1875,
+      "horizontalOverflow": false
+    },
+    {
+      "theme": "dark",
+      "width": 768,
+      "height": 1024,
+      "ctaBottom": 477.5,
+      "horizontalOverflow": false
+    },
+    {
+      "theme": "dark",
+      "width": 1440,
+      "height": 1000,
+      "ctaBottom": 553.671875,
+      "horizontalOverflow": false
+    }
+  ],
+  "browserErrors": []
+}
