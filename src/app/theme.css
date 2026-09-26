@@ -277,7 +277,7 @@ html[data-theme='light'] .calculator-screen>span,html[data-theme='light'] .calcu
 @media(max-width:760px){
 .shell{width:calc(100% - 20px)}
 .hero{padding:0;gap:0;min-height:0}
-.home-page .hero-copy,.home-page .hero-screen-down{display:none!important}
+
 .hero-reveal,.section-reveal{animation:none!important}
 .radar-pro__sweep,.radar-pro__grid,.radar-pro__token{animation:none!important}
 .radar-pro__glow,.radar-pro__orbit,.radar-pro__pulse,.radar-pro__center-beat,.radar-pro__ring-value{animation-duration:2.4s}
@@ -454,8 +454,8 @@ html[data-theme='light'] .calculator-screen>span,html[data-theme='light'] .calcu
   .home-page>.hero{display:contents}
   .radar-pro{order:1;height:300px;margin:4px 0 8px;max-width:none}
   .home-page>.market-teaser{order:2;margin:0 0 14px;padding:10px 0 8px;border:0;border-radius:0;background:transparent;box-shadow:none}
-  .hero-copy{display:none!important}
-  .hero-screen-down{display:none!important}
+
+
   .radar-pro__caption{font-size:10px;bottom:4px}
 
   .market-teaser__head{flex-direction:column;align-items:stretch;gap:8px;margin-bottom:10px;padding:0 2px}
@@ -539,7 +539,7 @@ html[data-theme='light'] .calculator-screen>span,html[data-theme='light'] .calcu
   body:has(.mobile-tab-bar){padding-bottom:calc(72px + env(safe-area-inset-bottom))}
   body:has(.mobile-tab-bar) .footer{margin-bottom:12px}
   .mobile-tab-bar{display:block;position:fixed;inset-inline:0;bottom:0;z-index:40;padding:0 10px calc(8px + env(safe-area-inset-bottom));pointer-events:none}
-  .mobile-tab-bar__inner{pointer-events:auto;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:2px;padding:8px 6px;border:1px solid color-mix(in srgb,var(--border-strong) 70%,transparent);border-radius:22px;background:color-mix(in srgb,var(--surface-card) 88%,transparent);backdrop-filter:blur(18px) saturate(1.2);box-shadow:0 12px 40px var(--shadow),inset 0 1px 0 color-mix(in srgb,var(--text-primary) 8%,transparent)}
+  .mobile-tab-bar__inner{pointer-events:auto;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:2px;padding:8px 6px;border:1px solid color-mix(in srgb,var(--border-strong) 70%,transparent);border-radius:22px;background:color-mix(in srgb,var(--surface-card) 88%,transparent);backdrop-filter:blur(18px) saturate(1.2);box-shadow:0 12px 40px var(--shadow),inset 0 1px 0 color-mix(in srgb,var(--text-primary) 8%,transparent)}
   .mobile-tab-bar__item{display:grid;justify-items:center;gap:3px;padding:8px 4px 6px;border-radius:16px;color:var(--text-muted);text-decoration:none;transition:background-color .18s,color .18s,transform .18s}
   .mobile-tab-bar__icon{display:grid;place-items:center;width:28px;height:28px}
   .mobile-tab-bar__label{font-size:10px;font-weight:700;line-height:1}
@@ -574,3 +574,19 @@ html[data-theme='light'] .calculator-screen>span,html[data-theme='light'] .calcu
 
 /* Compact entry to the dedicated calculator. Shared controls remain in the design system. */
 .calc-preview{display:flex;align-items:center;justify-content:space-between;gap:24px;margin-block:28px;padding:28px;background:linear-gradient(130deg,var(--surface-card),var(--surface-soft))}.calc-preview h2{font-size:26px;margin:10px 0}.calc-preview p{font-size:14px}.calc-preview-categories{font-size:12px;color:var(--text-secondary)}.calc-preview>.button{flex-shrink:0}@media(max-width:760px){.calc-preview{flex-direction:column;align-items:stretch;padding:22px}.calc-preview h2{font-size:23px}}
+/* Shared navigation: compact header, native keyboard-accessible overflow menu. */
+.header-inner{height:72px}
+.brand,.primary-nav a,.footer>div a{min-height:44px;display:inline-flex;align-items:center}
+.header-login,.header-more>summary{display:flex;align-items:center;justify-content:center;min-width:44px;min-height:44px;padding:6px 12px;color:var(--text-primary)}
+.header-more{position:relative}
+.header-more>summary{cursor:pointer;border:1px solid var(--border);border-radius:10px;list-style:none}
+.header-more>summary::-webkit-details-marker{display:none}
+.header-more__panel{position:absolute;inset-inline-end:0;top:calc(100% + 8px);width:250px;max-height:calc(100dvh - 150px);overflow-y:auto;padding:12px;display:grid;gap:4px;border:1px solid var(--border);border-radius:12px;background:var(--surface-card);box-shadow:0 12px 30px var(--shadow);z-index:50}
+.header-more__panel a{padding:8px 12px;min-height:44px;border-radius:8px}
+.header-more__panel a:hover{background:var(--surface-soft)}
+.header-more__panel .theme-selector{margin:0;width:max-content}
+.header-more__panel .theme-option{width:44px;min-width:44px;height:44px}
+.header-more summary:focus-visible{outline:2px solid var(--accent);outline-offset:4px}
+@media(max-width:1050px){.header-inner .primary-nav{display:none}}
+@media(max-width:760px){.site-header .shell{width:calc(100% - 32px)}.header-inner{height:56px;min-height:56px;padding:0;flex-wrap:nowrap}.brand{font-size:19px;gap:8px}.brand-mark{width:34px;height:34px}.brand small{font-size:7px;letter-spacing:2px;margin-top:3px}.header-actions{gap:4px}.header-login,.header-more>summary{font-size:13px;padding-inline:9px}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}

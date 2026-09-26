@@ -1,0 +1,121 @@
+{
+  "checkedAt": "2026-09-26T15:47:53.635Z",
+  "/api/health/database": {
+    "httpStatus": 200,
+    "data": {
+      "status": "connected",
+      "latencyMs": 85,
+      "code": "ok",
+      "message": "اتصال PostgreSQL برقرار است."
+    }
+  },
+  "/api/public/markets": {
+    "httpStatus": 200,
+    "data": {
+      "mode": "live",
+      "status": "ok",
+      "quotes": [
+        {
+          "symbol": "AED",
+          "buy": "63790",
+          "sell": "63790",
+          "currency": "TMN",
+          "unit": "درهم",
+          "source": "زرسیگنال",
+          "sourceUrl": null,
+          "observedAt": "2026-09-26T15:47:58.110Z",
+          "fetchedAt": "2026-09-26T15:47:58.110Z"
+        },
+        {
+          "symbol": "GOLD_18K",
+          "buy": "23893059",
+          "sell": "23893059",
+          "currency": "TMN",
+          "unit": "گرم",
+          "source": "زرسیگنال",
+          "sourceUrl": null,
+          "observedAt": "2026-09-26T15:47:58.110Z",
+          "fetchedAt": "2026-09-26T15:47:58.110Z"
+        },
+        {
+          "symbol": "GOLD_MELTED",
+          "buy": "103500000",
+          "sell": "103500000",
+          "currency": "TMN",
+          "unit": "مثقال",
+          "source": "زرسیگنال",
+          "sourceUrl": null,
+          "observedAt": "2026-09-26T15:47:58.110Z",
+          "fetchedAt": "2026-09-26T15:47:58.110Z"
+        },
+        {
+          "symbol": "ROB_SEKE",
+          "buy": "63900000",
+          "sell": "63900000",
+          "currency": "TMN",
+          "unit": "عدد",
+          "source": "زرسیگنال",
+          "sourceUrl": null,
+          "observedAt": "2026-09-26T15:47:58.110Z",
+          "fetchedAt": "2026-09-26T15:47:58.110Z"
+        },
+        {
+          "symbol": "SEKE_CASH",
+          "buy": "236200000",
+          "sell": "236200000",
+          "currency": "TMN",
+          "unit": "عدد",
+          "source": "زرسیگنال",
+          "sourceUrl": null,
+          "observedAt": "2026-09-26T15:47:58.110Z",
+          "fetchedAt": "2026-09-26T15:47:58.110Z"
+        },
+        {
+          "symbol": "SILVER_999",
+          "buy": "483414",
+          "sell": "483414",
+          "currency": "TMN",
+          "unit": "گرم",
+          "source": "زرسیگنال",
+          "sourceUrl": null,
+          "observedAt": "2026-09-26T15:47:58.110Z",
+          "fetchedAt": "2026-09-26T15:47:58.110Z"
+        },
+        {
+          "symbol": "USD",
+          "buy": "233867",
+          "sell": "233867",
+          "currency": "TMN",
+          "unit": "دلار",
+          "source": "زرسیگنال",
+          "sourceUrl": null,
+          "observedAt": "2026-09-26T15:47:58.110Z",
+          "fetchedAt": "2026-09-26T15:47:58.110Z"
+        },
+        {
+          "symbol": "XAG_USD",
+          "buy": "64.301",
+          "sell": "64.301",
+          "currency": "USD",
+          "unit": "اونس تروا",
+          "source": "زرسیگنال",
+          "sourceUrl": null,
+          "observedAt": "2026-09-26T15:47:58.110Z",
+          "fetchedAt": "2026-09-26T15:47:58.110Z"
+        },
+        {
+          "symbol": "XAU_USD",
+          "buy": "4284.68",
+          "sell": "4284.68",
+          "currency": "USD",
+          "unit": "اونس تروا",
+          "source": "زرسیگنال",
+          "sourceUrl": null,
+          "observedAt": "2026-09-26T15:47:58.110Z",
+          "fetchedAt": "2026-09-26T15:47:58.110Z"
+        }
+      ],
+      "pollSeconds": 60
+    }
+  }
+}
