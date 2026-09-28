@@ -2,25 +2,44 @@
   "expo": {
     "name": "زرسیگنال",
     "slug": "zarsignal",
-    "version": "0.1.0",
+    "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
     "scheme": "zarsignal",
-    "plugins": ["expo-router"],
+    "icon": "./assets/icon.png",
+    "plugins": [
+      "expo-router"
+    ],
     "web": {
       "bundler": "metro",
-      "output": "single"
+      "output": "single",
+      "favicon": "./assets/favicon.png"
     },
     "ios": {
       "bundleIdentifier": "ir.zarsignal.app",
-      "supportsTablet": true
+      "supportsTablet": true,
+      "buildNumber": "1",
+      "infoPlist": {
+        "CFBundleAllowMixedLocalizations": true,
+        "CFBundleDevelopmentRegion": "fa"
+      }
     },
     "android": {
-      "package": "ir.zarsignal.app"
+      "package": "ir.zarsignal.app",
+      "versionCode": 1,
+      "permissions": [],
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0b0e13"
+      }
     },
     "extra": {
       "supportsRTL": true,
-      "router": {}
-    }
+      "router": {},
+      "eas": {
+        "projectId": "610504fa-6044-44cf-a696-8b512269d93e"
+      }
+    },
+    "owner": "naviddigit"
   }
 }

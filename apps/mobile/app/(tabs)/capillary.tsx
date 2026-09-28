@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Animated, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { colors } from '../src/theme';
+import { AppShell } from '../../src/components/AppShell';
+import { colors } from '../../src/theme';
 import {
   demoLogin,
   getDemoUser,
@@ -12,7 +13,7 @@ import {
   trialRemainingLabel,
   type DemoUser,
   type TrialState,
-} from '../src/session';
+} from '../../src/session';
 
 export default function CapillaryScreen() {
   const [view, setView] = useState<'simple' | 'professional'>('simple');
@@ -81,6 +82,7 @@ export default function CapillaryScreen() {
   const expired = trial ? Date.parse(trial.expiresAt) <= Date.now() : false;
 
   return (
+    <AppShell>
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
       <Animated.View style={{ opacity: fade, transform: [{ translateY: rise }] }}>
         <Text style={styles.kicker}>تحلیل مویرگی · شفافیت اول</Text>
@@ -147,12 +149,13 @@ export default function CapillaryScreen() {
         </View>
       </Animated.View>
     </ScrollView>
+    </AppShell>
   );
 }
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },
-  content: { padding: 20, paddingBottom: 48, maxWidth: 720, width: '100%', alignSelf: 'center' },
+  content: { padding: 16, paddingBottom: 28 },
   kicker: { color: colors.accent, fontWeight: '700', textAlign: 'right' },
   title: { color: colors.text, fontSize: 24, fontWeight: '800', textAlign: 'right', marginTop: 10, lineHeight: 34 },
   body: { color: colors.muted, fontSize: 14, lineHeight: 24, textAlign: 'right', marginTop: 10 },

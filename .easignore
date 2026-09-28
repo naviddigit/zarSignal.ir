@@ -1,0 +1,16 @@
+# Git / monorepo root .easignore — keep EAS upload small
+.next/
+node_modules/
+dist/
+artifacts/
+tmp/
+.data/
+test-results/
+.vercel/
+.openai/
+graphify-out/
+apps/mobile/node_modules/
+apps/mobile/.expo/
+**/*.map
+**/.env
+**/.env.*

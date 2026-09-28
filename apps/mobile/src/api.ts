@@ -20,6 +20,25 @@ export type LiveBubbleCard = {
   reason?: string;
 };
 
+export type CalculatorOperation = 'mazanehTo18k' | 'market18kToMazaneh' | 'goldBubble' | 'usdGap';
+
+export type CalculatorResult = {
+  formulaId: string;
+  version: string;
+  calculatedAt: string;
+  outputs: { label: string; value: number; unit: string }[];
+  inputs: {
+    key: string;
+    label: string;
+    value: number;
+    unit: string;
+    provenance: 'LIVE' | 'MANUAL' | 'CONSTANT';
+    observedAt: string | null;
+    source: string;
+  }[];
+  constants: { label: string; provenance: 'CONSTANT'; version: string }[];
+};
+
 const baseUrl = process.env.EXPO_PUBLIC_API_URL;
 
 export function apiBase() {
@@ -42,7 +61,6 @@ export async function fetchMarkets(signal?: AbortSignal): Promise<Snapshot> {
   return validateSnapshot(await response.json());
 }
 
-/** Best-effort; UI stays honest if endpoint is absent. */
 export async function fetchBubbles(signal?: AbortSignal): Promise<LiveBubbleCard[]> {
   try {
     const response = await fetch(`${apiBase()}/api/public/bubbles`, { signal });
@@ -52,6 +70,35 @@ export async function fetchBubbles(signal?: AbortSignal): Promise<LiveBubbleCard
   } catch {
     return [];
   }
+}
+
+export async function postSimpleCalculator(
+  operation: 'mazanehTo18k' | 'market18kToMazaneh',
+  value: number,
+): Promise<{ value: number; version?: string }> {
+  const response = await fetch(`${apiBase()}/api/public/calculator`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ operation, value }),
+  });
+  if (!response.ok) throw new Error('calc_failed');
+  return response.json();
+}
+
+export async function postProfessionalCalculator(
+  operation: CalculatorOperation,
+  inputs: Record<string, { provenance: 'LIVE' | 'MANUAL'; value?: number }>,
+): Promise<CalculatorResult> {
+  const response = await fetch(`${apiBase()}/api/public/calculator/professional`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ operation, inputs }),
+  });
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throw new Error(typeof data?.error === 'string' ? data.error : 'calc_failed');
+  }
+  return response.json();
 }
 
 export const symbolLabels: Record<string, string> = {

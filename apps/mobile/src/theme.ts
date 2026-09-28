@@ -1,24 +1,36 @@
 export const colors = {
   bg: '#0b0e13',
-  card: '#11151d',
+  bgElevated: '#0f131a',
+  card: '#121820',
+  cardSoft: '#161d28',
   border: '#252a35',
+  borderStrong: '#323846',
   text: '#edf0f5',
-  muted: '#a5afbe',
+  muted: '#9ca5b5',
   accent: '#e7c479',
-  accentSoft: 'rgba(231,196,121,0.16)',
+  accentSoft: 'rgba(231,196,121,0.14)',
   warning: '#efb284',
-  danger: '#e88b8b',
-  success: '#7dcea0',
+  danger: '#ef4444',
+  success: '#10b981',
+} as const;
+
+export const layout = {
+  phoneMax: 430,
+  tabBarHeight: 72,
+  contentPad: 16,
 } as const;
 
 export const copy = {
   brand: 'زرسیگنال',
-  eyebrow: 'دستیار تحلیل موقعیت طلا و ارز',
-  heroTitleLine1: 'از قیمت تا',
-  heroTitleLine2: 'تحلیل موقعیت',
-  heroBody: 'حباب و شفافیت زمان داده را کنار هم ببین؛ بعد با آگاهی پایش کن.',
-  ctaCapillary: 'تحلیل مویرگی',
-  ctaTransparency: 'شفافیت داده',
+  greeting: 'سلام، به زرسیگنال خوش آمدید',
+  greetingSub: 'قیمت زنده، حباب شفاف و ابزارهای کاربردی',
+  searchPlaceholder: 'جستجوی نماد یا بازار…',
+  heroTitle: 'بازار را شفاف‌تر ببین',
+  heroBody: 'حباب و زمان داده کنار هم؛ بدون سیگنال خرید و فروش ساختگی.',
+  dailyAnalysis: 'تحلیل مویرگی امروز',
+  dailyAnalysisSub: 'حباب طلا را به‌عنوان شاهد بخوان',
+  proBanner: 'نسخه حرفه‌ای',
+  proBannerSub: 'هشدار حباب، تاریخچه و ابزارهای بیشتر',
   noProfit: 'بدون تضمین سود',
   bubbleHint: 'حباب = فاصله قیمت با ارزش محاسباتی؛ شاهد است نه سیگنال خرید.',
 } as const;

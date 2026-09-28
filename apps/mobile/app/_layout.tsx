@@ -22,10 +22,7 @@ export default function RootLayout() {
           headerShadowVisible: false,
         }}
       >
-        <Stack.Screen name="index" options={{ headerShown: false }} />
-        <Stack.Screen name="capillary" options={{ title: 'تحلیل مویرگی' }} />
-        <Stack.Screen name="markets" options={{ title: 'تابلوی قیمت‌ها' }} />
-        <Stack.Screen name="calculator" options={{ title: 'ماشین‌حساب' }} />
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="history" options={{ title: 'تاریخچه تحلیل' }} />
         <Stack.Screen name="account" options={{ title: 'حساب من' }} />
       </Stack>
