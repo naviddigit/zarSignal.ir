@@ -16,7 +16,7 @@ export function OrbitalHero({ focusLabel, statusLabel, percentLabel }: Props) {
         toValue: 1,
         duration: 18000,
         easing: Easing.linear,
-        useNativeDriver: true,
+        useNativeDriver: false,
       }),
     );
     loop.start();

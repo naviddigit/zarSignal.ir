@@ -1,21 +1,20 @@
-import { useCallback, useState } from 'react';
-import { useFocusEffect } from '@react-navigation/native';
+import { useEffect, useState } from 'react';
+import { usePathname } from 'expo-router';
 import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { colors } from '../src/theme';
 import { demoLogout, getDemoUser, getTrial, trialRemainingLabel, type DemoUser, type TrialState } from '../src/session';
 
 export default function AccountScreen() {
+  const pathname = usePathname();
   const [user, setUser] = useState<DemoUser | null>(null);
   const [trial, setTrial] = useState<TrialState | null>(null);
 
-  useFocusEffect(
-    useCallback(() => {
-      void Promise.all([getDemoUser(), getTrial()]).then(([nextUser, nextTrial]) => {
-        setUser(nextUser);
-        setTrial(nextTrial);
-      });
-    }, []),
-  );
+  useEffect(() => {
+    void Promise.all([getDemoUser(), getTrial()]).then(([nextUser, nextTrial]) => {
+      setUser(nextUser);
+      setTrial(nextTrial);
+    });
+  }, [pathname]);
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>

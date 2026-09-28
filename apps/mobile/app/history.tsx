@@ -1,17 +1,16 @@
-import { useCallback, useState } from 'react';
-import { useFocusEffect } from '@react-navigation/native';
+import { useEffect, useState } from 'react';
+import { usePathname } from 'expo-router';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { colors } from '../src/theme';
 import { getHistory, type HistoryItem } from '../src/session';
 
 export default function HistoryScreen() {
+  const pathname = usePathname();
   const [items, setItems] = useState<HistoryItem[]>([]);
 
-  useFocusEffect(
-    useCallback(() => {
-      void getHistory().then(setItems);
-    }, []),
-  );
+  useEffect(() => {
+    void getHistory().then(setItems);
+  }, [pathname]);
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>

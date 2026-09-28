@@ -1,0 +1,18 @@
+import { getPublicSnapshot } from '@/server/quotes';
+import { computeLiveBubbles } from '@/server/live-bubbles';
+
+export const dynamic = 'force-dynamic';
+
+export async function GET() {
+  const snapshot = await getPublicSnapshot();
+  const bubbles = computeLiveBubbles(snapshot);
+  return Response.json(
+    { bubbles },
+    {
+      status: snapshot.status === 'unavailable' ? 503 : 200,
+      headers: {
+        'Cache-Control': snapshot.status === 'unavailable' ? 'no-store' : 'public, s-maxage=30, stale-while-revalidate=30',
+      },
+    },
+  );
+}

@@ -33,8 +33,8 @@ export default function CapillaryScreen() {
   useEffect(() => {
     void hydrate();
     Animated.parallel([
-      Animated.timing(rise, { toValue: 0, duration: 480, useNativeDriver: true }),
-      Animated.timing(fade, { toValue: 1, duration: 480, useNativeDriver: true }),
+      Animated.timing(rise, { toValue: 0, duration: 480, useNativeDriver: false }),
+      Animated.timing(fade, { toValue: 1, duration: 480, useNativeDriver: false }),
     ]).start();
   }, [fade, hydrate, rise]);
 
