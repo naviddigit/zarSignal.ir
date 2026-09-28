@@ -10,6 +10,7 @@ import { formatNumericInput, sanitizeNumericInput } from '@/lib/numeric-input';
 import { isStale, type Snapshot } from '@/lib/market';
 import { mazanehTo18k } from '@/lib/mazaneh-to-18k';
 import { Select } from '@/components/ui/select';
+import { keypadMath } from '@/lib/keypad-math';
 
 const unitOptions = Object.entries(weightUnits).map(([value, unit]) => ({ value, label: unit.label }));
 
@@ -21,7 +22,7 @@ function money(value: string | number, currency: string) {
   const n = Number(value);
   if (!Number.isFinite(n)) return '—';
   const amount = new Intl.NumberFormat('en-US', { maximumFractionDigits: currency === 'USD' ? 2 : 0 }).format(n);
-  return `${amount} ${currency === 'TMN' ? 'تومان' : 'دلار'}`;
+  return amount;
 }
 
 function clock(value?: string) {
@@ -102,12 +103,12 @@ export function CalculatorLiveStrip({ snapshot }: { snapshot: Snapshot }) {
   ];
   const latest = snapshot.quotes.map(q => q.fetchedAt).sort().at(-1);
   return (
-    <section className="calc-live-strip" aria-label="قیمت‌های لحظه‌ای بازار">
+    <section className="calc-live-strip" aria-label="قیمت‌های بازار">
       <header>
-        <strong><ChartNoAxesColumn size={12} aria-hidden="true" /> قیمت‌های لحظه‌ای بازار</strong>
+        <strong><ChartNoAxesColumn size={12} aria-hidden="true" /> قیمت‌های بازار</strong>
         <span>
           <i className={snapshot.status === 'ok' ? 'is-live' : ''} />
-          به‌روزرسانی: {clock(latest)}
+          {snapshot.status === 'ok' ? `دریافت: ${clock(latest)}` : 'داده قدیمی / نامعتبر'}
         </span>
       </header>
       <div className="calc-live-strip__grid">
@@ -125,7 +126,7 @@ export function CalculatorLiveStrip({ snapshot }: { snapshot: Snapshot }) {
               : '—';
           return (
             <article key={cell.symbol} className={stale ? 'is-stale' : ''}>
-              <small>{cell.label}</small>
+              <small>{cell.label} · {cell.symbol === 'XAU_USD' ? 'دلار' : 'تومان'}</small>
               <bdi>{display}</bdi>
             </article>
           );
@@ -137,25 +138,43 @@ export function CalculatorLiveStrip({ snapshot }: { snapshot: Snapshot }) {
 
 /** Keypad: numbers + one equals (Mojtaba). */
 export function CalculatorKeypad({ value, onChange }: { value: string; onChange: (next: string) => void }) {
+  const [left, setLeft] = useState<number | null>(null);
+  const [operator, setOperator] = useState('');
+  const [replace, setReplace] = useState(false);
+  const [error, setError] = useState('');
   function press(key: string) {
-    if (key === '÷' || key === '×' || key === '−' || key === '=' || key === '+') return;
-    if (key === '⌫') return onChange(value.slice(0, -1));
-    if (key === '.') {
-      if (value.includes('.')) return;
-      return onChange(value ? `${value}.` : '0.');
+    setError('');
+    if (key === 'C') { setLeft(null); setOperator(''); setReplace(false); return onChange(''); }
+    if ('÷×−+'.includes(key) || key === '=') {
+      try {
+        const current = left !== null && operator && !replace ? keypadMath(left, Number(value || 0), operator) : Number(value || 0);
+        if (left !== null && operator && !replace) onChange(String(current));
+        setLeft(key === '=' ? null : current); setOperator(key === '=' ? '' : key); setReplace(true);
+      } catch (e) { setError(e instanceof Error ? e.message : 'محاسبه ممکن نشد.'); }
+      return;
     }
-    onChange(sanitizeNumericInput(`${value === '0' ? '' : value}${key}`, 8));
+    const entry = replace ? '' : value;
+    setReplace(false);
+    if (key === '⌫') return onChange(entry.slice(0, -1));
+    if (key === '.') {
+      if (entry.includes('.')) return;
+      return onChange(entry ? `${entry}.` : '0.');
+    }
+    onChange(sanitizeNumericInput(`${entry === '0' ? '' : entry}${key}`, 6));
   }
 
   const rows: string[][] = [
     ['7', '8', '9', '÷'],
     ['4', '5', '6', '×'],
-    ['1', '2', '3', '−'],
+    ['1', '2', '3', '+'],
     ['.', '0', '⌫', '='],
   ];
 
   return (
-    <div className="calc-keypad" role="group" aria-label="صفحه‌کلید عددی">
+    <div className="calc-keypad" role="group" aria-label="صفحه‌کلید عددی" dir="ltr">
+      <button type="button" onClick={() => press('C')} aria-label="پاک‌کردن همه">C</button>
+      <output className="calc-keypad-status" aria-live="polite">{error || (operator ? `${left} ${operator}` : 'ورود عدد')}</output>
+      <button type="button" onClick={() => press('−')} aria-label="تفریق">−</button>
       {rows.flat().map(key => (
         <button
           key={key}
@@ -185,8 +204,7 @@ export function CalculatorPopularRow({
   return (
     <section className="calc-popular" aria-label="محاسبات محبوب">
       <header>
-        <strong>محاسبات محبوب</strong>
-        <span>همه</span>
+        <strong>محاسبات محبوب</strong><small className="calc-currency-note">محاسبات: تومانی</small>
       </header>
       <div className="calc-popular__icons">
         {items.map(item => {
@@ -242,7 +260,7 @@ export function WeightConvertWidget({ amount, onAmountChange }: { amount: string
             <input
               className="ds-input calc-weight-box__input"
               dir="ltr"
-              inputMode="decimal"
+              inputMode="none"
               autoComplete="off"
               aria-label="مقدار"
               placeholder="مثلاً 3.5"

@@ -38,6 +38,7 @@ const hydrate = (plan: StoredPlan): ManagedPlan => ({ ...plan, pricingVersions: 
 
 export async function getManagedPlans() {
   if (useLocal()) return { storage: 'local' as const, plans: (await readLocal()).sort((a, b) => a.displayOrder - b.displayOrder).map(hydrate) };
+  await (await import('@/server/prepare-release')).prepareRelease();
   const rows = await db.plan.findMany({ orderBy: { displayOrder: 'asc' }, include: { pricingVersions: { orderBy: { effectiveAt: 'desc' } } } });
   return { storage: 'postgresql' as const, plans: rows.map(plan => ({ ...plan, features: Array.isArray(plan.features) ? plan.features.filter((item): item is string => typeof item === 'string') : [], apiLimits: plan.apiLimits as { daily?: number } | null, pricingVersions: plan.pricingVersions.map(price => ({ ...price, price: price.price.toString(), discount: price.discount?.toString() ?? null })) })) };
 }

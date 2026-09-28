@@ -75,7 +75,7 @@ export function PriceCard({ item, href }: { item: PriceCardModel; href: string }
                 <span className={`price-card__bubble ${item.bubble >= 0 ? 'is-up' : 'is-down'}`}>{formatBubblePercent(item.bubble)}</span>
               ) : null}
             </span>
-            {item.quote ? <RelativeTime value={item.quote.fetchedAt} /> : <span className="price-card__time-slot" aria-hidden="true" />}
+            {item.quote ? <RelativeTime value={item.quote.observedAt} /> : <span className="price-card__time-slot" aria-hidden="true" />}
           </footer>
         </div>
         <aside className="price-card__side">
@@ -116,7 +116,7 @@ export function PriceListRow({ item, href }: { item: PriceCardModel; href: strin
               <span className={`price-card__bubble ${item.bubble >= 0 ? 'is-up' : 'is-down'}`}>{formatBubblePercent(item.bubble)}</span>
             ) : null}
           </span>
-          {item.quote ? <small><RelativeTime value={item.quote.fetchedAt} /></small> : <small className="is-empty" aria-hidden="true" />}
+          {item.quote ? <small><RelativeTime value={item.quote.observedAt} /></small> : <small className="is-empty" aria-hidden="true" />}
         </span>
 
         <span className="price-list-row__spark" aria-hidden={!spark}>

@@ -45,14 +45,20 @@ export function isValidSession(value: string | undefined, now = Math.floor(Date.
   return equal(parts[3], sign(parts.slice(0, 3).join('.'), active.secret));
 }
 
-export async function requireAdmin() {
-  if (isValidSession((await cookies()).get(cookieName)?.value)) return;
+export async function adminIdentity() {
+  if (isValidSession((await cookies()).get(cookieName)?.value)) return 'bootstrap-admin';
   const { auth } = await import('@/auth');
   const session = await auth().catch(() => null);
-  if (!session?.user?.email) redirect('/admin/login');
+  if (!session?.user?.email) return null;
   const { db } = await import('@/lib/db');
-  const user = await db.user.findUnique({ where: { email: session.user.email }, select: { role: true } }).catch(() => null);
-  if (user?.role !== 'ADMIN') redirect('/admin/login?error=forbidden');
+  const user = await db.user.findUnique({ where: { email: session.user.email }, select: { id: true, role: true } }).catch(() => null);
+  return user?.role === 'ADMIN' ? `user:${user.id}` : null;
 }
 
 export const adminSession = { cookieName, maxAge };
+
+export async function requireAdmin() {
+  const actor = await adminIdentity();
+  if (!actor) redirect('/admin/login');
+  return actor;
+}

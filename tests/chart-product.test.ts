@@ -57,3 +57,21 @@ test('paid history requires active subscription product matching an enabled web 
   db.user.findUnique = (async () => { throw new Error('unavailable'); }) as unknown as typeof userQuery;
   assert.equal(await historyAccessForEmail(2160, 'test@example.invalid'), false);
 });
+
+test('trial grants only 30 days, expires and fails closed when policy is disabled or unavailable', async t => {
+  const userQuery = db.user.findUnique, settingQuery = db.integrationSetting.findUnique, planQuery = db.plan.findMany;
+  t.after(() => { db.user.findUnique = userQuery; db.integrationSetting.findUnique = settingQuery; db.plan.findMany = planQuery; });
+  let expiry = new Date(Date.now() + 3600000);
+  db.user.findUnique = (async () => ({ subscriptions: [{ product: '__analysis_trial', status: 'ACTIVE', startsAt: new Date(0), expiresAt: expiry }] })) as unknown as typeof userQuery;
+  db.plan.findMany = (async () => []) as unknown as typeof planQuery;
+  db.integrationSetting.findUnique = (async () => ({ enabled: true, publicValue: '24' })) as unknown as typeof settingQuery;
+  assert.equal(await historyAccessForEmail(720, 'trial@example.invalid'), true);
+  assert.equal(await historyAccessForEmail(2160, 'trial@example.invalid'), false);
+  expiry = new Date(0);
+  assert.equal(await historyAccessForEmail(720, 'trial@example.invalid'), false);
+  expiry = new Date(Date.now() + 3600000);
+  db.integrationSetting.findUnique = (async () => ({ enabled: false, publicValue: '24' })) as unknown as typeof settingQuery;
+  assert.equal(await historyAccessForEmail(720, 'trial@example.invalid'), false);
+  db.integrationSetting.findUnique = (async () => { throw new Error('database offline'); }) as unknown as typeof settingQuery;
+  assert.equal(await historyAccessForEmail(720, 'trial@example.invalid'), false);
+});

@@ -38,9 +38,9 @@ const toolLabel: Record<Tool, string> = {
 };
 const popularForGold = [
   { id: 'weight', label: 'تبدیل وزن', Icon: popularIcons.weight },
-  { id: 'purity', label: 'تبدیل عیار', Icon: popularIcons.purity, locked: true },
+  { id: 'market18kToMazaneh', label: '۱۸ به مظنه', Icon: popularIcons.market18kToMazaneh },
   { id: 'mazanehTo18k', label: 'مظنه ↔ ۱۸', Icon: popularIcons.mazanehTo18k },
-  { id: 'goldBubble', label: 'سکه و حباب', Icon: popularIcons.goldBubble },
+  { id: 'goldBubble', label: 'حباب طلا', Icon: popularIcons.goldBubble },
   { id: 'jewelry', label: 'طلای زینتی', Icon: popularIcons.jewelry, locked: true },
 ];
 const number = (value: number) => new Intl.NumberFormat('en-US', { maximumFractionDigits: 4 }).format(value);
@@ -66,6 +66,7 @@ export function ProfessionalCalculator({ snapshot }: { snapshot: Snapshot }) {
   const [result, setResult] = useState<CalculatorResult | null>(null);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState('');
+  const [activeField, setActiveField] = useState('');
   const request = useRef<AbortController | null>(null);
   useEffect(() => () => request.current?.abort(), []);
 
@@ -84,6 +85,7 @@ export function ProfessionalCalculator({ snapshot }: { snapshot: Snapshot }) {
   function choose(next: Tool) {
     invalidate();
     setTool(next);
+    setActiveField(next === 'weight' ? '' : calculatorCatalog[next].fields[0].key);
     if (next !== 'weight') setInputs(prefill(next, market));
   }
 
@@ -217,7 +219,9 @@ export function ProfessionalCalculator({ snapshot }: { snapshot: Snapshot }) {
                   <div className="calc-tool-panel__control">
                     <input
                       className="ds-input"
-                      inputMode="decimal"
+                      inputMode="none"
+                      onFocus={() => setActiveField(field.key)}
+                      data-active={activeField === field.key}
                       autoComplete="off"
                       dir="ltr"
                       required
@@ -263,6 +267,7 @@ export function ProfessionalCalculator({ snapshot }: { snapshot: Snapshot }) {
         />
       ) : (
         <div className="calc-popular calc-popular--chips" aria-label="محاسبات">
+          <small className="calc-currency-note">محاسبات: تومانی</small>
           <div className="calc-popular__chips">
             {available.map(key => (
               <button type="button" key={key} className={tool === key ? 'is-on' : ''} onClick={() => choose(key)}>
@@ -276,11 +281,7 @@ export function ProfessionalCalculator({ snapshot }: { snapshot: Snapshot }) {
       <CalculatorLiveStrip snapshot={market} />
 
       <div className="calc-stage__side">
-          {tool === 'weight' ? (
-            <div className="calc-keypad-wrap">
-              <CalculatorKeypad value={weightAmount} onChange={setWeightAmount} />
-            </div>
-          ) : (
+          {tool !== 'weight' && (result || pending) && (
           <div className="calc-result-slot" aria-live="polite" aria-busy={pending}>
             <p className="calc-result-slot__label">نتیجه</p>
             {result ? (
@@ -298,6 +299,15 @@ export function ProfessionalCalculator({ snapshot }: { snapshot: Snapshot }) {
             )}
           </div>
         )}
+        <div className="calc-keypad-wrap">
+          <span className="calc-entry-target">{tool === 'weight' ? 'مقدار وزن' : spec?.fields.find(field => field.key === activeField)?.label ?? 'ورودی را انتخاب کنید'}</span>
+          <CalculatorKeypad key={`${tool}-${activeField}`} value={tool === 'weight' ? weightAmount : inputs[activeField]?.value ?? ''} onChange={value => {
+            if (tool === 'weight') { setWeightAmount(value); return; }
+            if (!activeField) return;
+            invalidate();
+            setInputs(current => ({ ...current, [activeField]: { value, provenance: 'MANUAL' } }));
+          }} />
+        </div>
       </div>
     </section>
   );

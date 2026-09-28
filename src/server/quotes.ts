@@ -71,7 +71,9 @@ export async function getSnapshot(): Promise<Snapshot> {
       || snapshot.quotes.some(quote => isStale(quote));
     if (needsRefresh && process.env.MARKET_MODE === 'live') {
       await withDeadline(refreshProductionMarket({ history: true }), 55_000).catch(() => null);
-      snapshot = await withDeadline(readLiveQuotes(), 5_000);
+      // A failed refresh/read must not erase the valid snapshot already loaded.
+      // Keep its original observation times so freshness remains honest.
+      snapshot = await withDeadline(readLiveQuotes(), 5_000).catch(() => snapshot);
     }
     return snapshot;
   } catch {

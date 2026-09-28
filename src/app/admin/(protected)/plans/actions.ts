@@ -11,3 +11,21 @@ export async function savePlan(form:FormData){await requireAdmin();const parsed=
 export async function deletePlan(form:FormData){await requireAdmin();await removeManagedPlan(String(form.get('id')));revalidatePath('/admin/plans');revalidatePath('/pricing');}
 export async function savePricing(form:FormData){await requireAdmin();const discount=String(form.get('discount')??'').trim()||undefined;const parsed=pricingInput.safeParse({planId:form.get('planId'),price:String(form.get('price')??''),currency:form.get('currency'),billingPeriod:form.get('billingPeriod'),discount,effectiveAt:form.get('effectiveAt'),active:yes(form,'active')});if(!parsed.success)redirect('/admin/plans?error=pricing');await upsertManagedPricing(String(form.get('id')??''),{...parsed.data,discount:parsed.data.discount??null});revalidatePath('/admin/plans');revalidatePath('/pricing');}
 export async function deletePricing(form:FormData){await requireAdmin();await removeManagedPricing(String(form.get('id')));revalidatePath('/admin/plans');revalidatePath('/pricing');}
+
+export async function saveTrialPolicy(form: FormData) {
+  await requireAdmin();
+  const duration = Number(form.get('trialDuration'));
+  const unit = form.get('trialUnit');
+  const hours = duration * (unit === 'days' ? 24 : 1);
+  if (!['days', 'hours'].includes(String(unit)) || !Number.isInteger(duration)) redirect('/admin/plans?error=trial');
+  if (!Number.isInteger(hours) || hours < 1 || hours > 720) redirect('/admin/plans?error=trial');
+  const { db } = await import('@/lib/db');
+  const { trialSettingKey } = await import('@/server/analysis-trial');
+  try {
+    await db.integrationSetting.upsert({ where: { key: trialSettingKey },
+      create: { key: trialSettingKey, category: 'access', label: 'دسترسی آزمایشی تحلیل', enabled: yes(form, 'trialEnabled'), publicValue: String(hours) },
+      update: { enabled: yes(form, 'trialEnabled'), publicValue: String(hours) } });
+  } catch { redirect('/admin/plans?error=trial-storage'); }
+  revalidatePath('/admin/plans'); revalidatePath('/analysis', 'layout');
+  redirect('/admin/plans?saved=trial');
+}

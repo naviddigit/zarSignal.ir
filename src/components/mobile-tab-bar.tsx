@@ -2,13 +2,14 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Activity, Bell, Home, User } from 'lucide-react';
+import { Activity, Calculator, Home, Layers3, Store } from 'lucide-react';
 
 const tabs = [
-  { href: '/', label: 'امروز', icon: Home, match: (path: string) => path === '/' },
-  { href: '/#analysis', label: 'تحلیل‌ها', icon: Activity, match: () => false },
-  { href: '/alerts', label: 'هشدارهای من', icon: Bell, match: (path: string) => path.startsWith('/alerts') },
-  { href: '/login', label: 'حساب من', icon: User, match: (path: string) => path.startsWith('/login') },
+  { href: '/', label: 'خانه', icon: Home, match: (path: string) => path === '/' },
+  { href: '/markets', label: 'قیمت‌ها', icon: Store, match: (path: string) => path.startsWith('/markets') },
+  { href: '/calculator', label: 'ماشین حساب', icon: Calculator, match: (path: string) => path.startsWith('/calculator') },
+  { href: '/methodology', label: 'آموزش', icon: Activity, match: (path: string) => path.startsWith('/methodology') || path.startsWith('/faq') },
+  { href: '/pricing', label: 'بیشتر', icon: Layers3, match: (path: string) => path.startsWith('/pricing') },
 ] as const;
 
 /**

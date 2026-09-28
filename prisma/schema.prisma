@@ -20,6 +20,7 @@ model User {
   subscriptions Subscription[]
   apiKeys       ApiKey[]
   payments      Payment[]
+  analysisAcknowledgements AnalysisAcknowledgement[]
   accounts      Account[]
   sessions      Session[]
 
@@ -315,4 +316,37 @@ model FormulaVersion {
 
   @@unique([key, version])
   @@index([key, status, effectiveAt])
+}
+
+model AnalysisTimePolicy {
+  id Int @id @default(autoincrement())
+  version String @unique @default(cuid())
+  timezone String @default("Asia/Tehran")
+  warningStart String
+  warningEnd String
+  createdAt DateTime @default(now())
+  actor String
+  audit AnalysisPolicyAudit?
+}
+
+model AnalysisPolicyAudit {
+  id String @id @default(cuid())
+  actor String
+  timestamp DateTime @default(now())
+  previousValue Json
+  newValue Json
+  policyVersion String @unique
+  policy AnalysisTimePolicy @relation(fields: [policyVersion], references: [version])
+}
+
+model AnalysisAcknowledgement {
+  id String @id @default(cuid())
+  userId String
+  user User @relation(fields: [userId], references: [id])
+  requestId String @unique
+  reportId String?
+  assetId String
+  warningPolicyVersion String
+  acknowledgedAt DateTime @default(now())
+  @@index([userId, requestId, warningPolicyVersion])
 }

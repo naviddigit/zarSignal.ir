@@ -1,3 +1,4 @@
+import { trialPolicy, trialProduct } from '@/server/analysis-trial';
 import { db } from '@/lib/db';
 import { canAccessHistory, planHistoryDays, validHistorySubscription } from '@/lib/history-access';
 import { withDeadline } from '@/lib/with-deadline';
@@ -23,6 +24,8 @@ export async function historyAccessForEmail(hours: number, email: string) {
     const user = await withDeadline(db.user.findUnique({ where: { email }, select: {
       subscriptions: { where: { status: 'ACTIVE', startsAt: { lte: now }, expiresAt: { gt: now } } },
     } }), 4_000);
+    const trial = user?.subscriptions.find(s => s.product === trialProduct && validHistorySubscription(s, now));
+    if (trial && hours > 0 && hours <= 30 * 24 && (await trialPolicy()).enabled) return true;
     const products = user?.subscriptions.filter(s => validHistorySubscription(s, now)).map(s => s.product) ?? [];
     if (!products.length) return false;
     // Subscription.product is the existing plan-slug reference. API-only subscriptions do not qualify.

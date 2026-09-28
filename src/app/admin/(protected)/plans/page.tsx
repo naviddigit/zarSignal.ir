@@ -1,10 +1,11 @@
+import { trialPolicy } from '@/server/analysis-trial';
 import { planHistoryDays } from '@/lib/history-access';
 import { PendingButton } from '@/components/pending-button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Field } from '@/components/ui/field';
 import { Select } from '@/components/ui/select';
 import { getManagedPlans, type ManagedPlan, type ManagedPricing } from '@/server/plans';
-import { deletePlan, deletePricing, savePlan, savePricing } from './actions';
+import { deletePlan, deletePricing, savePlan, savePricing, saveTrialPolicy } from './actions';
 
 const periods = { MONTHLY: 'ماهانه', QUARTERLY: 'سه‌ماهه', YEARLY: 'سالانه', ONE_TIME: 'یک‌باره' } as const;
 const historyOptions = [
@@ -14,8 +15,9 @@ const historyOptions = [
   { value: '90', label: '۹۰ روز' },
 ];
 
-export default async function PlansAdmin({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
-  const { error } = await searchParams;
+export default async function PlansAdmin({ searchParams }: { searchParams: Promise<{ error?: string; saved?: string }> }) {
+  const { error, saved } = await searchParams;
+  const trial = await trialPolicy();
   const { plans, storage } = await getManagedPlans();
   return (
     <>
@@ -35,6 +37,16 @@ export default async function PlansAdmin({ searchParams }: { searchParams: Promi
         </p>
       )}
       {error && <p className="form-error" role="alert">اطلاعات فرم معتبر نبود؛ ورودی‌ها را بررسی کنید.</p>}
+      <section className="admin-card">
+        <h2>دسترسی آزمایشی تحلیل</h2>{saved === "trial" && <p role="status" className="admin-message is-ok">مدت استفاده رایگان ذخیره شد.</p>}
+        <p>هر حساب یک بار، پس از ورود و انتخاب شروع. تاریخچه تا ۳۰ روز باز می‌شود. تغییر مدت برای دوره‌های جدید است؛ غیرفعال‌کردن، دسترسی آزمایشی جاری را هم می‌بندد.</p>
+        {!trial.available && <p role="alert">اتصال پایگاه داده برای ذخیره این تنظیم در دسترس نیست.</p>}
+        <form action={saveTrialPolicy} className="admin-form-grid">
+          <Field label="مدت استفاده رایگان"><input className="ds-input" name="trialDuration" type="number" min="1" max="720" step="1" defaultValue={trial.hours % 24 === 0 ? trial.hours / 24 : trial.hours} required /></Field><Field label="واحد زمان"><Select name="trialUnit" defaultValue={trial.hours % 24 === 0 ? "days" : "hours"} options={[{value:"days",label:"روز (حداکثر ۳۰)"},{value:"hours",label:"ساعت (حداکثر ۷۲۰)"}]} /></Field>
+          <Checkbox name="trialEnabled" label="دسترسی آزمایشی فعال" defaultChecked={trial.enabled} />
+          <PendingButton className="button" pendingText="در حال ذخیره…">ذخیره دوره رایگان</PendingButton>
+        </form>
+      </section>
       <section className="admin-card">
         <h2>پلن جدید</h2>
         <p>ابتدا عنوان، slug انگلیسی و حداقل یک ویژگی را وارد کنید. سپس قیمت و تاریخ اجرای آن را در کارت همان پلن اضافه کنید.</p>

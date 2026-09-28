@@ -277,7 +277,7 @@ html[data-theme='light'] .calculator-screen>span,html[data-theme='light'] .calcu
 @media(max-width:760px){
 .shell{width:calc(100% - 20px)}
 .hero{padding:0;gap:0;min-height:0}
-
+.home-page .hero-copy,.home-page .hero-screen-down{display:none!important}
 .hero-reveal,.section-reveal{animation:none!important}
 .radar-pro__sweep,.radar-pro__grid,.radar-pro__token{animation:none!important}
 .radar-pro__glow,.radar-pro__orbit,.radar-pro__pulse,.radar-pro__center-beat,.radar-pro__ring-value{animation-duration:2.4s}
@@ -454,8 +454,8 @@ html[data-theme='light'] .calculator-screen>span,html[data-theme='light'] .calcu
   .home-page>.hero{display:contents}
   .radar-pro{order:1;height:300px;margin:4px 0 8px;max-width:none}
   .home-page>.market-teaser{order:2;margin:0 0 14px;padding:10px 0 8px;border:0;border-radius:0;background:transparent;box-shadow:none}
-
-
+  .hero-copy{display:none!important}
+  .hero-screen-down{display:none!important}
   .radar-pro__caption{font-size:10px;bottom:4px}
 
   .market-teaser__head{flex-direction:column;align-items:stretch;gap:8px;margin-bottom:10px;padding:0 2px}
@@ -539,7 +539,7 @@ html[data-theme='light'] .calculator-screen>span,html[data-theme='light'] .calcu
   body:has(.mobile-tab-bar){padding-bottom:calc(72px + env(safe-area-inset-bottom))}
   body:has(.mobile-tab-bar) .footer{margin-bottom:12px}
   .mobile-tab-bar{display:block;position:fixed;inset-inline:0;bottom:0;z-index:40;padding:0 10px calc(8px + env(safe-area-inset-bottom));pointer-events:none}
-  .mobile-tab-bar__inner{pointer-events:auto;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:2px;padding:8px 6px;border:1px solid color-mix(in srgb,var(--border-strong) 70%,transparent);border-radius:22px;background:color-mix(in srgb,var(--surface-card) 88%,transparent);backdrop-filter:blur(18px) saturate(1.2);box-shadow:0 12px 40px var(--shadow),inset 0 1px 0 color-mix(in srgb,var(--text-primary) 8%,transparent)}
+  .mobile-tab-bar__inner{pointer-events:auto;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:2px;padding:8px 6px;border:1px solid color-mix(in srgb,var(--border-strong) 70%,transparent);border-radius:22px;background:color-mix(in srgb,var(--surface-card) 88%,transparent);backdrop-filter:blur(18px) saturate(1.2);box-shadow:0 12px 40px var(--shadow),inset 0 1px 0 color-mix(in srgb,var(--text-primary) 8%,transparent)}
   .mobile-tab-bar__item{display:grid;justify-items:center;gap:3px;padding:8px 4px 6px;border-radius:16px;color:var(--text-muted);text-decoration:none;transition:background-color .18s,color .18s,transform .18s}
   .mobile-tab-bar__icon{display:grid;place-items:center;width:28px;height:28px}
   .mobile-tab-bar__label{font-size:10px;font-weight:700;line-height:1}
@@ -574,19 +574,20 @@ html[data-theme='light'] .calculator-screen>span,html[data-theme='light'] .calcu
 
 /* Compact entry to the dedicated calculator. Shared controls remain in the design system. */
 .calc-preview{display:flex;align-items:center;justify-content:space-between;gap:24px;margin-block:28px;padding:28px;background:linear-gradient(130deg,var(--surface-card),var(--surface-soft))}.calc-preview h2{font-size:26px;margin:10px 0}.calc-preview p{font-size:14px}.calc-preview-categories{font-size:12px;color:var(--text-secondary)}.calc-preview>.button{flex-shrink:0}@media(max-width:760px){.calc-preview{flex-direction:column;align-items:stretch;padding:22px}.calc-preview h2{font-size:23px}}
-/* Shared navigation: compact header, native keyboard-accessible overflow menu. */
-.header-inner{height:72px}
-.brand,.primary-nav a,.footer>div a{min-height:44px;display:inline-flex;align-items:center}
-.header-login,.header-more>summary{display:flex;align-items:center;justify-content:center;min-width:44px;min-height:44px;padding:6px 12px;color:var(--text-primary)}
-.header-more{position:relative}
-.header-more>summary{cursor:pointer;border:1px solid var(--border);border-radius:10px;list-style:none}
-.header-more>summary::-webkit-details-marker{display:none}
-.header-more__panel{position:absolute;inset-inline-end:0;top:calc(100% + 8px);width:250px;max-height:calc(100dvh - 150px);overflow-y:auto;padding:12px;display:grid;gap:4px;border:1px solid var(--border);border-radius:12px;background:var(--surface-card);box-shadow:0 12px 30px var(--shadow);z-index:50}
-.header-more__panel a{padding:8px 12px;min-height:44px;border-radius:8px}
-.header-more__panel a:hover{background:var(--surface-soft)}
-.header-more__panel .theme-selector{margin:0;width:max-content}
-.header-more__panel .theme-option{width:44px;min-width:44px;height:44px}
-.header-more summary:focus-visible{outline:2px solid var(--accent);outline-offset:4px}
-@media(max-width:1050px){.header-inner .primary-nav{display:none}}
-@media(max-width:760px){.site-header .shell{width:calc(100% - 32px)}.header-inner{height:56px;min-height:56px;padding:0;flex-wrap:nowrap}.brand{font-size:19px;gap:8px}.brand-mark{width:34px;height:34px}.brand small{font-size:7px;letter-spacing:2px;margin-top:3px}.header-actions{gap:4px}.header-login,.header-more>summary{font-size:13px;padding-inline:9px}}
-@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+/* Limited product improvements on the restored homepage. */
+.radar-analysis-link{display:inline-flex;align-items:center;justify-content:center;min-height:44px;color:var(--accent);font-size:13px;position:relative;z-index:4}
+ .analysis-page{padding-top:28px;padding-bottom:40px}.analysis-page>h1{font-size:clamp(25px,3vw,40px);line-height:1.5;margin:22px 0 10px}.analysis-page>.lead{font-size:15px;max-width:850px;margin:0 0 24px;line-height:1.9}
+.analysis-summary{padding:24px;margin-block:20px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px 32px;align-items:start}.analysis-metrics>.eyebrow{font-size:11px}.analysis-metrics>h2{font-size:20px;margin:8px 0 16px}.analysis-summary dl{display:grid;grid-template-columns:1fr;gap:12px;margin:0}.analysis-summary dl>div{padding:12px 16px;border:1px solid var(--border-subtle);border-radius:12px;background:var(--surface-soft)}.analysis-summary dd{margin:8px 0 0;font-size:26px;font-weight:700;line-height:1.5}.analysis-summary dd small{font-size:12px;font-weight:400}.analysis-summary dt{color:var(--text-secondary);font-size:12px}.analysis-context{display:flex;flex-direction:column;gap:14px;padding-top:4px}.analysis-context>p,.analysis-context>details{margin:0;font-size:13px;line-height:1.9}.analysis-context>p:first-child{color:var(--text-muted)}.analysis-context summary{cursor:pointer;min-height:40px}.analysis-context details p{margin:8px 0 0}.analysis-warning{color:var(--accent);padding:10px 12px;border-inline-start:3px solid var(--accent);background:color-mix(in srgb,var(--accent) 7%,transparent);border-radius:8px}
+.analysis-upgrade{display:flex;align-items:center;gap:24px;justify-content:space-between;margin-block:24px;padding:18px 22px;border:1px solid var(--border-subtle);border-radius:14px;background:var(--surface-soft)}.analysis-upgrade h2{font-size:19px;margin:0 0 8px}.analysis-upgrade p{max-width:700px;font-size:13px;line-height:1.9;color:var(--text-secondary);margin:0}.analysis-upgrade .button{flex-shrink:0}
+@media(max-width:760px){.analysis-summary{display:flex;flex-direction:column;gap:12px}.analysis-metrics,.analysis-context{width:100%}.analysis-summary dl{width:100%}.analysis-upgrade .button{margin-top:12px}.analysis-page{padding-top:20px}.analysis-summary dd{font-size:23px}}
+.home-quick-tools{display:flex;gap:24px;flex-wrap:wrap;margin-block:24px}.home-quick-tools a{min-height:44px;display:inline-flex;align-items:center;color:var(--accent)}
+@media(max-width:760px){body>.footer{display:none!important}.analysis-upgrade{display:block}.analysis-summary{padding:18px}.analysis-summary dd{font-size:21px}}
+
+/* Time reliability uses the existing theme; independent from confidence/data quality. */
+.admin-content,.admin-sidebar{min-width:0}.admin-content>.admin-card+ .admin-card{margin-top:18px}.admin-content details{overflow-wrap:anywhere}.reliability-periods p{color:var(--text-secondary)}.reliability-periods strong{color:var(--text-primary)}
+.reliability-warning{max-width:680px;margin:0 auto;padding:28px;display:grid;gap:16px}.reliability-warning>svg{color:var(--accent)}.reliability-warning h1{font-size:clamp(23px,4vw,32px);margin:0}.reliability-warning p{margin:0;font-size:14px;line-height:1.9;color:var(--text-secondary)}.reliability-warning .button{width:100%;white-space:normal;text-align:center;min-height:44px}.reliability-model-note{padding:12px;border-radius:10px;background:var(--surface-soft)}.reliability-periods{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-bottom:24px}.reliability-periods p{padding:16px;border-radius:12px;background:var(--surface-soft);margin:0;font-size:13px}.reliability-periods strong{display:block;margin-top:8px;font-size:20px}.policy-audit-json{white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px;background:var(--surface-soft);padding:12px;border-radius:10px}
+@media(max-width:760px){.reliability-warning{padding:20px;gap:12px}.reliability-periods{grid-template-columns:1fr}.reliability-warning p{font-size:13px}}
+
+.install-app-button{display:inline-flex;align-items:center;justify-content:center;gap:6px;flex:none;min-height:40px;padding:8px 10px;border:1px solid var(--border-subtle);border-radius:10px;background:var(--surface-card);color:var(--accent);font:12px Vazirmatn;cursor:pointer}
+.install-app-dialog{width:min(440px,calc(100% - 32px));max-height:80dvh;overflow:auto;padding:24px;border:1px solid var(--border-subtle);border-radius:20px;background:var(--surface-card);color:var(--text-primary);box-shadow:0 16px 60px #0005;text-align:right}.install-app-dialog::backdrop{background:#0008}.install-app-dialog form{display:flex;justify-content:flex-end}.install-app-dialog form button{display:grid;place-items:center;width:44px;height:44px;border:0;border-radius:10px;background:var(--surface-soft);color:var(--text-primary);cursor:pointer}.install-app-dialog>img{border-radius:14px}.install-app-dialog h2{font-size:22px}.install-app-dialog p{font-size:14px;line-height:2;color:var(--text-secondary)}.install-app-dialog p svg{vertical-align:middle}.install-app-dialog .install-app-note{font-size:12px;color:var(--text-muted)}
+@media(max-width:900px){.install-app-button{width:34px;min-height:34px;padding:6px}.install-app-button>span{display:none}}

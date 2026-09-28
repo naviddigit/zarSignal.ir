@@ -66,9 +66,9 @@ export function MarketTeaser({ snapshot, bubbles }: { snapshot: Snapshot; bubble
     <section className="panel market-teaser" aria-label="خلاصه نبض بازار">
       <header className="market-teaser__head">
         <div>
-          <span className="eyebrow">LIVE BOARD</span>
+          <span className="eyebrow">تابلوی بازار</span>
           <h2>نگاهی سریع به قیمت‌ها</h2>
-          <p>قیمت زنده در باکس‌های ساده؛ تخته کامل فیلتر و جزئیات دارد.</p>
+          <p>{snapshot.status === 'ok' ? 'آخرین قیمت‌های دریافت‌شده؛ زمان مشاهده کنار هر دارایی است.' : 'آخرین داده ثبت‌شده؛ قیمت‌های قدیمی، لحظه‌ای نیستند.'}</p>
         </div>
         <div className="market-teaser__actions">
           <LayoutToggle value={layout} onChange={setLayout} />

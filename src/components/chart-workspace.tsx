@@ -14,6 +14,7 @@ import { Checkbox } from './ui/checkbox';
 export function ChartWorkspace({ symbol, compact = false }: { symbol: string; compact?: boolean }) {
   const asset = instruments.find(a => a.symbol === symbol)!;
   const formula = symbolFormula(symbol);
+  const [style, setStyle] = useState<'line' | 'candles'>('line');
   const [range, setRange] = useState<HistoryRange>('24h');
   const [points, setPoints] = useState<ChartPoint[]>([]);
   const [state, setState] = useState<'loading' | 'ready' | 'error' | 'locked'>('loading');
@@ -43,7 +44,12 @@ export function ChartWorkspace({ symbol, compact = false }: { symbol: string; co
   const bubbleReady = enoughHistory(points.filter(p => Number.isFinite(p.bubble)));
   return <section className={`panel chart-workspace${compact ? ' is-compact symbol-history' : ''}`} aria-busy={state === 'loading'}>
     <div className="chart-toolbar"><div><h2>{asset.name}</h2><p>قیمت دیده‌بان بدون اسپرد · منبع: زرسیگنال</p></div>
-      <div className="bubble-history__controls" aria-label="بازه نمودار">{(Object.keys(historyRanges) as HistoryRange[]).map(r => <button type="button" key={r} aria-pressed={range === r} className={range === r ? 'is-on' : ''} onClick={() => setRange(r)}>{r === '24h' ? '۲۴ ساعت' : `${new Intl.NumberFormat('fa-IR').format(historyRanges[r] / 24)} روز`}{r !== '24h' && <LockKeyhole size={12}/>}</button>)}</div>
+      <div className="bubble-history__controls" aria-label="بازه نمودار">{(Object.keys(historyRanges) as HistoryRange[]).map(r => <button type="button" key={r} aria-pressed={range === r} className={range === r ? 'is-on' : ''} onClick={() => { setRange(r); if (r === '24h') setStyle('line'); }}>{r === '24h' ? '۲۴ ساعت' : `${new Intl.NumberFormat('fa-IR').format(historyRanges[r] / 24)} روز`}{r !== '24h' && <LockKeyhole size={12}/>}</button>)}</div>
+    </div>
+    <div className="bubble-history__controls" role="group" aria-label="نوع نمودار">
+      <button type="button" aria-pressed={style === 'line'} className={style === 'line' ? 'is-on' : ''} onClick={() => setStyle('line')}>خطی</button>
+      <button type="button" aria-pressed={style === 'candles'} className={style === 'candles' ? 'is-on' : ''} onClick={() => { setStyle('candles'); if (range === '24h') setRange('7d'); }}>کندل روزانه</button>
+      <Link href={`/analysis/${symbol.toLowerCase()}`}>بررسی حباب و دسترسی آزمایشی ←</Link>
     </div>
     <div className="chart-series-controls"><Checkbox label="قیمت · محور چپ" checked={price} onCheckedChange={setPrice}/><Checkbox label="حباب / فاصله · محور راست ٪" checked={Boolean(formula) && bubble} disabled={!formula} onCheckedChange={setBubble}/><span>{range === '24h' ? 'مشاهدات ثبت‌شده در ۲۴ ساعت اخیر' : 'کندل روزانه + محاسبه از قیمت‌های پایانی همان روز'}</span></div>
     {state === 'loading' ? <div className="chart-empty" role="status">در حال دریافت نمودار…</div>
@@ -51,7 +57,7 @@ export function ChartWorkspace({ symbol, compact = false }: { symbol: string; co
         : state === 'error' ? <div className="chart-empty" role="status">دریافت تاریخچه ممکن نشد.<button onClick={() => setRetry(n => n + 1)}>تلاش دوباره</button></div>
           : !enough ? <div className="chart-empty"><strong>تاریخچه این بازه در حال شکل‌گیری است</strong><p>حداقل ۳ مشاهده در بازه‌ای دست‌کم ۵ دقیقه‌ای برای نمودار لازم است.</p><small>{new Intl.NumberFormat('fa-IR').format(points.length)} مشاهده معتبر · داده فرضی نمایش داده نمی‌شود</small><Link href="/pricing">باز کردن تاریخچه کامل</Link></div>
             : !price && (!bubble || !formula) ? <div className="chart-empty">یک سری را برای نمایش انتخاب کنید.</div>
-              : <MarketChart key={`${symbol}-${range}`} points={points} label={asset.name} unit={`${asset.currency === 'USD' ? 'دلار' : 'تومان'} / ${asset.unit}`} candles={range !== '24h' || !formula} showPrice={price} showBubble={Boolean(formula) && bubble && bubbleReady}/>}
+              : <MarketChart key={`${symbol}-${range}`} points={points} label={asset.name} unit={`${asset.currency === 'USD' ? 'دلار' : 'تومان'} / ${asset.unit}`} candles={style === 'candles'} showPrice={price} showBubble={Boolean(formula) && bubble && bubbleReady}/>}
     {state === 'ready' && enough && formula && !bubbleReady && <p className="chart-note">قیمت نمایش داده می‌شود؛ برای خط حباب هنوز ۳ ورودی تاریخی هم‌زمان موجود نیست.</p>}
     {!formula && <p className="chart-note">مدل حباب برای این نماد فعال نشده است؛ فقط قیمت نمایش داده می‌شود.</p>}
     <p className="chart-note">{range === '24h' ? 'محاسبه با ورودی‌های ثبت‌شده همان لحظه.' : 'محاسبه تاریخی روزانه، نه حباب لحظه‌ای: قیمت‌های پایانی در روز تقویمی UTC مشترک قرار گرفته‌اند؛ ساعت بسته‌شدن بازارها ممکن است متفاوت باشد.'} حباب طلا از مظنه و تبدیل تأییدشده به ۱۸عیار محاسبه می‌شود. این نمودار توصیه خرید یا فروش نیست.</p>
