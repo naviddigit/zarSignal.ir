@@ -88,6 +88,7 @@
 - ثبت یا تأیید specification به‌تنهایی عدد حباب را فعال نمی‌کند؛ موتور محاسبه فقط پس از fixtureهای مرجع و تست‌های فرمول به نسخهٔ تأییدشده متصل می‌شود.
 - برنامهٔ مرحله‌ای درآمد، رشد، SEO و عرضهٔ موبایل در `docs/product/GROWTH_AND_RELEASE_PLAN.md` ثبت شد.
 - اسکلت مستندات ماژولار در `docs/README.md` و پوشه‌های `product` / `calculator` / `trading-agent` / `accounting` / `risk` / `references` ساخته شد (۲۰۲۶-۰۹-۱۸). M01 = تبدیل وزن؛ حسابداری آبشده مستقل است.
+- پلن تقویت‌شده اپ موبایل (Astra + رشد ۵۰هزار) در `docs/product/MOBILE_APP_PLAN_FA.md` ثبت شد؛ فاز ۰ اسکلت Expo Router با هیرو مداری و منوی گرد آغاز شد.
 
 ## تصمیم‌های قطعی ۲۰۲۶-۰۹-۲۲ — نمودار و درآمد
 
@@ -101,6 +102,7 @@
 
 ## تصمیم قطعی ۲۰۲۶-۰۹-۲۸ — Astra و صف بعدی
 
-- کارهای صفحه اصلی Astra (Brief + Phase 1 + باز Hero) تحویل و در `docs/product/ASTRA_HOMEPAGE_REGISTERED_FA.md` ثبت و بسته شد.
-- اپ بومی iPhone و Android مسیر بعدی مشترک است و با هم جلو می‌رود؛ شروع فقط با دستور صریح بعدی مالک.
-- فروش خودکار (درگاه + OTP + اعطای اشتراک) و موتور V5.4 همچنان خارج از Astra و خارج از شروع اپ هستند مگر دستور جداگانه.
+- کارهای صفحه اصلی Astra (Brief + Phase 1 + refinement Hero) تحویل و در `docs/product/ASTRA_HOMEPAGE_REGISTERED_FA.md` ثبت و بسته شد.
+- پلن اپ تقویت‌شده در `docs/product/MOBILE_APP_PLAN_FA.md`؛ فاز ۰ Expo Router با هیرو مداری و منوی گرد آغاز شد.
+- iOS فاز اول فقط Expo Go لوکال بدون هزینه Apple Developer؛ اندروید Play+گیفت در فازهای بعد.
+- فروش خودکار وب (درگاه + OTP) و موتور V5.4 همچنان جدا مگر دستور صریح.

@@ -1,1 +1,22 @@
-{"expo":{"name":"زرسیگنال","slug":"zarsignal","version":"0.1.0","orientation":"portrait","userInterfaceStyle":"dark","ios":{"bundleIdentifier":"ir.zarsignal.app","supportsTablet":true},"android":{"package":"ir.zarsignal.app"},"extra":{"supportsRTL":true}}}
+{
+  "expo": {
+    "name": "زرسیگنال",
+    "slug": "zarsignal",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "scheme": "zarsignal",
+    "plugins": ["expo-router"],
+    "ios": {
+      "bundleIdentifier": "ir.zarsignal.app",
+      "supportsTablet": true
+    },
+    "android": {
+      "package": "ir.zarsignal.app"
+    },
+    "extra": {
+      "supportsRTL": true,
+      "router": {}
+    }
+  }
+}
