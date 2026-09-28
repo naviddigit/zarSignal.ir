@@ -31,7 +31,7 @@ function analysisLabel(symbol: string, bubbles: LiveBubbleCard[]) {
   if (!key) return null;
   const card = bubbles.find(item => item.key === key);
   if (!card) return null;
-  if (card.status === 'blocked') return 'قفل Spec';
+  if (card.status === 'blocked') return 'مدل در حال تکمیل';
   if (card.percent == null) return 'در انتظار داده';
   return null;
 }

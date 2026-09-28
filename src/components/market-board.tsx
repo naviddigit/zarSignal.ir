@@ -31,7 +31,7 @@ function bubbleValue(symbol: Symbol, bubbles: LiveBubbleCard[]) {
 function analysisLabel(symbol: Symbol, bubbles: LiveBubbleCard[]) {
   const analysis = analysisFor(symbol, bubbles);
   if (!analysis) return null;
-  if (analysis.status === 'blocked') return 'قفل Spec';
+  if (analysis.status === 'blocked') return 'مدل در حال تکمیل';
   if (analysis.percent == null) return 'در انتظار داده';
   return null;
 }
@@ -107,9 +107,9 @@ export function MarketBoard({ initial, bubbles = [] }: { initial: Snapshot; bubb
     <section id="markets" className="panel market-panel market-board-window">
       <header className="market-heading">
         <div>
-          <span className="eyebrow">WATCH BOARD</span>
-          <h2>تخته نمایش قیمت‌ها</h2>
-          <p>پیش‌فرض باکس مینیمال؛ لیست هم در دسترس است.</p>
+
+          <h1>قیمت‌های بازار</h1>
+          <p>نماد دلخواه را انتخاب کنید؛ قیمت و تاریخچه را ببینید.</p>
         </div>
         <div className={`feed-state ${fresh ? 'is-live' : stale ? 'is-stale' : 'is-offline'}`}>
           <span />

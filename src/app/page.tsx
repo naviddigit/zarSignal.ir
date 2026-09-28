@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { getHomeContent } from '@/server/home-content';
 import { MarketRefresh } from '@/components/market-refresh';
 import { ArrowUpLeft, Activity, ShieldCheck, Layers3, Radio, ChevronLeft, Smartphone, Code2, Sparkles, Gauge, CircleHelp, ShieldAlert } from 'lucide-react';
 import { CalculatorPreview } from '@/components/calculator-preview';
@@ -14,7 +15,8 @@ export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
 export default async function Home() {
-  const snapshot = await getPublicSnapshot();
+  const [snapshot, content] = await Promise.all([getPublicSnapshot(), getHomeContent()]);
+  const { texts, sections } = content;
   const bubbles = computeLiveBubbles(snapshot);
   return (
     <main id="main" className="shell home-page">
@@ -24,14 +26,14 @@ export default async function Home() {
         <span className="topline__status">{snapshot.status === 'ok' ? 'قیمت دریافت‌شده · محاسبه شفاف' : snapshot.status === 'stale' ? 'آخرین داده ثبت‌شده · قیمت‌ها قدیمی‌اند' : 'در انتظار دریافت داده معتبر'}</span>
       </div>
 
-      <section className="hero">
-        <div className="hero-copy hero-reveal">
-          <span className="eyebrow gold-text"><span className="tiny-line" /> یک قدم آگاهانه‌تر</span>
-          <h1>فقط قیمت را نبین؛<br /><span className="gold-text">فاصله‌اش با ارزش را بشناس.</span></h1>
-          <p>برای پس‌اندازت، معامله‌های روزانه‌ات یا کسب‌وکارت؛ اعداد را کنار هم ببین.<br />قیمت و حباب رایگان؛ با بررسی تاریخچه بفهم اختلاف امروز قبلاً چطور تغییر کرده.</p>
+      {(sections.hero || sections.radar) && <section className={`hero ${!sections.hero || !sections.radar ? "hero-single" : ""}`}>
+        {sections.hero && <div className="hero-copy hero-reveal">
+          <span className="eyebrow gold-text"><span className="tiny-line" /> {texts.kicker}</span>
+          <h1>{texts.title}<br /><span className="gold-text">{texts.accent}</span></h1>
+          <p>{texts.description}</p>
           <div className="hero-actions">
-            <Link href="/markets" className="button">تخته قیمت‌ها <ArrowUpLeft size={18} /></Link>
-            <Link href="/analysis/gold_melted" className="text-link">تحلیل عمیق <ChevronLeft size={16} /></Link>
+            <Link href="/markets" className="button">{texts.primary} <ArrowUpLeft size={18} /></Link>
+            <Link href="/analysis/gold_melted" className="text-link">{texts.secondary} <ChevronLeft size={16} /></Link>
           </div>
           <div className="decision-strip hero-screen-down" aria-label="سه پاسخ اصلی زر‌سیگنال">
             <span><Gauge size={15} /><b>الان چه خبر است؟</b><small>نبض بازار</small></span>
@@ -40,49 +42,49 @@ export default async function Home() {
           </div>
           <div className="hero-features hero-screen-down">
             <span><ShieldCheck size={16} /> زمان دریافت مشخص</span>
-            <span><Activity size={16} /> حباب طلا و دلار</span>
+            <span><Activity size={16} /> حباب طلا و فاصله دلار</span>
             <span><Layers3 size={16} /> زبان ساده</span>
           </div>
-        </div>
-        <MarketRadar bubbles={bubbles} />
-      </section>
+        </div>}
+        {sections.radar && <MarketRadar bubbles={bubbles} />}
+      </section>}
 
-      <MarketTeaser snapshot={snapshot} bubbles={bubbles} />
-      <BubbleBoard bubbles={bubbles} />
-      <ChartTeaser />
-      <CalculatorPreview />
+      {sections.market && <MarketTeaser snapshot={snapshot} bubbles={bubbles} />}
+      {sections.bubbles && <BubbleBoard bubbles={bubbles} />}
+      {sections.chart && <ChartTeaser />}
+      {sections.calculator && <CalculatorPreview />}
 
-      <section className="product-grid section-reveal">
+      {sections.products && <section className="product-grid section-reveal">
         <article className="panel premium-card">
           <span className="eyebrow gold-text"><Sparkles size={15} /> ZARSIGNAL PREMIUM</span>
-          <h2>برای نگاه عمیق‌تر<br />به حرکت بازار.</h2>
-          <p>مسیر توسعهٔ ابزارهای تحلیل، هشدار قیمت و دنبال‌کردن بازارهای منتخب را ببینید.</p>
+          <h2>{texts.premiumTitle}</h2>
+          <p>{texts.premiumBody}</p>
           <Link className="button" href="/pricing">آشنایی با پریمیوم <ArrowUpLeft size={16} /></Link>
           <svg className="premium-decoration" aria-hidden="true" viewBox="0 0 100 100"><path d="M50 5v90M5 50h90M18 18l64 64M82 18 18 82" /></svg>
         </article>
         <article className="panel feature-card">
-          <Code2 size={26} /><h3>داده، برای محصول شما</h3>
-          <p>یک API نسخه‌بندی‌شده برای اتصال وب‌سایت، اپ و ابزارهای تحلیلی شما.</p>
+          <Code2 size={26} /><h3>{texts.apiTitle}</h3>
+          <p>{texts.apiBody}</p>
           <Link href="/developers">مستندات توسعه‌دهندگان <ArrowUpLeft size={15} /></Link>
           <code dir="ltr">GET /api/v1/quotes</code>
         </article>
         <article className="panel feature-card">
-          <Smartphone size={26} /><h3>بازار، همیشه همراهت</h3>
-          <p>توسعهٔ اپ مشترک آیفون و اندروید، با تجربهٔ فارسی و اتصال به همین داده‌ها.</p>
-          <Link href="/mobile">وضعیت اپلیکیشن <ArrowUpLeft size={15} /></Link>
+          <Smartphone size={26} /><h3>{texts.mobileTitle}</h3>
+          <p>{texts.mobileBody}</p>
+          <Link href="/mobile">نصب زرسیگنال <ArrowUpLeft size={15} /></Link>
           <span className="platforms">iOS <span>+</span> Android</span>
         </article>
-      </section>
+      </section>}
 
-      <FaqPreview />
-      <section className="principles">
+      {sections.faq && <FaqPreview />}
+      {sections.principles && <section className="principles">
         <Radio size={22} />
         <div>
-          <h3>اعتماد، از شفافیت شروع می‌شود.</h3>
-          <p>دادهٔ قدیمی پنهان نمی‌شود، قیمت نمایشی برچسب دارد و پیش‌بینی بدون مدل معتبر منتشر نمی‌شود.</p>
+          <h3>{texts.principlesTitle}</h3>
+          <p>{texts.principlesBody}</p>
         </div>
         <Link href="/methodology">استاندارد دادهٔ ما <ArrowUpLeft size={16} /></Link>
-      </section>
+      </section>}
     </main>
   );
 }

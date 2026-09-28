@@ -5,6 +5,7 @@ import { MobileTabBar } from '@/components/mobile-tab-bar';
 import { JsonLd } from '@/components/json-ld';
 import './globals.css';
 import './theme.css';
+import './product-quality.css';
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? 'https://zarsignal.ir'),

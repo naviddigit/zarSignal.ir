@@ -15,7 +15,7 @@ export default async function LoginPage({searchParams}:{searchParams:Promise<{ne
    <div className="auth-methods">
     {authCapabilities.google?<form action={async()=>{'use server';await signIn('google',{redirectTo:returnTo});}}><PendingButton className="google-button" pendingText="در حال اتصال…"><b>G</b> ادامه با گوگل</PendingButton></form>:<div className="auth-unavailable"><Mail size={18}/><div><strong>ورود با گوگل</strong><small>شناسه و کلید Google هنوز در محیط اجرا تنظیم نشده‌اند.</small></div></div>}
     <div className="auth-divider"><span>یا</span></div>
-    <form className="phone-login" action="#"><label htmlFor="mobile">شماره موبایل</label><div className="phone-field"><Smartphone size={18}/><input id="mobile" name="mobile" inputMode="tel" autoComplete="tel" placeholder="۰۹۱۲۱۲۳۴۵۶۷" disabled={!authCapabilities.phone}/></div><button className="button" type="submit" disabled={!authCapabilities.phone}>دریافت کد ورود</button>{!authCapabilities.phone&&<small className="auth-config-note">سرویس پیامک هنوز متصل نشده است. پس از ثبت کلید سرویس در پنل مدیریت، ورود موبایل فعال می‌شود.</small>}</form>
+    <form className="phone-login" action="#"><label htmlFor="mobile">شماره موبایل</label><div className="phone-field"><Smartphone size={18}/><input id="mobile" name="mobile" inputMode="tel" autoComplete="tel" placeholder="۰۹۱۲۱۲۳۴۵۶۷" disabled={!authCapabilities.phone}/></div><button className="button" type="submit" disabled={!authCapabilities.phone}>دریافت کد ورود</button>{!authCapabilities.phone&&<small className="auth-config-note">ورود با پیامک هنوز در دسترس نیست. در صورت فعال‌بودن، از ورود با گوگل استفاده کنید.</small>}</form>
    </div><small>با ورود، قوانین استفاده و حریم خصوصی زرسیگنال را می‌پذیرید.</small>
   </>}
  </section></main>

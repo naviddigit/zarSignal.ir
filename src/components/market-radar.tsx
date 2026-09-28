@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { LiveBubbleCard } from '@/lib/bubbles';
 
 type Focus = 'GOLD_BUBBLE' | 'SILVER_BUBBLE' | 'USD_BUBBLE';
@@ -22,6 +22,15 @@ function formatPercent(value: number) {
 export function MarketRadar({ bubbles }: { bubbles: LiveBubbleCard[] }) {
   const [focus, setFocus] = useState<Focus>('GOLD_BUBBLE');
   const [paused, setPaused] = useState(false);
+  const [automatic, setAutomatic] = useState(true);
+  const rotating = useMemo(() => order.filter(key => !meta[key].locked && bubbles.some(item => item.key===key && item.percent!=null && (item.status==='ok'||item.status==='stale'))),[bubbles]);
+  useEffect(() => {
+    if (!automatic || paused || rotating.length < 2) return;
+    const timer = window.setInterval(() => {
+      if (!document.hidden) setFocus(current => rotating[(rotating.indexOf(current)+1)%rotating.length]);
+    },6000);
+    return () => window.clearInterval(timer);
+  },[automatic,paused,rotating]);
   const card = useMemo(() => bubbles.find(item => item.key === focus), [bubbles, focus]);
   const info = meta[focus];
   const locked = Boolean(info.locked || card?.status === 'blocked');
@@ -34,6 +43,8 @@ export function MarketRadar({ bubbles }: { bubbles: LiveBubbleCard[] }) {
       aria-label="رادار حباب بازار"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
+      onFocusCapture={() => setPaused(true)}
+      onBlurCapture={event => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setPaused(false); }}
     >
       <div className="radar-pro__glow" />
       <div className="radar-pro__grid" />
@@ -57,7 +68,7 @@ export function MarketRadar({ bubbles }: { bubbles: LiveBubbleCard[] }) {
         />
       </svg>
 
-      <div className="radar-pro__center" aria-live="polite" key={focus}>
+      <div className="radar-pro__center" aria-live={automatic ? 'off' : 'polite'} key={focus}>
         <div className="radar-pro__center-beat">
           <span className="radar-pro__eyebrow">{locked ? `${info.short} · قفل` : info.label}</span>
           <strong dir="ltr" className={`radar-pro__value is-${direction}`}>
@@ -89,7 +100,7 @@ export function MarketRadar({ bubbles }: { bubbles: LiveBubbleCard[] }) {
             className={`radar-pro__token ${meta[key].className} ${focus === key ? 'is-active' : ''} ${itemLocked ? 'is-locked' : ''}`}
             aria-pressed={focus === key}
             aria-label={`${meta[key].short}${itemLocked ? ' قفل' : ''}`}
-            onClick={() => { setFocus(key); setPaused(true); }}
+            onClick={() => { setFocus(key); setAutomatic(false); }}
           >
             <b>{meta[key].token}</b>
             <small>{meta[key].short}</small>
@@ -99,7 +110,7 @@ export function MarketRadar({ bubbles }: { bubbles: LiveBubbleCard[] }) {
 
       <div className="radar-pro__caption">
         <span className="status-dot" />
-        برای بررسی هر بازار، روی نماد کلیک کنید
+        <button className="radar-rotation-control" type="button" aria-pressed={automatic} onClick={()=>setAutomatic(value=>!value)}>{automatic?'توقف چرخش خودکار':'ادامه چرخش خودکار'}</button>
       </div>
     </div>
   );

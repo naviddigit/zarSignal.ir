@@ -16,11 +16,6 @@ export default async function MarketsPage() {
   const bubbles = computeLiveBubbles(snapshot);
   return (
     <main id="main" className="shell markets-page">
-      <header className="markets-page__intro">
-        <span className="eyebrow">MARKET WATCH</span>
-        <h1>نبض بازار</h1>
-        <p>تخته قیمت‌ها؛ هر ردیف یک دارایی، با زمان دریافت و تحلیل شفاف.</p>
-      </header>
       <MarketBoard initial={snapshot} bubbles={bubbles} />
     </main>
   );

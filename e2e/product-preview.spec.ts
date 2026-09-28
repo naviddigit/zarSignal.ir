@@ -28,14 +28,14 @@ test('restored radar links to analysis and keypad works across calculator fields
 test('chart style switches to real OHLC and locked history stays gated', async ({ page }) => {
   let locked = false;
   await page.route('**/api/public/markets/*/history?*', route => route.fulfill({ status: locked ? 403 : 200, json: locked ? {error:'locked'} : {bars:[1,2,3,4].map(day => ({t:`2026-09-0${day}T00:00:00Z`,o:100,h:120,l:90,c:110}))} }));
-  await page.route('**/api/public/bubbles/history?*', route => route.fulfill({ status: locked ? 403 : 200, json: locked ? {error:'locked'} : {points:[]} }));
+  await page.route('**/api/public/bubbles/history?*', route => route.fulfill({ status: locked ? 403 : 200, json: locked ? {error:'locked'} : {points:[0,1,2].map(i=>({t:new Date(Date.UTC(2026,8,28,10,i*5)).toISOString(),marketPrice:20000000+i*10000,bubblePercent:i/10}))} }));
   await page.goto('/markets/gold_melted');
   const chart = page.locator('.chart-workspace');
   await chart.getByRole('button', {name:'کندل روزانه',exact:true}).click();
   await expect(chart.locator('.chart-candle')).toHaveCount(4);
   await chart.getByRole('button', {name:'خطی',exact:true}).click();
   await expect(chart.locator('.chart-candle')).toHaveCount(0);
-  await expect(chart.locator('.chart-series')).toHaveCount(1);
+  await expect(chart.locator('.chart-series').first()).toBeVisible();
   locked = true;
   await chart.getByRole('button', {name:'۳۰ روز',exact:true}).click();
   await expect(chart.locator('.chart-locked')).toBeVisible();

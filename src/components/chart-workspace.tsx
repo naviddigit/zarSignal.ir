@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { LockKeyhole } from 'lucide-react';
+import { LockKeyhole, RefreshCw } from 'lucide-react';
 import { instruments } from '@/lib/market';
 import { historyRanges, type HistoryRange } from '@/lib/history-access';
 import { enoughHistory, type ChartPoint } from '@/lib/chart-data';
@@ -20,6 +20,7 @@ export function ChartWorkspace({ symbol, compact = false }: { symbol: string; co
   const [state, setState] = useState<'loading' | 'ready' | 'error' | 'locked'>('loading');
   const [price, setPrice] = useState(true), [bubble, setBubble] = useState(true);
   const [retry, setRetry] = useState(0);
+  const previousLineRange = useRef<HistoryRange | null>(null);
   useEffect(() => {
     const controller = new AbortController();
     setState('loading'); setPoints([]);
@@ -44,23 +45,23 @@ export function ChartWorkspace({ symbol, compact = false }: { symbol: string; co
   const bubbleReady = enoughHistory(points.filter(p => Number.isFinite(p.bubble)));
   return <section className={`panel chart-workspace${compact ? ' is-compact symbol-history' : ''}`} aria-busy={state === 'loading'}>
     <div className="chart-toolbar"><div><h2>{asset.name}</h2><p>قیمت دیده‌بان بدون اسپرد · منبع: زرسیگنال</p></div>
-      <div className="bubble-history__controls" aria-label="بازه نمودار">{(Object.keys(historyRanges) as HistoryRange[]).map(r => <button type="button" key={r} aria-pressed={range === r} className={range === r ? 'is-on' : ''} onClick={() => { setRange(r); if (r === '24h') setStyle('line'); }}>{r === '24h' ? '۲۴ ساعت' : `${new Intl.NumberFormat('fa-IR').format(historyRanges[r] / 24)} روز`}{r !== '24h' && <LockKeyhole size={12}/>}</button>)}</div>
+      <div className="bubble-history__controls" aria-label="بازه نمودار">{(Object.keys(historyRanges) as HistoryRange[]).map(r => <button type="button" key={r} aria-pressed={range === r} className={range === r ? 'is-on' : ''} onClick={() => { previousLineRange.current=null; setRange(r); if (r === '24h') setStyle('line'); }}>{r === '24h' ? '۲۴ ساعت' : `${new Intl.NumberFormat('fa-IR').format(historyRanges[r] / 24)} روز`}{r !== '24h' && <LockKeyhole size={12}/>}</button>)}</div>
     </div>
     <div className="bubble-history__controls" role="group" aria-label="نوع نمودار">
-      <button type="button" aria-pressed={style === 'line'} className={style === 'line' ? 'is-on' : ''} onClick={() => setStyle('line')}>خطی</button>
-      <button type="button" aria-pressed={style === 'candles'} className={style === 'candles' ? 'is-on' : ''} onClick={() => { setStyle('candles'); if (range === '24h') setRange('7d'); }}>کندل روزانه</button>
-      <Link href={`/analysis/${symbol.toLowerCase()}`}>بررسی حباب و دسترسی آزمایشی ←</Link>
+      <button type="button" aria-pressed={style === 'line'} className={style === 'line' ? 'is-on' : ''} onClick={() => { setStyle('line'); if(previousLineRange.current){setRange(previousLineRange.current);previousLineRange.current=null;} }}>خطی</button>
+      <button type="button" aria-pressed={style === 'candles'} className={style === 'candles' ? 'is-on' : ''} onClick={() => { setStyle('candles'); if (range === '24h') {previousLineRange.current=range;setRange('7d');} }}>کندل روزانه</button>
+      <Link href={`/analysis/${symbol.toLowerCase()}`}>بررسی این بازار ←</Link>
     </div>
     <div className="chart-series-controls"><Checkbox label="قیمت · محور چپ" checked={price} onCheckedChange={setPrice}/><Checkbox label="حباب / فاصله · محور راست ٪" checked={Boolean(formula) && bubble} disabled={!formula} onCheckedChange={setBubble}/><span>{range === '24h' ? 'مشاهدات ثبت‌شده در ۲۴ ساعت اخیر' : 'کندل روزانه + محاسبه از قیمت‌های پایانی همان روز'}</span></div>
     {state === 'loading' ? <div className="chart-empty" role="status">در حال دریافت نمودار…</div>
-      : state === 'locked' ? <div className="chart-locked"><LockKeyhole size={28}/><h3>قیمت امروز را دیدید؛ روند گذشته را هم ببینید</h3><p>آیا اختلاف امروز در هفته‌های گذشته هم دیده شده؟ با تاریخچه قیمت و حباب، روزها را با ورودی همان روز مقایسه کنید.</p><p>خانگی: ۳۰ روز · حرفه‌ای: ۹۰ روز · بازهٔ ۲۴ ساعت همیشه رایگان</p><Link href="/pricing" className="button">باز کردن تاریخچه کامل</Link><Link href="/login">اشتراک دارید؟ وارد شوید</Link></div>
-        : state === 'error' ? <div className="chart-empty" role="status">دریافت تاریخچه ممکن نشد.<button onClick={() => setRetry(n => n + 1)}>تلاش دوباره</button></div>
-          : !enough ? <div className="chart-empty"><strong>تاریخچه این بازه در حال شکل‌گیری است</strong><p>حداقل ۳ مشاهده در بازه‌ای دست‌کم ۵ دقیقه‌ای برای نمودار لازم است.</p><small>{new Intl.NumberFormat('fa-IR').format(points.length)} مشاهده معتبر · داده فرضی نمایش داده نمی‌شود</small><Link href="/pricing">باز کردن تاریخچه کامل</Link></div>
+      : state === 'locked' ? <div className="chart-locked"><LockKeyhole size={24}/><h3>این بازه به اشتراک نیاز دارد</h3><p>نمودار ۲۴ ساعت رایگان است؛ تاریخچه طولانی‌تر با پلن فعال باز می‌شود.</p><div className="chart-state-actions"><Link href="/pricing" className="button">بررسی پلن‌ها</Link><button className="chart-retry" type="button" onClick={()=>{previousLineRange.current=null;setStyle('line');setRange('24h');}}>نمودار رایگان</button></div></div>
+        : state === 'error' ? <div className="chart-empty" role="status"><strong>نمودار دریافت نشد</strong><p>دوباره تلاش کنید.</p><button type="button" className="chart-retry" onClick={() => setRetry(n => n + 1)}><RefreshCw size={15}/>تازه‌سازی نمودار</button></div>
+          : !enough ? <div className="chart-empty"><strong>هنوز داده کافی نداریم</strong><p>با ثبت قیمت‌های بیشتر، نمودار این بازه نمایش داده می‌شود.</p></div>
             : !price && (!bubble || !formula) ? <div className="chart-empty">یک سری را برای نمایش انتخاب کنید.</div>
               : <MarketChart key={`${symbol}-${range}`} points={points} label={asset.name} unit={`${asset.currency === 'USD' ? 'دلار' : 'تومان'} / ${asset.unit}`} candles={style === 'candles'} showPrice={price} showBubble={Boolean(formula) && bubble && bubbleReady}/>}
     {state === 'ready' && enough && formula && !bubbleReady && <p className="chart-note">قیمت نمایش داده می‌شود؛ برای خط حباب هنوز ۳ ورودی تاریخی هم‌زمان موجود نیست.</p>}
     {!formula && <p className="chart-note">مدل حباب برای این نماد فعال نشده است؛ فقط قیمت نمایش داده می‌شود.</p>}
-    <p className="chart-note">{range === '24h' ? 'محاسبه با ورودی‌های ثبت‌شده همان لحظه.' : 'محاسبه تاریخی روزانه، نه حباب لحظه‌ای: قیمت‌های پایانی در روز تقویمی UTC مشترک قرار گرفته‌اند؛ ساعت بسته‌شدن بازارها ممکن است متفاوت باشد.'} حباب طلا از مظنه و تبدیل تأییدشده به ۱۸عیار محاسبه می‌شود. این نمودار توصیه خرید یا فروش نیست.</p>
+    <details className="chart-method"><summary>درباره داده‌های نمودار</summary><p className="chart-note">{range === '24h' ? 'محاسبه با ورودی‌های ثبت‌شده همان لحظه.' : 'محاسبه تاریخی روزانه، نه حباب لحظه‌ای: قیمت‌های پایانی در روز تقویمی UTC مشترک قرار گرفته‌اند؛ ساعت بسته‌شدن بازارها ممکن است متفاوت باشد.'} حباب طلا از مظنه و تبدیل تأییدشده به ۱۸عیار محاسبه می‌شود. این نمودار توصیه خرید یا فروش نیست.</p></details>
     {state !== 'locked' && <div className="chart-upgrade"><span>بازهٔ کوتاه رایگان؛ تاریخچه عمیق با اشتراک فعال</span><Link href="/pricing">مشاهده اشتراک‌ها ←</Link></div>}
   </section>;
 }

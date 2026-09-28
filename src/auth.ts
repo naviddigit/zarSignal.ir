@@ -23,7 +23,8 @@ async function googleCredentials() {
 }
 
 export async function getAuthCapabilities() {
-  return { google: Boolean(await googleCredentials()), phone: Boolean(process.env.SMS_PROVIDER_API_KEY) };
+  return { google: Boolean(await googleCredentials()), phone: false // OTP verification is not implemented; an API key alone must not enable a non-working form.
+ };
 }
 
 export const { handlers, auth, signIn, signOut } = NextAuth(async () => {
