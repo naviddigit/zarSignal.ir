@@ -8,10 +8,10 @@ type Focus = 'GOLD_BUBBLE' | 'SILVER_BUBBLE' | 'USD_BUBBLE';
 
 const order: Focus[] = ['GOLD_BUBBLE', 'SILVER_BUBBLE', 'USD_BUBBLE'];
 
-const meta: Record<Focus, { label: string; short: string; token: string; className: string; tint: string; locked?: boolean }> = {
-  GOLD_BUBBLE: { label: 'حباب طلا', short: 'طلا', token: 'Au', className: 'token-gold', tint: 'gold' },
-  SILVER_BUBBLE: { label: 'حباب نقره', short: 'نقره', token: 'Ag', className: 'token-silver', tint: 'silver', locked: true },
-  USD_BUBBLE: { label: 'فاصله دلار', short: 'دلار', token: '$', className: 'token-dollar', tint: 'dollar' },
+const meta: Record<Focus, { label: string; short: string; token: string; className: string; tint: string; locked?: boolean; angle: number }> = {
+  GOLD_BUBBLE: { label: 'حباب طلا', short: 'طلا', token: 'Au', className: 'token-gold', tint: 'gold', angle: -90 },
+  SILVER_BUBBLE: { label: 'حباب نقره', short: 'نقره', token: 'Ag', className: 'token-silver', tint: 'silver', locked: true, angle: 150 },
+  USD_BUBBLE: { label: 'فاصله دلار', short: 'دلار', token: '$', className: 'token-dollar', tint: 'dollar', angle: 30 },
 };
 
 function formatPercent(value: number) {
@@ -23,14 +23,17 @@ export function MarketRadar({ bubbles }: { bubbles: LiveBubbleCard[] }) {
   const [focus, setFocus] = useState<Focus>('GOLD_BUBBLE');
   const [paused, setPaused] = useState(false);
   const [automatic, setAutomatic] = useState(true);
-  const rotating = useMemo(() => order.filter(key => !meta[key].locked && bubbles.some(item => item.key===key && item.percent!=null && (item.status==='ok'||item.status==='stale'))),[bubbles]);
+
+  // Cycle all three symbols in the center — silver stays visible even when locked.
   useEffect(() => {
-    if (!automatic || paused || rotating.length < 2) return;
+    if (!automatic || paused) return;
     const timer = window.setInterval(() => {
-      if (!document.hidden) setFocus(current => rotating[(rotating.indexOf(current)+1)%rotating.length]);
-    },6000);
+      if (document.hidden) return;
+      setFocus(current => order[(order.indexOf(current) + 1) % order.length]);
+    }, 5000);
     return () => window.clearInterval(timer);
-  },[automatic,paused,rotating]);
+  }, [automatic, paused]);
+
   const card = useMemo(() => bubbles.find(item => item.key === focus), [bubbles, focus]);
   const info = meta[focus];
   const locked = Boolean(info.locked || card?.status === 'blocked');
@@ -39,12 +42,14 @@ export function MarketRadar({ bubbles }: { bubbles: LiveBubbleCard[] }) {
 
   return (
     <div
-      className={`radar-pro tint-${info.tint} dir-${direction} ${paused ? 'is-paused' : ''}`}
+      className={`radar-pro tint-${info.tint} dir-${direction} ${paused || !automatic ? 'is-paused' : ''}`}
       aria-label="رادار حباب بازار"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
       onFocusCapture={() => setPaused(true)}
-      onBlurCapture={event => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setPaused(false); }}
+      onBlurCapture={event => {
+        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setPaused(false);
+      }}
     >
       <div className="radar-pro__glow" />
       <div className="radar-pro__grid" />
@@ -72,21 +77,24 @@ export function MarketRadar({ bubbles }: { bubbles: LiveBubbleCard[] }) {
         <div className="radar-pro__center-beat">
           <span className="radar-pro__eyebrow">{locked ? `${info.short} · به‌زودی` : info.label}</span>
           <strong dir="ltr" className={`radar-pro__value is-${direction}`}>
-            {ready ? formatPercent(card!.percent!) : locked ? '—' : '—'}
+            {ready ? formatPercent(card!.percent!) : '—'}
           </strong>
           <span className="radar-pro__status">
             {ready
-              ? card!.status === 'stale'
-                ? 'داده قدیمی · اختلاف قیمت است، نه توصیه معامله'
-                : 'اختلاف قیمت با ارزش محاسباتی · توصیه خرید/فروش نیست'
+              ? (card!.status === 'stale' ? 'داده قدیمی' : 'اختلاف قیمت · سیگنال نیست')
               : locked
-                ? 'این بخش وقتی مدل تأیید شود باز می‌شود؛ فعلاً طلا و دلار فعال‌اند'
-                : card?.reason ?? 'در انتظار داده'}
+                ? 'مدل نقره هنوز فعال نیست'
+                : (card?.reason ?? 'در انتظار داده')}
           </span>
           {!locked ? (
-            <Link className="radar-analysis-link" href={`/analysis/${focus === 'GOLD_BUBBLE' ? 'gold_melted' : focus === 'USD_BUBBLE' ? 'usd' : 'silver_999'}`}>جزئیات این عدد ←</Link>
+            <Link
+              className="radar-analysis-link"
+              href={`/analysis/${focus === 'GOLD_BUBBLE' ? 'gold_melted' : focus === 'USD_BUBBLE' ? 'usd' : 'silver_999'}`}
+            >
+              جزئیات ←
+            </Link>
           ) : (
-            <Link className="radar-analysis-link" href="/analysis/gold_melted">برو به تحلیل طلا ←</Link>
+            <Link className="radar-analysis-link" href="/analysis/gold_melted">تحلیل طلا ←</Link>
           )}
           <div className="radar-pro__pips" aria-hidden="true">
             {order.map(key => <i key={key} className={key === focus ? 'is-on' : ''} />)}
@@ -94,27 +102,46 @@ export function MarketRadar({ bubbles }: { bubbles: LiveBubbleCard[] }) {
         </div>
       </div>
 
-      {order.map(key => {
-        const item = bubbles.find(bubble => bubble.key === key);
-        const itemLocked = Boolean(meta[key].locked || item?.status === 'blocked');
-        return (
-          <button
-            key={key}
-            type="button"
-            className={`radar-pro__token ${meta[key].className} ${focus === key ? 'is-active' : ''} ${itemLocked ? 'is-locked' : ''}`}
-            aria-pressed={focus === key}
-            aria-label={`${meta[key].short}${itemLocked ? ' به‌زودی' : ''}`}
-            onClick={() => { setFocus(key); setAutomatic(false); }}
-          >
-            <b>{meta[key].token}</b>
-            <small>{itemLocked ? 'به‌زودی' : meta[key].short}</small>
-          </button>
-        );
-      })}
+      <div className="radar-pro__planets">
+        {order.map(key => {
+          const item = bubbles.find(bubble => bubble.key === key);
+          const itemLocked = Boolean(meta[key].locked || item?.status === 'blocked');
+          return (
+            <div
+              key={key}
+              className={`radar-pro__planet ${meta[key].className}${focus === key ? ' is-active' : ''}${itemLocked ? ' is-locked' : ''}`}
+              style={{ ['--planet-angle' as string]: `${meta[key].angle}deg` }}
+            >
+              <div className="radar-pro__planet-face">
+                <button
+                  type="button"
+                  className="radar-pro__token"
+                  aria-pressed={focus === key}
+                  aria-label={`${meta[key].short}${itemLocked ? ' به‌زودی' : ''}`}
+                  onClick={() => {
+                    setFocus(key);
+                    setAutomatic(false);
+                  }}
+                >
+                  <b>{meta[key].token}</b>
+                  <small>{meta[key].short}</small>
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
 
       <div className="radar-pro__caption">
         <span className="status-dot" />
-        <button className="radar-rotation-control" type="button" aria-pressed={automatic} onClick={()=>setAutomatic(value=>!value)}>{automatic?'توقف چرخش خودکار':'ادامه چرخش خودکار'}</button>
+        <button
+          className="radar-rotation-control"
+          type="button"
+          aria-pressed={automatic}
+          onClick={() => setAutomatic(value => !value)}
+        >
+          {automatic ? 'توقف چرخش' : 'چرخش خودکار'}
+        </button>
       </div>
     </div>
   );
