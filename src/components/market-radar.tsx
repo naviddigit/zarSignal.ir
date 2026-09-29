@@ -1,17 +1,21 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { LiveBubbleCard } from '@/lib/bubbles';
 
 type Focus = 'GOLD_BUBBLE' | 'SILVER_BUBBLE' | 'USD_BUBBLE';
 
 const order: Focus[] = ['GOLD_BUBBLE', 'SILVER_BUBBLE', 'USD_BUBBLE'];
 
-const meta: Record<Focus, { label: string; short: string; token: string; className: string; tint: string; locked?: boolean; angle: number }> = {
-  GOLD_BUBBLE: { label: 'حباب طلا', short: 'طلا', token: 'Au', className: 'token-gold', tint: 'gold', angle: -90 },
-  SILVER_BUBBLE: { label: 'حباب نقره', short: 'نقره', token: 'Ag', className: 'token-silver', tint: 'silver', locked: true, angle: 30 },
-  USD_BUBBLE: { label: 'فاصله دلار', short: 'دلار', token: '$', className: 'token-dollar', tint: 'dollar', angle: 150 },
+/** Fixed 120° spacing on one shared circle (gold starts at top). */
+const BASE_ANGLES = [-Math.PI / 2, -Math.PI / 2 + (2 * Math.PI) / 3, -Math.PI / 2 + (4 * Math.PI) / 3] as const;
+const ORBIT_PERIOD_MS = 48000;
+
+const meta: Record<Focus, { label: string; short: string; token: string; className: string; tint: string; locked?: boolean }> = {
+  GOLD_BUBBLE: { label: 'حباب طلا', short: 'طلا', token: 'Au', className: 'token-gold', tint: 'gold' },
+  SILVER_BUBBLE: { label: 'حباب نقره', short: 'نقره', token: 'Ag', className: 'token-silver', tint: 'silver', locked: true },
+  USD_BUBBLE: { label: 'فاصله دلار', short: 'دلار', token: '$', className: 'token-dollar', tint: 'dollar' },
 };
 
 function formatPercent(value: number) {
@@ -19,12 +23,77 @@ function formatPercent(value: number) {
   return `${sign}${new Intl.NumberFormat('fa-IR', { maximumFractionDigits: 2, minimumFractionDigits: 2 }).format(value)}٪`;
 }
 
+function placePlanet(el: HTMLElement, angle: number, radius: number) {
+  const x = Math.cos(angle) * radius;
+  const y = Math.sin(angle) * radius;
+  el.style.transform = `translate(-50%, -50%) translate(${x.toFixed(2)}px, ${y.toFixed(2)}px)`;
+}
+
 export function MarketRadar({ bubbles }: { bubbles: LiveBubbleCard[] }) {
   const [focus, setFocus] = useState<Focus>('GOLD_BUBBLE');
   const [paused, setPaused] = useState(false);
   const [automatic, setAutomatic] = useState(true);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const planetRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const radiusRef = useRef(120);
+  const angleRef = useRef(0);
 
-  // Cycle all three symbols in the center — silver stays visible even when locked.
+  const spinning = automatic && !paused;
+
+  // One shared radius from the radar box — every symbol uses this exact distance.
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!root) return;
+
+    const applyRadius = (radius: number) => {
+      radiusRef.current = radius;
+      root.style.setProperty('--orbit-r', `${radius}px`);
+      order.forEach((_, index) => {
+        const el = planetRefs.current[index];
+        if (el) placePlanet(el, angleRef.current + BASE_ANGLES[index], radius);
+      });
+    };
+
+    const measure = () => {
+      const size = Math.min(root.clientWidth, root.clientHeight);
+      applyRadius(Math.round(Math.max(92, Math.min(size * 0.33, 138))));
+    };
+
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(root);
+    return () => observer.disconnect();
+  }, []);
+
+  // True circular orbit: same ω and same r for Au / Ag / $
+  useEffect(() => {
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduce || !spinning) {
+      order.forEach((_, index) => {
+        const el = planetRefs.current[index];
+        if (el) placePlanet(el, angleRef.current + BASE_ANGLES[index], radiusRef.current);
+      });
+      return;
+    }
+
+    let frame = 0;
+    let last = performance.now();
+    const tick = (now: number) => {
+      const dt = Math.min(64, now - last);
+      last = now;
+      angleRef.current = (angleRef.current + (dt / ORBIT_PERIOD_MS) * Math.PI * 2) % (Math.PI * 2);
+      const radius = radiusRef.current;
+      order.forEach((_, index) => {
+        const el = planetRefs.current[index];
+        if (el) placePlanet(el, angleRef.current + BASE_ANGLES[index], radius);
+      });
+      frame = requestAnimationFrame(tick);
+    };
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [spinning]);
+
+  // Cycle center content — silver stays in the orbit even when locked.
   useEffect(() => {
     if (!automatic || paused) return;
     const timer = window.setInterval(() => {
@@ -42,6 +111,7 @@ export function MarketRadar({ bubbles }: { bubbles: LiveBubbleCard[] }) {
 
   return (
     <div
+      ref={rootRef}
       className={`radar-pro tint-${info.tint} dir-${direction} ${paused || !automatic ? 'is-paused' : ''}`}
       aria-label="رادار حباب بازار"
       onMouseEnter={() => setPaused(true)}
@@ -103,33 +173,27 @@ export function MarketRadar({ bubbles }: { bubbles: LiveBubbleCard[] }) {
       </div>
 
       <div className="radar-pro__planets">
-        {order.map(key => {
+        {order.map((key, index) => {
           const item = bubbles.find(bubble => bubble.key === key);
           const itemLocked = Boolean(meta[key].locked || item?.status === 'blocked');
           return (
-            <div
+            <button
               key={key}
-              className={`radar-pro__planet ${meta[key].className}${focus === key ? ' is-active' : ''}${itemLocked ? ' is-locked' : ''}`}
-              style={{ ['--planet-angle' as string]: `${meta[key].angle}deg` }}
+              ref={el => {
+                planetRefs.current[index] = el;
+              }}
+              type="button"
+              className={`radar-pro__token radar-pro__planet radar-pro__planet--${index} ${meta[key].className}${focus === key ? ' is-active' : ''}${itemLocked ? ' is-locked' : ''}`}
+              aria-pressed={focus === key}
+              aria-label={`${meta[key].short}${itemLocked ? ' به‌زودی' : ''}`}
+              onClick={() => {
+                setFocus(key);
+                setAutomatic(false);
+              }}
             >
-              <div className="radar-pro__planet-spin">
-                <div className="radar-pro__planet-face">
-                  <button
-                    type="button"
-                    className="radar-pro__token"
-                    aria-pressed={focus === key}
-                    aria-label={`${meta[key].short}${itemLocked ? ' به‌زودی' : ''}`}
-                    onClick={() => {
-                      setFocus(key);
-                      setAutomatic(false);
-                    }}
-                  >
-                    <b>{meta[key].token}</b>
-                    <small>{meta[key].short}</small>
-                  </button>
-                </div>
-              </div>
-            </div>
+              <b>{meta[key].token}</b>
+              <small>{meta[key].short}</small>
+            </button>
           );
         })}
       </div>
