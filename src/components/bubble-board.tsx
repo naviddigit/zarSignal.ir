@@ -19,7 +19,7 @@ export function BubbleBoard({ bubbles }: { bubbles: LiveBubbleCard[] }) {
       <div className="section-heading">
         <div>
           <span className="eyebrow">BUBBLE RADAR</span>
-          <h2>زیر پوست قیمت‌ها</h2>
+          <h2>اختلاف قیمت را شفاف ببین</h2>
         </div>
         <Link className="text-link" href="/methodology">حباب چیست؟ <ArrowUpLeft size={15} /></Link>
       </div>
@@ -27,24 +27,27 @@ export function BubbleBoard({ bubbles }: { bubbles: LiveBubbleCard[] }) {
         {cards.map((item, index) => {
           const state = bubbles.find(bubble => bubble.key === item.key)!;
           const ready = (state.status === 'ok' || state.status === 'stale') && state.percent != null;
+          const blocked = state.status === 'blocked' || item.key === 'SILVER_BUBBLE';
           return (
             <article className={`panel bubble-card bubble-${item.type} is-${state.status}`} key={item.key}>
               <div className="bubble-title">
                 <span className={`asset-icon ${item.type}`}>{item.symbol}</span>
-                <h3>{item.key === 'USD_BUBBLE' ? 'فاصله دلار' : `حباب ${item.name}`}</h3>
+                <h3>{item.key === 'USD_BUBBLE' ? 'فاصله دلار' : blocked ? `${item.name} · به‌زودی` : `حباب ${item.name}`}</h3>
                 <span className="muted">۰{index + 1}</span>
               </div>
               <div className={`bubble-value ${ready ? (state.percent! >= 0 ? 'is-up' : 'is-down') : ''}`}>
                 <bdi dir="ltr">{ready ? formatPercent(state.percent!) : '—'}</bdi>
-                <span>{state.reason}</span>
+                <span>{blocked ? 'مدل هنوز تأیید نشده' : state.reason}</span>
               </div>
               <p>{item.desc}</p>
-              <Link href="/methodology">جزئیات محاسبه <ArrowUpLeft size={14} /></Link>
+              <Link href={blocked ? '/analysis/gold_melted' : '/methodology'}>
+                {blocked ? 'فعلاً تحلیل طلا را ببین' : 'جزئیات محاسبه'} <ArrowUpLeft size={14} />
+              </Link>
             </article>
           );
         })}
       </div>
-      <p className="subtle-note">عدد حباب سیگنال خرید/فروش نیست. مدل حباب نقره هنوز آماده نیست.</p>
+      <p className="subtle-note">عدد حباب توصیه خرید/فروش نیست. حباب نقره تا تأیید مدل عدد ندارد.</p>
     </section>
   );
 }

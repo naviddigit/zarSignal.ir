@@ -2,6 +2,7 @@ export {
   MESGHAL_GRAMS,
   MAZANEH_PURITY,
   GOLD_18K_PURITY,
+  MAZANEH_TO_18K_DIVISOR,
   MAZANEH_TO_18K_VERSION,
   mazanehTo18k,
   market18kToMazaneh,

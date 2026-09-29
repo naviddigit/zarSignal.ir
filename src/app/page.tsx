@@ -8,6 +8,7 @@ import { MarketRadar } from '@/components/market-radar';
 import { BubbleBoard } from '@/components/bubble-board';
 import { ChartTeaser } from '@/components/chart-teaser';
 import { MarketTeaser } from '@/components/market-teaser';
+import { HomeValueStrip } from '@/components/home-value-strip';
 import { getPublicSnapshot } from '@/server/quotes';
 import { computeLiveBubbles } from '@/server/live-bubbles';
 
@@ -48,6 +49,8 @@ export default async function Home() {
         </div>}
         {sections.radar && <MarketRadar bubbles={bubbles} />}
       </section>}
+
+      <HomeValueStrip />
 
       {sections.market && <MarketTeaser snapshot={snapshot} bubbles={bubbles} />}
       {sections.bubbles && <BubbleBoard bubbles={bubbles} />}

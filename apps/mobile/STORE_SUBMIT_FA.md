@@ -15,18 +15,36 @@
 
 ## ساخت فایل‌های فروشگاهی
 
+**اندروید — دو نوع خروجی:**
+
+| پروفایل EAS | خروجی | کاربرد |
+| --- | --- | --- |
+| `apk` | APK | تست داخلی / نصب مستقیم روی گوشی |
+| `aab` یا `production` | **AAB (App Bundle)** | ارسال به **Google Play** — حجم دانلود کمتر |
+
+برای انتشار استور حتماً **Bundle** بسازید، نه APK:
+
+```powershell
+cd apps\mobile
+eas build --platform android --profile aab
+# یا
+eas build --platform android --profile production
+```
+
+در فرم **Build from GitHub** فیلد profile را `aab` یا `production` بگذارید (نه `apk`).
+
 ```powershell
 cd apps\mobile
 npm install -g eas-cli
 eas login
 eas init
 # projectId را در app.json جای REPLACE بگذار
-eas build --platform android --profile production
+eas build --platform android --profile aab
 eas build --platform ios --profile production
 ```
 
 خروجی:
-- اندروید: **AAB** برای Play
+- اندروید: **AAB** برای Play (پروفایل `aab` / `production`)
 - iOS: **IPA** برای App Store Connect (نیاز به مک برای برخی مراحل محلی نیست اگر EAS cloud باشد)
 
 ارسال:

@@ -1,9 +1,15 @@
-/** MAZANEH_TO_18K v1.0 — derive MARKET_18K from GOLD_MELTED (مظنه). Shared client/server. */
+/** MAZANEH_TO_18K — derive MARKET_18K from GOLD_MELTED (مظنه). Shared client/server. */
 
+/** Physical mesghal weight (گرم) — used for weight conversion, not price shortcut. */
 export const MESGHAL_GRAMS = 4.608;
 export const MAZANEH_PURITY = 705;
 export const GOLD_18K_PURITY = 750;
-export const MAZANEH_TO_18K_VERSION = '1.0';
+/**
+ * Market shortcut: گرم ۱۸ عیار = مظنه ÷ ۴٫۳۳۱۸
+ * (equivalent market convention for مثقال ۷۰۵ → گرم ۱۸ عیار)
+ */
+export const MAZANEH_TO_18K_DIVISOR = 4.3318;
+export const MAZANEH_TO_18K_VERSION = '1.1';
 
 export type Derived18k = {
   market18k: number;
@@ -15,7 +21,7 @@ export type Derived18k = {
 
 export function mazanehTo18k(goldMeltedTomanPerMesghal: number): Derived18k {
   if (!Number.isFinite(goldMeltedTomanPerMesghal) || goldMeltedTomanPerMesghal <= 0) throw new Error('invalid_gold_melted');
-  const market18k = goldMeltedTomanPerMesghal * (GOLD_18K_PURITY * 1000) / (MAZANEH_PURITY * 4608);
+  const market18k = goldMeltedTomanPerMesghal / MAZANEH_TO_18K_DIVISOR;
   return {
     market18k,
     provenance: 'DERIVED',
@@ -27,5 +33,5 @@ export function mazanehTo18k(goldMeltedTomanPerMesghal: number): Derived18k {
 
 export function market18kToMazaneh(market18k: number): number {
   if (!Number.isFinite(market18k) || market18k <= 0) throw new Error('invalid_market_18k');
-  return market18k * (MAZANEH_PURITY * 4608) / (GOLD_18K_PURITY * 1000);
+  return market18k * MAZANEH_TO_18K_DIVISOR;
 }

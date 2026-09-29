@@ -6,7 +6,7 @@ const empty: Snapshot = { mode: 'live', status: 'unavailable', quotes: [] };
 const manual = (value: number) => ({ provenance: 'MANUAL', value });
 test('professional calculator runs approved gold and USD Golden Tests through the input engine', () => {
   const converted = calculateProfessional({ operation: 'mazanehTo18k', inputs: { melted: manual(100000000) } }, empty);
-  assert.ok(Math.abs(converted.outputs[0].value - 23086583.92) < 0.01);
+  assert.ok(Math.abs(converted.outputs[0].value - 23085091.65) < 0.01);
   const reverse = calculateProfessional({ operation: 'market18kToMazaneh', inputs: { gram: manual(19000000) } }, empty);
   const inputs = { melted: manual(reverse.outputs[0].value), xau: manual(4000), usd: manual(200000) };
   const gold = calculateProfessional({ operation: 'goldBubble', inputs }, empty);

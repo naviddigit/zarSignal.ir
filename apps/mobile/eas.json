@@ -27,6 +27,13 @@
         "EXPO_PUBLIC_API_URL": "https://zarsignal.ir"
       }
     },
+    "aab": {
+      "autoIncrement": true,
+      "android": { "buildType": "app-bundle" },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://zarsignal.ir"
+      }
+    },
     "ios-preview": {
       "distribution": "internal",
       "ios": { "simulator": false },

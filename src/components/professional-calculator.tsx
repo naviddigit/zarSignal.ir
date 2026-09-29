@@ -1,7 +1,6 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { Calculator, LockKeyhole, RefreshCw, ArrowUpLeft } from 'lucide-react';
-import { Select } from '@/components/ui/select';
 import { calculatorCatalog, type CalculatorOperation, type CalculatorResult } from '@/lib/calculator-catalog';
 import { isStale, type Snapshot } from '@/lib/market';
 import { formatNumericInput, sanitizeNumericInput } from '@/lib/numeric-input';
@@ -11,39 +10,66 @@ import {
   CalculatorLiveStrip,
   CalculatorPopularRow,
   CalculatorProductTiles,
+  PurityConvertWidget,
   WeightConvertWidget,
   popularIcons,
   type CalcProduct,
 } from '@/components/calculator-mobile-kit';
 
 type Product = CalcProduct;
-type Tool = 'weight' | CalculatorOperation;
+type LocalTool = 'weight' | 'purity';
+type Tool = LocalTool | CalculatorOperation;
 type Entry = { value: string; provenance: 'LIVE' | 'MANUAL'; observedAt?: string };
+type PopularPick = { id: string; label: string; Icon: typeof popularIcons.weight; locked?: boolean };
 
 const products: [Product, string][] = [['gold', 'طلا'], ['silver', 'نقره'], ['coin', 'سکه'], ['fx', 'ارز'], ['more', 'بیشتر']];
 const toolsByProduct: Record<Product, Tool[]> = {
-  gold: ['weight', 'mazanehTo18k', 'market18kToMazaneh', 'goldBubble'],
-  silver: [],
-  coin: [],
+  gold: ['weight', 'mazanehTo18k', 'market18kToMazaneh', 'goldBubble', 'purity'],
+  silver: ['weight', 'purity'],
+  coin: ['weight', 'purity'],
   fx: ['usdGap'],
-  more: [],
+  more: ['weight', 'purity'],
 };
-const lockedProducts: Product[] = ['silver', 'coin', 'more'];
-const toolLabel: Record<Tool, string> = {
-  weight: 'تبدیل واحد وزن',
-  mazanehTo18k: 'مظنه ↔ گرم ۱۸',
-  market18kToMazaneh: 'گرم ۱۸ ↔ مظنه',
-  goldBubble: 'حباب طلا',
-  usdGap: 'فاصله دلار',
+const lockedProducts: Product[] = [];
+const popularByProduct: Record<Product, PopularPick[]> = {
+  gold: [
+    { id: 'weight', label: 'تبدیل وزن', Icon: popularIcons.weight },
+    { id: 'market18kToMazaneh', label: '۱۸ به مظنه', Icon: popularIcons.market18kToMazaneh },
+    { id: 'mazanehTo18k', label: 'مظنه ÷ ۴٫۳۳۱۸', Icon: popularIcons.mazanehTo18k },
+    { id: 'goldBubble', label: 'حباب طلا', Icon: popularIcons.goldBubble },
+    { id: 'purity', label: 'تبدیل عیار', Icon: popularIcons.purity },
+    { id: 'jewelry', label: 'طلای زینتی', Icon: popularIcons.jewelry, locked: true },
+  ],
+  silver: [
+    { id: 'weight', label: 'تبدیل وزن', Icon: popularIcons.weight },
+    { id: 'purity', label: 'عیار نقره', Icon: popularIcons.purity },
+    { id: 'ratio', label: 'نسبت طلا/نقره', Icon: popularIcons.ratio, locked: true },
+    { id: 'silverBubble', label: 'حباب نقره', Icon: popularIcons.silverBubble, locked: true },
+    { id: 'jewelry', label: 'زیور نقره', Icon: popularIcons.jewelry, locked: true },
+  ],
+  coin: [
+    { id: 'weight', label: 'تبدیل وزن', Icon: popularIcons.weight },
+    { id: 'purity', label: 'تبدیل عیار', Icon: popularIcons.purity },
+    { id: 'sekeBubble', label: 'حباب سکه', Icon: popularIcons.coin, locked: true },
+    { id: 'robSeke', label: 'ربع سکه', Icon: popularIcons.coin, locked: true },
+    { id: 'nimSeke', label: 'نیم سکه', Icon: popularIcons.coin, locked: true },
+  ],
+  fx: [
+    { id: 'usdGap', label: 'فاصله دلار', Icon: popularIcons.usdGap },
+    { id: 'weight', label: 'تبدیل وزن', Icon: popularIcons.weight },
+    { id: 'fxConvert', label: 'مبدل ارز', Icon: popularIcons.usdGap, locked: true },
+  ],
+  more: [
+    { id: 'weight', label: 'تبدیل وزن', Icon: popularIcons.weight },
+    { id: 'purity', label: 'تبدیل عیار', Icon: popularIcons.purity },
+    { id: 'pnl', label: 'سود و زیان', Icon: popularIcons.goldBubble, locked: true },
+    { id: 'dca', label: 'میانگین خرید', Icon: popularIcons.market18kToMazaneh, locked: true },
+    { id: 'tax', label: 'مالیات اجرت', Icon: popularIcons.jewelry, locked: true },
+  ],
 };
-const popularForGold = [
-  { id: 'weight', label: 'تبدیل وزن', Icon: popularIcons.weight },
-  { id: 'market18kToMazaneh', label: '۱۸ به مظنه', Icon: popularIcons.market18kToMazaneh },
-  { id: 'mazanehTo18k', label: 'مظنه ↔ ۱۸', Icon: popularIcons.mazanehTo18k },
-  { id: 'goldBubble', label: 'حباب طلا', Icon: popularIcons.goldBubble },
-  { id: 'jewelry', label: 'طلای زینتی', Icon: popularIcons.jewelry, locked: true },
-];
 const number = (value: number) => new Intl.NumberFormat('en-US', { maximumFractionDigits: 4 }).format(value);
+const isLocalTool = (tool: Tool): tool is LocalTool => tool === 'weight' || tool === 'purity';
+const isOperation = (tool: Tool): tool is CalculatorOperation => !isLocalTool(tool) && tool in calculatorCatalog;
 
 function liveEntry(field: (typeof calculatorCatalog)[CalculatorOperation]['fields'][number], snapshot: Snapshot): Entry {
   const quote = snapshot.quotes.find(q => q.symbol === field.symbol);
@@ -61,6 +87,7 @@ export function ProfessionalCalculator({ snapshot }: { snapshot: Snapshot }) {
   const [product, setProduct] = useState<Product>('gold');
   const [tool, setTool] = useState<Tool>('weight');
   const [weightAmount, setWeightAmount] = useState('3.5');
+  const [purityAmount, setPurityAmount] = useState('');
   const [market, setMarket] = useState(snapshot);
   const [inputs, setInputs] = useState<Record<string, Entry>>(() => prefill('mazanehTo18k', snapshot));
   const [result, setResult] = useState<CalculatorResult | null>(null);
@@ -71,8 +98,9 @@ export function ProfessionalCalculator({ snapshot }: { snapshot: Snapshot }) {
   useEffect(() => () => request.current?.abort(), []);
 
   const available = toolsByProduct[product];
-  const operation = tool === 'weight' ? null : tool;
+  const operation = isOperation(tool) ? tool : null;
   const spec = operation ? calculatorCatalog[operation] : null;
+  const popular = popularByProduct[product];
 
   function invalidate() {
     request.current?.abort();
@@ -82,11 +110,17 @@ export function ProfessionalCalculator({ snapshot }: { snapshot: Snapshot }) {
     setPending(false);
   }
 
-  function choose(next: Tool) {
+  function choose(next: Tool, forProduct: Product = product) {
+    const allowed = toolsByProduct[forProduct];
+    if (!allowed.includes(next)) return;
     invalidate();
     setTool(next);
-    setActiveField(next === 'weight' ? '' : calculatorCatalog[next].fields[0].key);
-    if (next !== 'weight') setInputs(prefill(next, market));
+    if (isLocalTool(next)) {
+      setActiveField('');
+      return;
+    }
+    setActiveField(calculatorCatalog[next].fields[0].key);
+    setInputs(prefill(next, market));
   }
 
   function chooseProduct(next: Product) {
@@ -94,7 +128,13 @@ export function ProfessionalCalculator({ snapshot }: { snapshot: Snapshot }) {
     invalidate();
     setProduct(next);
     const first = toolsByProduct[next][0];
-    if (first) choose(first);
+    if (first) choose(first, next);
+  }
+
+  function pickPopular(id: string) {
+    const item = popular.find(entry => entry.id === id);
+    if (!item || item.locked) return;
+    if (available.includes(id as Tool)) choose(id as Tool);
   }
 
   function setMode(key: string, mode: 'LIVE' | 'MANUAL') {
@@ -162,12 +202,15 @@ export function ProfessionalCalculator({ snapshot }: { snapshot: Snapshot }) {
     }
   }
 
-  const opOptions = available
-    .filter((key): key is CalculatorOperation => key !== 'weight')
-    .map(key => ({ value: key, label: calculatorCatalog[key].title }));
+  const keypadValue = tool === 'weight' ? weightAmount : tool === 'purity' ? purityAmount : inputs[activeField]?.value ?? '';
+  const keypadTarget = tool === 'weight'
+    ? 'مقدار وزن'
+    : tool === 'purity'
+      ? 'قیمت عیار'
+      : spec?.fields.find(field => field.key === activeField)?.label ?? 'ورودی را انتخاب کنید';
 
   return (
-    <section className={`professional-calculator${tool === 'weight' ? ' is-weight' : ''}`} aria-label="ماشین‌حساب حرفه‌ای">
+    <section className={`professional-calculator${isLocalTool(tool) ? ' is-weight' : ''}`} aria-label="ماشین‌حساب حرفه‌ای">
       <div className="calc-products" role="group" aria-label="نوع دارایی">
         {products.map(([key, label]) => (
           <button
@@ -183,19 +226,17 @@ export function ProfessionalCalculator({ snapshot }: { snapshot: Snapshot }) {
       </div>
       <CalculatorProductTiles value={product} onChange={chooseProduct} locked={lockedProducts} />
 
+      <CalculatorPopularRow items={popular} active={tool} onPick={pickPopular} />
+
       <div className="calc-stage__main">
         {tool === 'weight' ? (
           <WeightConvertWidget amount={weightAmount} onAmountChange={setWeightAmount} />
+        ) : tool === 'purity' ? (
+          <PurityConvertWidget amount={purityAmount} onAmountChange={setPurityAmount} />
         ) : spec ? (
           <form className="calc-tool-panel" onSubmit={calculate}>
             <div className="calc-tool-panel__toolbar">
-              <Select
-                label="نوع محاسبه"
-                className="calc-tool-panel__select"
-                value={operation!}
-                onChange={value => choose(value as CalculatorOperation)}
-                options={opOptions}
-              />
+              <strong className="calc-tool-panel__title">{spec.title}</strong>
               <button type="button" className="calc-tool-panel__refresh" onClick={refresh} disabled={pending} aria-label="تازه‌سازی قیمت‌ها">
                 <RefreshCw size={15} />
               </button>
@@ -256,32 +297,10 @@ export function ProfessionalCalculator({ snapshot }: { snapshot: Snapshot }) {
         )}
       </div>
 
-      {product === 'gold' ? (
-        <CalculatorPopularRow
-          items={popularForGold}
-          active={tool}
-          onPick={id => {
-            if (id === 'purity' || id === 'jewelry') return;
-            choose(id as Tool);
-          }}
-        />
-      ) : (
-        <div className="calc-popular calc-popular--chips" aria-label="محاسبات">
-          <small className="calc-currency-note">محاسبات: تومانی</small>
-          <div className="calc-popular__chips">
-            {available.map(key => (
-              <button type="button" key={key} className={tool === key ? 'is-on' : ''} onClick={() => choose(key)}>
-                {toolLabel[key]}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
       <CalculatorLiveStrip snapshot={market} />
 
       <div className="calc-stage__side">
-          {tool !== 'weight' && (result || pending) && (
+        {!isLocalTool(tool) && (result || pending) && (
           <div className="calc-result-slot" aria-live="polite" aria-busy={pending}>
             <p className="calc-result-slot__label">نتیجه</p>
             {result ? (
@@ -300,9 +319,10 @@ export function ProfessionalCalculator({ snapshot }: { snapshot: Snapshot }) {
           </div>
         )}
         <div className="calc-keypad-wrap">
-          <span className="calc-entry-target">{tool === 'weight' ? 'مقدار وزن' : spec?.fields.find(field => field.key === activeField)?.label ?? 'ورودی را انتخاب کنید'}</span>
-          <CalculatorKeypad key={`${tool}-${activeField}`} value={tool === 'weight' ? weightAmount : inputs[activeField]?.value ?? ''} onChange={value => {
+          <span className="calc-entry-target">{keypadTarget}</span>
+          <CalculatorKeypad key={`${tool}-${activeField}`} value={keypadValue} onChange={value => {
             if (tool === 'weight') { setWeightAmount(value); return; }
+            if (tool === 'purity') { setPurityAmount(value); return; }
             if (!activeField) return;
             invalidate();
             setInputs(current => ({ ...current, [activeField]: { value, provenance: 'MANUAL' } }));

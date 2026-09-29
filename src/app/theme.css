@@ -442,21 +442,35 @@ html[data-theme='light'] .calculator-screen>span,html[data-theme='light'] .calcu
 .home-page{display:flex;flex-direction:column}
 .home-page>.topline{order:0}
 .home-page>.hero{order:1}
-.home-page>.panel:not(.market-teaser),.home-page>section:not(.hero):not(.market-teaser){order:10}
+.home-page>.home-value-strip{order:1}
+.home-page>.panel:not(.market-teaser),.home-page>section:not(.hero):not(.market-teaser):not(.home-value-strip){order:10}
 .home-page>.market-teaser{order:2}
+
+.home-value-strip{margin:8px 0 18px;padding:14px 4px 4px;border-top:1px solid var(--border-subtle)}
+.home-value-strip__promise{margin:0 0 12px;font-size:13px;line-height:1.85;color:var(--text-secondary)}
+.home-value-strip__promise strong{display:block;color:var(--text-primary);font-size:15px;margin-bottom:4px}
+.home-value-strip__actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.home-value-strip__actions .button{min-height:40px;padding:0 14px;font-size:13px}
+.home-value-strip__ghost{display:inline-flex;align-items:center;gap:6px;min-height:40px;padding:0 12px;border-radius:10px;border:1px solid var(--border-subtle);background:var(--surface-soft);color:var(--text-primary);font:700 12px Vazirmatn;text-decoration:none}
+.home-value-strip__ghost:hover{border-color:color-mix(in srgb,var(--accent) 40%,var(--border-subtle));color:var(--accent)}
 
 .has-mobile-tabs{padding-bottom:0}
 .mobile-tab-bar{display:none}
 @media(max-width:760px){
-  /* App shell: radar first, then prices, then short hero — no watchlist / screen-down */
+  /* App shell: radar first, then value strip, then prices */
   .home-page>.topline{order:0;padding:6px 0;margin:0;font-size:10px;justify-content:center}
   .topline__watch{display:none}
   .home-page>.hero{display:contents}
-  .radar-pro{order:1;height:300px;margin:4px 0 8px;max-width:none}
-  .home-page>.market-teaser{order:2;margin:0 0 14px;padding:10px 0 8px;border:0;border-radius:0;background:transparent;box-shadow:none}
-  .hero-copy{display:block}
+  .radar-pro{order:1;height:340px;margin:4px 0 8px;max-width:none}
+  .home-page>.home-value-strip{order:2;margin:0 0 12px;padding:8px 2px 4px;border-top:0}
+  .home-page>.market-teaser{order:3;margin:0 0 14px;padding:10px 0 8px;border:0;border-radius:0;background:transparent;box-shadow:none}
+  .hero-copy{display:none!important}
   .hero-screen-down{display:none!important}
   .radar-pro__caption{font-size:10px;bottom:4px}
+  .home-value-strip__promise{font-size:12px;line-height:1.75}
+  .home-value-strip__promise strong{font-size:14px}
+  .home-value-strip__actions .button{min-height:36px;font-size:12px}
+  .home-value-strip__ghost{min-height:36px;font-size:11px;padding:0 10px}
 
   .market-teaser__head{flex-direction:column;align-items:stretch;gap:8px;margin-bottom:10px;padding:0 2px}
   .market-teaser__head .eyebrow{font-size:9px}

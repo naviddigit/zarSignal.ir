@@ -70,20 +70,24 @@ export function MarketRadar({ bubbles }: { bubbles: LiveBubbleCard[] }) {
 
       <div className="radar-pro__center" aria-live={automatic ? 'off' : 'polite'} key={focus}>
         <div className="radar-pro__center-beat">
-          <span className="radar-pro__eyebrow">{locked ? `${info.short} · قفل` : info.label}</span>
+          <span className="radar-pro__eyebrow">{locked ? `${info.short} · به‌زودی` : info.label}</span>
           <strong dir="ltr" className={`radar-pro__value is-${direction}`}>
-            {ready ? formatPercent(card!.percent!) : locked ? 'قفل' : '—'}
+            {ready ? formatPercent(card!.percent!) : locked ? '—' : '—'}
           </strong>
           <span className="radar-pro__status">
             {ready
               ? card!.status === 'stale'
-                ? 'داده قدیمی · سیگنال معامله نیست'
-                : 'محاسبه زنده · سیگنال معامله نیست'
+                ? 'داده قدیمی · اختلاف قیمت است، نه توصیه معامله'
+                : 'اختلاف قیمت با ارزش محاسباتی · توصیه خرید/فروش نیست'
               : locked
-                ? 'در انتظار مدل محاسباتی تأییدشده'
+                ? 'این بخش وقتی مدل تأیید شود باز می‌شود؛ فعلاً طلا و دلار فعال‌اند'
                 : card?.reason ?? 'در انتظار داده'}
           </span>
-          <Link className="radar-analysis-link" href={`/analysis/${focus === 'GOLD_BUBBLE' ? 'gold_melted' : focus === 'USD_BUBBLE' ? 'usd' : 'silver_999'}`}>تحلیل کن ←</Link>
+          {!locked ? (
+            <Link className="radar-analysis-link" href={`/analysis/${focus === 'GOLD_BUBBLE' ? 'gold_melted' : focus === 'USD_BUBBLE' ? 'usd' : 'silver_999'}`}>جزئیات این عدد ←</Link>
+          ) : (
+            <Link className="radar-analysis-link" href="/analysis/gold_melted">برو به تحلیل طلا ←</Link>
+          )}
           <div className="radar-pro__pips" aria-hidden="true">
             {order.map(key => <i key={key} className={key === focus ? 'is-on' : ''} />)}
           </div>
@@ -99,11 +103,11 @@ export function MarketRadar({ bubbles }: { bubbles: LiveBubbleCard[] }) {
             type="button"
             className={`radar-pro__token ${meta[key].className} ${focus === key ? 'is-active' : ''} ${itemLocked ? 'is-locked' : ''}`}
             aria-pressed={focus === key}
-            aria-label={`${meta[key].short}${itemLocked ? ' قفل' : ''}`}
+            aria-label={`${meta[key].short}${itemLocked ? ' به‌زودی' : ''}`}
             onClick={() => { setFocus(key); setAutomatic(false); }}
           >
             <b>{meta[key].token}</b>
-            <small>{meta[key].short}</small>
+            <small>{itemLocked ? 'به‌زودی' : meta[key].short}</small>
           </button>
         );
       })}

@@ -14,9 +14,13 @@ export const purityOptions = {
   '22k': { label: '۲۲ عیار', value: 916 },
   '21k': { label: '۲۱ عیار', value: 875 },
   '18k': { label: '۱۸ عیار', value: 750 },
-  '17k': { label: '۱۷ عیار', value: 705 },
+  '17k': { label: '۱۷ عیار / ۷۰۵', value: 705 },
   '14k': { label: '۱۴ عیار', value: 585 },
   '9k': { label: '۹ عیار', value: 375 },
+  silver999: { label: 'نقره ۹۹۹', value: 999 },
+  silver925: { label: 'نقره ۹۲۵', value: 925 },
+  silver900: { label: 'نقره ۹۰۰', value: 900 },
+  silver800: { label: 'نقره ۸۰۰', value: 800 },
 } as const;
 
 export type WeightUnit = keyof typeof weightUnits;

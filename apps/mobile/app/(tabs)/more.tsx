@@ -31,7 +31,12 @@ export default function MoreScreen() {
     <AppShell>
       <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
         <Text style={styles.title}>بیشتر</Text>
-        <Text style={styles.body}>حساب، تاریخچه، اشتراک و لینک‌های شفافیت — مثل منوی سایت.</Text>
+        <Text style={styles.body}>رایگان: قیمت و ماشین‌حساب. پولی: فقط تاریخچه بلندتر — نه سیگنال معامله.</Text>
+
+        <View style={styles.freeBox}>
+          <Text style={styles.freeTitle}>شروع بدون پرداخت</Text>
+          <Text style={styles.note}>۱) قیمت‌ها → ۲) ماشین‌حساب → ۳) اگر لازم شد تاریخچه/اشتراک</Text>
+        </View>
 
         <View style={styles.profile}>
           <View style={styles.avatar}>
@@ -91,6 +96,15 @@ const styles = StyleSheet.create({
   content: { padding: 16, paddingBottom: 28 },
   title: { color: colors.text, fontSize: 22, fontWeight: '800', textAlign: 'right' },
   body: { color: colors.muted, fontSize: 13, lineHeight: 22, textAlign: 'right', marginTop: 6, marginBottom: 14 },
+  freeBox: {
+    padding: 14,
+    borderRadius: 16,
+    backgroundColor: colors.accentSoft,
+    borderWidth: 1,
+    borderColor: colors.border,
+    marginBottom: 12,
+  },
+  freeTitle: { color: colors.text, fontWeight: '800', textAlign: 'right', marginBottom: 4 },
   profile: {
     flexDirection: 'row-reverse',
     gap: 12,

@@ -6,8 +6,8 @@ const gram: CalculatorField = { key: 'gram', label: 'قیمت گرم طلای ۱
 const xau: CalculatorField = { key: 'xau', label: 'اونس جهانی طلا', unit: 'دلار / اونس تروا', symbol: 'XAU_USD', currency: 'USD', quoteUnit: 'اونس تروا' };
 const usd: CalculatorField = { key: 'usd', label: 'نرخ دلار', unit: 'تومان / دلار', symbol: 'USD', currency: 'TMN', quoteUnit: 'دلار' };
 export const calculatorCatalog: Record<CalculatorOperation, { title: string; formulaId: string; version: string; fields: CalculatorField[] }> = {
-  mazanehTo18k: { title: 'مظنه به گرم ۱۸ عیار', formulaId: 'MAZANEH_TO_18K', version: '1.0', fields: [melted] },
-  market18kToMazaneh: { title: 'گرم ۱۸ عیار به مظنه', formulaId: 'MAZANEH_TO_18K', version: '1.0', fields: [gram] },
+  mazanehTo18k: { title: 'مظنه به گرم ۱۸ عیار', formulaId: 'MAZANEH_TO_18K', version: '1.1', fields: [melted] },
+  market18kToMazaneh: { title: 'گرم ۱۸ عیار به مظنه', formulaId: 'MAZANEH_TO_18K', version: '1.1', fields: [gram] },
   goldBubble: { title: 'ارزش محاسباتی و حباب طلا', formulaId: 'GOLD_BUBBLE', version: '1.0', fields: [melted, xau, usd] },
   usdGap: { title: 'فاصله دلار با دلار ضمنی طلا', formulaId: 'USD_GAP', version: '1.0', fields: [melted, xau, usd] },
 };

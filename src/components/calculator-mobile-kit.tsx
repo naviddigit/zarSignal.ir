@@ -5,7 +5,7 @@ import {
   ArrowLeftRight, Banknote, ChartNoAxesColumn, CircleDollarSign, Coins, Delete,
   Gem, Grid2X2, Info, Menu, Percent, Scale, X,
 } from 'lucide-react';
-import { convertWeight, weightUnits, type WeightUnit } from '@/lib/calculator-conversions';
+import { convertWeight, convertPurityPrice, weightUnits, purityOptions, type WeightUnit, type Purity } from '@/lib/calculator-conversions';
 import { formatNumericInput, sanitizeNumericInput } from '@/lib/numeric-input';
 import { isStale, type Snapshot } from '@/lib/market';
 import { mazanehTo18k } from '@/lib/mazaneh-to-18k';
@@ -13,6 +13,7 @@ import { Select } from '@/components/ui/select';
 import { keypadMath } from '@/lib/keypad-math';
 
 const unitOptions = Object.entries(weightUnits).map(([value, unit]) => ({ value, label: unit.label }));
+const puritySelectOptions = Object.entries(purityOptions).map(([value, unit]) => ({ value, label: unit.label }));
 
 function fa(value: number, digits = 4) {
   return new Intl.NumberFormat('en-US', { maximumFractionDigits: digits, minimumFractionDigits: 0 }).format(value);
@@ -250,7 +251,7 @@ export function WeightConvertWidget({ amount, onAmountChange }: { amount: string
     <section className="calc-weight-widget" aria-label="تبدیل واحد وزن">
       <header className="calc-weight-widget__head">
         <strong>تبدیل واحد وزن</strong>
-        <small>پایهٔ محاسبه طلا</small>
+        <small>مثقال فیزیکی = ۴٫۶۰۸ گرم</small>
       </header>
 
       <div className="calc-weight-widget__pair">
@@ -310,6 +311,59 @@ export function WeightConvertWidget({ amount, onAmountChange }: { amount: string
   );
 }
 
+/** Convert price between karat / silver fineness grades. */
+export function PurityConvertWidget({ amount, onAmountChange }: { amount: string; onAmountChange: (next: string) => void }) {
+  const [from, setFrom] = useState<Purity>('18k');
+  const [to, setTo] = useState<Purity>('17k');
+
+  const result = useMemo(() => {
+    const n = Number(amount);
+    if (!Number.isFinite(n) || amount === '') return null;
+    try { return convertPurityPrice(n, from, to); } catch { return null; }
+  }, [amount, from, to]);
+
+  function swap() {
+    setFrom(to);
+    setTo(from);
+    if (result != null) onAmountChange(String(Number(result.toFixed(4))));
+  }
+
+  return (
+    <section className="calc-weight-widget" aria-label="تبدیل عیار">
+      <header className="calc-weight-widget__head">
+        <strong>تبدیل عیار</strong>
+        <small>قیمت هم‌وزن بین دو خلوص</small>
+      </header>
+      <div className="calc-weight-widget__pair">
+        <div className="calc-weight-box is-in">
+          <span className="ds-field__label">قیمت مبدأ</span>
+          <div className="calc-weight-box__input-wrap">
+            <input
+              className="ds-input calc-weight-box__input"
+              dir="ltr"
+              inputMode="none"
+              autoComplete="off"
+              aria-label="قیمت مبدأ"
+              placeholder="0"
+              value={formatNumericInput(amount)}
+              onChange={event => onAmountChange(sanitizeNumericInput(event.target.value, 6))}
+            />
+          </div>
+          <Select label="عیار مبدأ" className="calc-weight-box__select" value={from} onChange={value => setFrom(value as Purity)} options={puritySelectOptions} />
+        </div>
+        <button type="button" className="calc-weight-swap" aria-label="جابه‌جایی عیارها" onClick={swap}>
+          <ArrowLeftRight size={15} />
+        </button>
+        <div className="calc-weight-box is-out" aria-live="polite">
+          <span className="ds-field__label">قیمت مقصد</span>
+          <strong className="calc-weight-box__result" dir="ltr">{result == null ? '—' : fa(result)}</strong>
+          <Select label="عیار مقصد" className="calc-weight-box__select" value={to} onChange={value => setTo(value as Purity)} options={puritySelectOptions} />
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export const popularIcons = {
   weight: Scale,
   mazanehTo18k: ChartNoAxesColumn,
@@ -318,4 +372,7 @@ export const popularIcons = {
   purity: Percent,
   coin: Coins,
   jewelry: Gem,
+  usdGap: CircleDollarSign,
+  silverBubble: Gem,
+  ratio: ArrowLeftRight,
 };
