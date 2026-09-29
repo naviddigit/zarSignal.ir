@@ -10,8 +10,8 @@ const order: Focus[] = ['GOLD_BUBBLE', 'SILVER_BUBBLE', 'USD_BUBBLE'];
 
 const meta: Record<Focus, { label: string; short: string; token: string; className: string; tint: string; locked?: boolean; angle: number }> = {
   GOLD_BUBBLE: { label: 'حباب طلا', short: 'طلا', token: 'Au', className: 'token-gold', tint: 'gold', angle: -90 },
-  SILVER_BUBBLE: { label: 'حباب نقره', short: 'نقره', token: 'Ag', className: 'token-silver', tint: 'silver', locked: true, angle: 150 },
-  USD_BUBBLE: { label: 'فاصله دلار', short: 'دلار', token: '$', className: 'token-dollar', tint: 'dollar', angle: 30 },
+  SILVER_BUBBLE: { label: 'حباب نقره', short: 'نقره', token: 'Ag', className: 'token-silver', tint: 'silver', locked: true, angle: 30 },
+  USD_BUBBLE: { label: 'فاصله دلار', short: 'دلار', token: '$', className: 'token-dollar', tint: 'dollar', angle: 150 },
 };
 
 function formatPercent(value: number) {
@@ -112,20 +112,22 @@ export function MarketRadar({ bubbles }: { bubbles: LiveBubbleCard[] }) {
               className={`radar-pro__planet ${meta[key].className}${focus === key ? ' is-active' : ''}${itemLocked ? ' is-locked' : ''}`}
               style={{ ['--planet-angle' as string]: `${meta[key].angle}deg` }}
             >
-              <div className="radar-pro__planet-face">
-                <button
-                  type="button"
-                  className="radar-pro__token"
-                  aria-pressed={focus === key}
-                  aria-label={`${meta[key].short}${itemLocked ? ' به‌زودی' : ''}`}
-                  onClick={() => {
-                    setFocus(key);
-                    setAutomatic(false);
-                  }}
-                >
-                  <b>{meta[key].token}</b>
-                  <small>{meta[key].short}</small>
-                </button>
+              <div className="radar-pro__planet-spin">
+                <div className="radar-pro__planet-face">
+                  <button
+                    type="button"
+                    className="radar-pro__token"
+                    aria-pressed={focus === key}
+                    aria-label={`${meta[key].short}${itemLocked ? ' به‌زودی' : ''}`}
+                    onClick={() => {
+                      setFocus(key);
+                      setAutomatic(false);
+                    }}
+                  >
+                    <b>{meta[key].token}</b>
+                    <small>{meta[key].short}</small>
+                  </button>
+                </div>
               </div>
             </div>
           );

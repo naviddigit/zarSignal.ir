@@ -220,9 +220,9 @@ html[data-theme='light'] .calculator-screen>span,html[data-theme='light'] .calcu
 .radar-pro.tint-dollar .radar-pro__glow{background:radial-gradient(circle,color-mix(in srgb,var(--success) 28%,transparent),transparent 70%)}
 .radar-pro__grid{position:absolute;inset:18px;opacity:.4;background-image:linear-gradient(color-mix(in srgb,var(--text-primary) 7%,transparent) 1px,transparent 1px),linear-gradient(90deg,color-mix(in srgb,var(--text-primary) 7%,transparent) 1px,transparent 1px);background-size:28px 28px;mask-image:radial-gradient(circle,black 35%,transparent 72%);pointer-events:none;animation:radar-grid-drift 18s linear infinite}
 .radar-pro__orbit{position:absolute;top:50%;left:50%;border-radius:50%;border:1px solid color-mix(in srgb,var(--accent) 32%,transparent);pointer-events:none;transform:translate(-50%,-50%);animation:radar-orbit-spin 32s linear infinite}
-.radar-pro__orbit--a{width:170px;height:170px;opacity:.95;animation-duration:22s,1.8s}
-.radar-pro__orbit--b{width:250px;height:250px;border-style:dashed;opacity:.85;animation:radar-orbit-spin 34s linear infinite reverse,radar-orbit-pulse 1.8s .2s ease-in-out infinite}
-.radar-pro__orbit--c{width:330px;height:330px;opacity:.7;animation:radar-orbit-spin 48s linear infinite,radar-orbit-pulse 1.8s .4s ease-in-out infinite}
+.radar-pro__orbit--a{width:calc(var(--orbit-r) * 1.36);height:calc(var(--orbit-r) * 1.36);opacity:.95;animation-duration:22s,1.8s}
+.radar-pro__orbit--b{width:calc(var(--orbit-r) * 2);height:calc(var(--orbit-r) * 2);border-style:dashed;opacity:.9;animation:radar-orbit-spin 34s linear infinite reverse,radar-orbit-pulse 1.8s .2s ease-in-out infinite}
+.radar-pro__orbit--c{width:calc(var(--orbit-r) * 2.64);height:calc(var(--orbit-r) * 2.64);opacity:.7;animation:radar-orbit-spin 48s linear infinite,radar-orbit-pulse 1.8s .4s ease-in-out infinite}
 .radar-pro__sweep{position:absolute;left:50%;top:50%;width:165px;height:165px;transform-origin:top left;border-radius:0 0 100% 0;background:conic-gradient(from 270deg at top left,transparent 0deg,color-mix(in srgb,var(--accent) 38%,transparent) 70deg,transparent 72deg);animation:scan 5.8s linear infinite;pointer-events:none}
 .radar-pro.is-paused .radar-pro__sweep,.radar-pro.is-paused .radar-pro__orbit,.radar-pro.is-paused .radar-pro__glow,.radar-pro.is-paused .radar-pro__pulse,.radar-pro.is-paused .radar-pro__ring-value,.radar-pro.is-paused .radar-pro__grid,.radar-pro.is-paused .radar-pro__center-beat{animation-play-state:paused}
 .radar-pro__pulse{position:absolute;top:50%;left:50%;width:210px;height:210px;transform:translate(-50%,-50%);border-radius:50%;border:1.5px solid color-mix(in srgb,var(--accent) 55%,transparent);pointer-events:none;z-index:1;animation:radar-pulse-wave 1.8s ease-out infinite}
@@ -239,21 +239,22 @@ html[data-theme='light'] .calculator-screen>span,html[data-theme='light'] .calcu
 .radar-pro__value.is-up{color:var(--success)}.radar-pro__value.is-down{color:var(--danger)}.radar-pro__value.is-locked{color:var(--text-muted);font-size:42px}
 .radar-pro__status{max-width:210px;font-size:11px;line-height:1.7;color:var(--text-secondary)}
 .radar-pro__pips{display:flex;gap:6px;margin-top:4px}.radar-pro__pips i{width:7px;height:7px;border-radius:50%;background:color-mix(in srgb,var(--text-muted) 45%,transparent);transition:background .35s,box-shadow .35s,transform .35s}.radar-pro__pips i.is-on{background:var(--accent);transform:scale(1.25);box-shadow:0 0 12px color-mix(in srgb,var(--accent) 60%,transparent)}
-.radar-pro__token{box-sizing:border-box;width:68px;height:68px;min-width:68px;min-height:68px;border-radius:18px;border:1px solid color-mix(in srgb,var(--accent) 35%,transparent);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:0;cursor:pointer;appearance:none;font:inherit;background:color-mix(in srgb,var(--surface-raised) 88%,transparent);backdrop-filter:blur(10px);color:var(--accent);box-shadow:0 12px 28px #0006;transition:transform .35s cubic-bezier(.2,.8,.2,1),box-shadow .35s ease,border-color .35s ease,opacity .3s,filter .3s}
-.radar-pro__token b{font:800 20px Georgia,serif;line-height:1}.radar-pro__token small{font-size:9px;color:var(--text-secondary)}.radar-pro__token em{display:none}
-.radar-pro__planets{position:absolute;inset:0;z-index:3;pointer-events:none;animation:radar-planet-spin 36s linear infinite}
-.radar-pro.is-paused .radar-pro__planets{animation-play-state:paused}
-.radar-pro__planet{position:absolute;left:50%;top:50%;width:0;height:0;transform:rotate(var(--planet-angle)) translateY(-148px);pointer-events:auto}
-.radar-pro__planet-face{transform:rotate(calc(var(--planet-angle) * -1));animation:radar-planet-counter 36s linear infinite}
-.radar-pro.is-paused .radar-pro__planet-face{animation-play-state:paused}
+.radar-pro{--orbit-r:125px;--orbit-spin:48s}
+.radar-pro__token{box-sizing:border-box;width:58px;height:58px;min-width:58px;min-height:58px;border-radius:16px;border:1px solid color-mix(in srgb,var(--accent) 35%,transparent);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:0;cursor:pointer;appearance:none;font:inherit;background:color-mix(in srgb,var(--surface-raised) 88%,transparent);backdrop-filter:blur(10px);color:var(--accent);box-shadow:0 10px 22px #0006;transition:transform .35s cubic-bezier(.2,.8,.2,1),box-shadow .35s ease,border-color .35s ease,opacity .3s,filter .3s}
+.radar-pro__token b{font:800 18px Georgia,serif;line-height:1}.radar-pro__token small{font-size:9px;color:var(--text-secondary)}.radar-pro__token em{display:none}
+.radar-pro__planets{position:absolute;inset:0;z-index:3;pointer-events:none;animation:radar-planet-spin var(--orbit-spin) linear infinite;transform-origin:50% 50%}
+.radar-pro.is-paused .radar-pro__planets,.radar-pro.is-paused .radar-pro__planet-spin{animation-play-state:paused}
+.radar-pro__planet{position:absolute;left:50%;top:50%;width:0;height:0;transform:rotate(var(--planet-angle)) translateY(calc(var(--orbit-r) * -1));pointer-events:auto}
+.radar-pro__planet-spin{position:absolute;left:0;top:0;animation:radar-planet-counter var(--orbit-spin) linear infinite}
+.radar-pro__planet-face{position:absolute;left:0;top:0;transform:translate(-50%,-50%) rotate(calc(var(--planet-angle) * -1))}
 .radar-pro__planet.token-gold .radar-pro__token{border-color:#8a6a35;background:linear-gradient(145deg,#3a3120e6,#14161be8);color:#e7c479}
 .radar-pro__planet.token-silver .radar-pro__token{border-color:#4a5666;background:linear-gradient(145deg,#2e3541e6,#12151ce8);color:#c1cddb}
 .radar-pro__planet.token-dollar .radar-pro__token{border-color:#3e6454;background:linear-gradient(145deg,#243a32e6,#121a19e8);color:#85c9ac}
 .radar-pro__planet .radar-pro__token:hover{filter:brightness(1.08)}
-.radar-pro__planet.is-active .radar-pro__token{transform:scale(1.14);box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 75%,transparent),0 0 28px color-mix(in srgb,var(--accent) 28%,transparent),0 16px 36px #0007}
+.radar-pro__planet.is-active .radar-pro__token{transform:scale(1.06);box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 70%,transparent),0 0 20px color-mix(in srgb,var(--accent) 22%,transparent),0 12px 28px #0007}
 .radar-pro__planet.is-locked .radar-pro__token{opacity:.88;filter:saturate(.8)}
-@keyframes radar-planet-spin{to{transform:rotate(360deg)}}
-@keyframes radar-planet-counter{to{transform:rotate(-360deg)}}
+@keyframes radar-planet-spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+@keyframes radar-planet-counter{from{transform:rotate(0deg)}to{transform:rotate(-360deg)}}
 .radar-pro__caption{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:8px;white-space:nowrap;font-size:11px;color:var(--text-secondary);background:transparent;border:0;padding:4px 10px;z-index:3}
 @keyframes radar-center-in{from{opacity:0;transform:scale(.9) translateY(6px)}to{opacity:1;transform:none}}
 @keyframes radar-heartbeat{0%,100%{opacity:.55;transform:scale(1)}14%{opacity:.95;transform:scale(1.06)}28%{opacity:.6;transform:scale(1.01)}42%{opacity:1;transform:scale(1.08)}56%{opacity:.55;transform:scale(1)}}
@@ -263,14 +264,14 @@ html[data-theme='light'] .calculator-screen>span,html[data-theme='light'] .calcu
 @keyframes radar-orbit-spin{to{transform:translate(-50%,-50%) rotate(360deg)}}
 @keyframes radar-orbit-pulse{0%,100%{opacity:.55}14%{opacity:1}28%{opacity:.7}42%{opacity:1}56%{opacity:.55}}
 @keyframes radar-grid-drift{to{background-position:28px 28px}}
-@media(max-width:760px){.radar-pro{height:380px}.radar-pro__value{font-size:40px}.radar-pro__token{width:58px;height:58px;min-width:58px;min-height:58px;border-radius:16px}.radar-pro__token b{font-size:17px}.radar-pro__planet{transform:rotate(var(--planet-angle)) translateY(-128px)}.radar-pro__ring{width:210px;height:210px}.radar-pro__pulse{width:180px;height:180px}.radar-pro__pulse--b{width:210px;height:210px}.radar-pro__pulse--c{width:250px;height:250px}}
-@media(prefers-reduced-motion:reduce){.radar-pro__sweep,.radar-pro__glow,.radar-pro__center,.radar-pro__center-beat,.radar-pro__planets,.radar-pro__planet-face,.radar-pro__ring-value,.radar-pro__orbit,.radar-pro__pulse,.radar-pro__grid{animation:none!important}}
+@media(max-width:760px){.radar-pro{--orbit-r:105px;height:380px}.radar-pro__value{font-size:40px}.radar-pro__token{width:50px;height:50px;min-width:50px;min-height:50px;border-radius:14px}.radar-pro__token b{font-size:16px}.radar-pro__ring{width:210px;height:210px}.radar-pro__pulse{width:180px;height:180px}.radar-pro__pulse--b{width:210px;height:210px}.radar-pro__pulse--c{width:250px;height:250px}}
+@media(prefers-reduced-motion:reduce){.radar-pro__sweep,.radar-pro__glow,.radar-pro__center,.radar-pro__center-beat,.radar-pro__planets,.radar-pro__planet-spin,.radar-pro__ring-value,.radar-pro__orbit,.radar-pro__pulse,.radar-pro__grid{animation:none!important}}
 
 /* Mobile stability: no layout jump / flash */
 @media(max-width:900px){
 .hero{grid-template-columns:1fr;gap:18px;min-height:0;padding:18px 0 28px;align-items:stretch}
 .hero-copy{text-align:right;order:1}
-.radar-pro{order:2;height:340px;margin-inline:auto;width:100%;max-width:420px}
+.radar-pro{--orbit-r:110px;order:2;height:340px;margin-inline:auto;width:100%;max-width:420px}
 .hero-ticker{grid-template-columns:1fr;margin:-6px 0 28px}
 .ticker-clock{display:none}
 .decision-strip{display:grid;grid-template-columns:1fr;gap:8px}
@@ -283,7 +284,7 @@ html[data-theme='light'] .calculator-screen>span,html[data-theme='light'] .calcu
 .hero{padding:0;gap:0;min-height:0}
 .home-page .hero-screen-down{display:none!important}
 .hero-reveal,.section-reveal{animation:none!important}
-.radar-pro__planet{transform:rotate(var(--planet-angle)) translateY(-128px)}
+.radar-pro{--orbit-r:105px}
 .radar-pro__status{max-width:170px;font-size:10px}
 .market-table tbody tr.quote-updated,.market-table tbody tr.quote-updated td{animation:none!important}
 .ticker-item:before{animation:none!important;display:none}
