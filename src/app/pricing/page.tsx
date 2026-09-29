@@ -1,11 +1,15 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { Check, ArrowUpLeft, Clock3, Gift, History, Code2 } from 'lucide-react';
+import { Check, ArrowUpLeft, Minus } from 'lucide-react';
 import { getPublishedPlans, type BillingPeriod, type ManagedPlan } from '@/server/plans';
 import { trialPolicy } from '@/server/analysis-trial';
 import { planHistoryDays } from '@/lib/history-access';
 
-export const metadata: Metadata = { title: 'پلن‌ها و اشتراک', alternates: { canonical: '/pricing' } };
+export const metadata: Metadata = {
+  title: 'پلن‌ها و اشتراک',
+  description: 'پلن رایگان، تاریخچه بازار و API زرسیگنال — مقایسه شفاف امکانات.',
+  alternates: { canonical: '/pricing' },
+};
 export const dynamic = 'force-dynamic';
 
 const periods: Record<BillingPeriod, string> = {
@@ -15,209 +19,231 @@ const periods: Record<BillingPeriod, string> = {
   ONE_TIME: 'یک‌باره',
 };
 
+type TierKind = 'free' | 'home' | 'pro' | 'api';
+
+type TierView = {
+  kind: TierKind;
+  title: string;
+  pitch: string;
+  popular?: boolean;
+  plan?: ManagedPlan;
+  fallbackFeatures: string[];
+  cta: { href: string; label: string; secondary?: boolean };
+  priceLabel: string;
+  priceHint: string;
+  metric: string;
+};
+
 function isApiPlan(plan: ManagedPlan) {
   return /api/i.test(plan.slug) || /api/i.test(plan.title);
 }
 
-function isPaid(plan: ManagedPlan) {
-  const price = plan.pricingVersions[0];
-  return !(price && Number(price.price) === 0);
+function money(plan?: ManagedPlan) {
+  const price = plan?.pricingVersions[0];
+  if (!price) return null;
+  return price;
+}
+
+function buildTiers(plans: ManagedPlan[]): TierView[] {
+  const free = plans.find(p => !isApiPlan(p) && Number(p.pricingVersions[0]?.price ?? 1) === 0);
+  const history = plans.filter(p => !isApiPlan(p) && Number(p.pricingVersions[0]?.price ?? 0) > 0)
+    .sort((a, b) => planHistoryDays(a.features) - planHistoryDays(b.features));
+  const api = plans.find(isApiPlan);
+  const home = history.find(p => planHistoryDays(p.features) <= 30) ?? history[0];
+  const pro = history.find(p => p.id !== home?.id && planHistoryDays(p.features) >= 60)
+    ?? history.find(p => p.id !== home?.id)
+    ?? home;
+
+  const freePrice = money(free);
+  const homePrice = money(home);
+  const proPrice = money(pro);
+  const apiPrice = money(api);
+
+  return [
+    {
+      kind: 'free',
+      title: free?.title?.replace(/آزمایشی/g, '').trim() || 'رایگان',
+      pitch: 'برای دنبال‌کردن قیمت و محاسبهٔ روزمره.',
+      plan: free,
+      priceLabel: '۰',
+      priceHint: 'تومان / همیشه',
+      metric: 'تاریخچه ۲۴ ساعت',
+      fallbackFeatures: [
+        'تابلوی قیمت با زمان دریافت',
+        'حباب طلا و فاصله دلار',
+        'ماشین‌حساب وزن، مظنه و عیار',
+        'نمودار ۲۴ ساعت',
+      ],
+      cta: { href: '/markets', label: 'شروع با بازار', secondary: true },
+    },
+    {
+      kind: 'home',
+      title: home?.title?.replace(/آزمایشی/g, '').trim() || 'خانگی',
+      pitch: 'برای پیگیری روند هفتگی و ماهانه.',
+      popular: true,
+      plan: home,
+      priceLabel: homePrice ? new Intl.NumberFormat('fa-IR').format(Number(homePrice.price)) : '۱۴۹٬۰۰۰',
+      priceHint: homePrice ? `${homePrice.currency} / ${periods[homePrice.billingPeriod]}` : 'تومان / ماهانه',
+      metric: `تاریخچه تا ${new Intl.NumberFormat('fa-IR').format(planHistoryDays(home?.features ?? ['history:30d']) || 30)} روز`,
+      fallbackFeatures: [
+        'همه امکانات رایگان',
+        'تاریخچه قیمت و حباب',
+        'نمودار ۷ و ۳۰ روز',
+        'جزئیات کندل روزانه',
+      ],
+      cta: { href: home ? `/subscribe/${home.slug}` : '/subscribe/home', label: 'انتخاب پلن خانگی' },
+    },
+    {
+      kind: 'pro',
+      title: pro?.title?.replace(/آزمایشی/g, '').trim() || 'حرفه‌ای',
+      pitch: 'برای بررسی بازه‌های بلند و مقایسه عمیق‌تر.',
+      plan: pro,
+      priceLabel: proPrice ? new Intl.NumberFormat('fa-IR').format(Number(proPrice.price)) : '۲۹۹٬۰۰۰',
+      priceHint: proPrice ? `${proPrice.currency} / ${periods[proPrice.billingPeriod]}` : 'تومان / ماهانه',
+      metric: `تاریخچه تا ${new Intl.NumberFormat('fa-IR').format(planHistoryDays(pro?.features ?? ['history:90d']) || 90)} روز`,
+      fallbackFeatures: [
+        'همه امکانات خانگی',
+        'بازه ۹۰ روز',
+        'مقایسه روند بلندمدت',
+        'اولویت در به‌روزرسانی ابزارها',
+      ],
+      cta: { href: pro ? `/subscribe/${pro.slug}` : '/subscribe/professional', label: 'انتخاب پلن حرفه‌ای' },
+    },
+    {
+      kind: 'api',
+      title: api?.title?.replace(/آزمایشی/g, '').trim() || 'API',
+      pitch: 'برای اتصال داده به محصول، ربات یا داشبورد.',
+      plan: api,
+      priceLabel: apiPrice ? (Number(apiPrice.price) === 0 ? 'سفارشی' : new Intl.NumberFormat('fa-IR').format(Number(apiPrice.price))) : '۱٬۴۹۰٬۰۰۰',
+      priceHint: apiPrice && Number(apiPrice.price) > 0 ? `${apiPrice.currency} / ${periods[apiPrice.billingPeriod]}` : 'تومان / ماهانه یا قرارداد',
+      metric: api?.apiLimits?.daily
+        ? `${new Intl.NumberFormat('fa-IR').format(api.apiLimits.daily)} درخواست / روز`
+        : '۱۰٬۰۰۰ درخواست / روز',
+      fallbackFeatures: [
+        'کلید Bearer نسخه‌بندی‌شده',
+        'GET /api/v1/quotes',
+        'سهمیه روزانه قابل کنترل',
+        'منبع و زمان UTC در پاسخ',
+      ],
+      cta: { href: api ? `/subscribe/${api.slug}` : '/developers', label: api ? 'دریافت دسترسی API' : 'مشاهده مستندات' },
+    },
+  ];
+}
+
+const compareRows: { label: string; values: Record<TierKind, string | boolean> }[] = [
+  { label: 'قیمت زنده بازار', values: { free: true, home: true, pro: true, api: true } },
+  { label: 'حباب طلا و فاصله دلار', values: { free: true, home: true, pro: true, api: true } },
+  { label: 'ماشین‌حساب فعال', values: { free: true, home: true, pro: true, api: false } },
+  { label: 'نمودار ۲۴ ساعت', values: { free: true, home: true, pro: true, api: false } },
+  { label: 'تاریخچه ۷–۳۰ روز', values: { free: false, home: true, pro: true, api: false } },
+  { label: 'تاریخچه ۹۰ روز', values: { free: false, home: false, pro: true, api: false } },
+  { label: 'کلید و سهمیه API', values: { free: false, home: false, pro: false, api: true } },
+];
+
+function Cell({ value }: { value: string | boolean }) {
+  if (typeof value === 'string') return <span className="pricing-cell-text">{value}</span>;
+  return value
+    ? <Check size={16} className="pricing-cell-yes" aria-label="دارد" />
+    : <Minus size={16} className="pricing-cell-no" aria-label="ندارد" />;
 }
 
 export default async function Pricing() {
-  const plans = await getPublishedPlans();
-  const trial = await trialPolicy();
-  const freePlans = plans.filter(plan => !isPaid(plan) && !isApiPlan(plan));
-  const historyPlans = plans.filter(plan => isPaid(plan) && !isApiPlan(plan));
-  const apiPlans = plans.filter(isApiPlan);
+  const [plans, trial] = await Promise.all([getPublishedPlans(), trialPolicy()]);
+  const tiers = buildTiers(plans);
+  const trialDays = trial.enabled && trial.available
+    ? (trial.hours % 24 === 0 ? trial.hours / 24 : trial.hours)
+    : null;
+  const trialUnit = trial.hours % 24 === 0 ? 'روز' : 'ساعت';
 
   return (
-    <main id="main" className="shell content-page membership-page">
-      <header className="membership-intro">
-        <span className="eyebrow">شفاف و ساده</span>
-        <h1>اول رایگان ببین؛ بعد تاریخچه یا API بخر</h1>
+    <main id="main" className="shell content-page membership-page pricing-page">
+      <header className="pricing-hero">
+        <span className="eyebrow">پلن‌ها</span>
+        <h1>دسترسی مناسب کارتان را انتخاب کنید</h1>
         <p>
-          <b>رایگان:</b> قیمت، حباب طلا، فاصله دلار، نمودار ۲۴ساعت، ماشین‌حساب.
-          {' '}
-          <b>تاریخچه:</b> ۷ / ۳۰ / ۹۰ روز.
-          {' '}
-          <b>API:</b> کلید و سهمیه برای اتصال به سیستم خودتان.
+          زرسیگنال قیمت و محاسبه را شفاف نگه می‌دارد.
+          پلن‌ها فقط عمق تاریخچه یا اتصال API را گسترش می‌دهند — نه سیگنال خرید و فروش.
         </p>
-        <div className="membership-funnel">
-          <Link className="button" href="/markets">۱) قیمت رایگان <ArrowUpLeft size={16} /></Link>
-          <Link className="text-link" href="#paid-plans">۲) تاریخچه</Link>
-          <Link className="text-link" href="#api-plans">۳) API</Link>
-        </div>
       </header>
 
-      <section className="membership-free-band" aria-label="آنچه رایگان است">
-        <header>
-          <Gift size={18} />
-          <div>
-            <strong>همین حالا بدون پرداخت</strong>
-            <p>اگر هنوز قیمت را ندیده‌اید، اول اینجا شروع کنید.</p>
-          </div>
-        </header>
-        <ul>
-          <li><Check size={15} /><span>تابلوی قیمت با زمان دریافت</span></li>
-          <li><Check size={15} /><span>حباب طلا و فاصله دلار</span></li>
-          <li><Check size={15} /><span>ماشین‌حساب فعال (وزن، مظنه÷۴٫۳۳۱۸، عیار)</span></li>
-          <li><Check size={15} /><span>نمودار ۲۴ ساعت — بازه‌های قفل‌شده در پلن تاریخچه</span></li>
-        </ul>
-        <Link className="button" href="/markets">شروع رایگان از قیمت‌ها <ArrowUpLeft size={16} /></Link>
-      </section>
-
-      {trial.enabled && trial.available && (
-        <aside className="membership-trial">
-          <Clock3 size={20} />
-          <div>
-            <strong>
-              {new Intl.NumberFormat('fa-IR').format(trial.hours % 24 === 0 ? trial.hours / 24 : trial.hours)}{' '}
-              {trial.hours % 24 === 0 ? 'روز' : 'ساعت'} فرصت بررسی تاریخچه
-            </strong>
-            <p>یک بار برای هر حساب؛ بعد از دیدن قیمت رایگان.</p>
-          </div>
-          <Link href="/analysis/gold_melted">شروع آزمایشی ←</Link>
-        </aside>
-      )}
-
-      {freePlans.length > 0 && (
-        <div className="membership-grid membership-grid--free">
-          {freePlans.map(plan => {
-            const days = planHistoryDays(plan.features);
-            return (
-              <article className="membership-card" key={plan.id}>
-                <header>
-                  <span className="membership-audience">رایگان برای همیشه</span>
-                  <h2>{plan.title}</h2>
-                </header>
-                <div className="membership-price"><strong>رایگان</strong></div>
-                <p className="membership-history">تاریخچه پایه <b>{days ? `${new Intl.NumberFormat('fa-IR').format(days)} روز` : '۲۴ ساعت'}</b></p>
-                <ul>
-                  {plan.features.filter(feature => !feature.startsWith('history:')).map(feature => (
-                    <li key={feature}><Check size={16} /><span>{feature}</span></li>
-                  ))}
-                </ul>
-                <Link className="button membership-secondary" href="/markets">شروع رایگان <ArrowUpLeft size={16} /></Link>
-              </article>
-            );
-          })}
-        </div>
-      )}
-
-      <section id="paid-plans" className="membership-paid-intro">
-        <History size={18} />
-        <div>
-          <h2>پلن‌های تاریخچه</h2>
-          <p>باز کردن ۷ / ۳۰ / ۹۰ روز روی نمودار. پرداخت آنلاین هنوز فعال نیست؛ الان مبلغی کم نمی‌شود.</p>
-        </div>
-      </section>
-
-      <div className="membership-grid">
-        {historyPlans.map(plan => {
-          const price = plan.pricingVersions[0];
-          const days = planHistoryDays(plan.features);
+      <section className="pricing-grid" aria-label="مقایسه پلن‌ها">
+        {tiers.map(tier => {
+          const features = (tier.plan?.features.filter(f => !f.startsWith('history:'))?.length
+            ? tier.plan!.features.filter(f => !f.startsWith('history:'))
+            : tier.fallbackFeatures);
           return (
-            <article className={`membership-card ${plan.slug === 'home' || plan.slug.includes('home') ? 'is-highlighted' : ''}`} key={plan.id}>
-              <header>
-                <span className="membership-audience">{days >= 90 ? 'بررسی بلندمدت' : 'پیگیری روزانه'}</span>
-                <h2>{plan.title}</h2>
+            <article key={tier.kind} className={`pricing-card${tier.popular ? ' is-popular' : ''}${tier.kind === 'api' ? ' is-api' : ''}`}>
+              {tier.popular ? <span className="pricing-badge">پرکاربرد</span> : null}
+              <header className="pricing-card__head">
+                <h2>{tier.title}</h2>
+                <p>{tier.pitch}</p>
               </header>
-              <div className="membership-price">
-                {price ? (
-                  <>
-                    <strong>{new Intl.NumberFormat('fa-IR').format(Number(price.price))}</strong>
-                    <span>{price.currency} / {periods[price.billingPeriod]}</span>
-                  </>
-                ) : (
-                  <span>قیمت در انتظار انتشار</span>
-                )}
+              <div className="pricing-card__price">
+                <strong>{tier.priceLabel}</strong>
+                <span>{tier.priceHint}</span>
               </div>
-              <p className="membership-history">
-                تاریخچه قابل دسترسی <b>{days ? `${new Intl.NumberFormat('fa-IR').format(days)} روز` : '۲۴ ساعت'}</b>
-              </p>
-              <ul>
-                {plan.features.filter(feature => !feature.startsWith('history:')).map(feature => (
-                  <li key={feature}><Check size={16} /><span>{feature}</span></li>
-                ))}
-              </ul>
-              <Link className="button" href={`/subscribe/${plan.slug}`}>
-                بررسی پلن {plan.title}
+              <p className="pricing-card__metric">{tier.metric}</p>
+              <Link className={`button${tier.cta.secondary ? ' membership-secondary' : ''}`} href={tier.cta.href}>
+                {tier.cta.label}
                 <ArrowUpLeft size={16} />
               </Link>
+              <div className="pricing-card__includes">
+                <span>شامل</span>
+                <ul>
+                  {features.map(feature => (
+                    <li key={feature}><Check size={15} /><span>{feature}</span></li>
+                  ))}
+                </ul>
+              </div>
+              {tier.kind === 'api' ? (
+                <Link className="pricing-card__more" href="/developers">مستندات فنی API ←</Link>
+              ) : null}
             </article>
           );
         })}
-      </div>
+      </section>
 
-      <section id="api-plans" className="membership-paid-intro">
-        <Code2 size={18} />
-        <div>
-          <h2>پلن API برای کسب‌وکار</h2>
-          <p>کلید Bearer، سهمیه روزانه، و قیمت با منبع/زمان برای اتصال به سایت، ربات یا داشبورد خودتان. جزئیات فنی در صفحه توسعه‌دهندگان است.</p>
+      {trialDays != null && (
+        <aside className="pricing-trial">
+          <div>
+            <strong>{new Intl.NumberFormat('fa-IR').format(trialDays)} {trialUnit} بررسی تاریخچه</strong>
+            <p>یک‌بار برای هر حساب؛ برای ارزیابی بازه‌های بلندتر قبل از انتخاب پلن.</p>
+          </div>
+          <Link href="/analysis/gold_melted">شروع دوره آزمایشی ←</Link>
+        </aside>
+      )}
+
+      <section className="pricing-compare" aria-label="جدول مقایسه امکانات">
+        <header>
+          <h2>مقایسه امکانات</h2>
+          <p>یک نگاه سریع به تفاوت پلن‌ها.</p>
+        </header>
+        <div className="pricing-compare__scroll">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">امکانات</th>
+                {tiers.map(tier => <th scope="col" key={tier.kind}>{tier.title}</th>)}
+              </tr>
+            </thead>
+            <tbody>
+              {compareRows.map(row => (
+                <tr key={row.label}>
+                  <th scope="row">{row.label}</th>
+                  {tiers.map(tier => (
+                    <td key={tier.kind}><Cell value={row.values[tier.kind]} /></td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </section>
 
-      {apiPlans.length > 0 ? (
-        <div className="membership-grid">
-          {apiPlans.map(plan => {
-            const price = plan.pricingVersions[0];
-            const daily = plan.apiLimits?.daily;
-            return (
-              <article className="membership-card" key={plan.id}>
-                <header>
-                  <span className="membership-audience">برای توسعه‌دهنده و کسب‌وکار</span>
-                  <h2>{plan.title}</h2>
-                </header>
-                <div className="membership-price">
-                  {price && Number(price.price) === 0 ? (
-                    <strong>رایگان</strong>
-                  ) : price ? (
-                    <>
-                      <strong>{new Intl.NumberFormat('fa-IR').format(Number(price.price))}</strong>
-                      <span>{price.currency} / {periods[price.billingPeriod]}</span>
-                    </>
-                  ) : (
-                    <span>قیمت در انتظار انتشار</span>
-                  )}
-                </div>
-                <p className="membership-history">
-                  سهمیه روزانه <b>{daily ? `${new Intl.NumberFormat('fa-IR').format(daily)} درخواست` : 'طبق قرارداد'}</b>
-                </p>
-                <ul>
-                  {plan.features.filter(feature => !feature.startsWith('history:')).map(feature => (
-                    <li key={feature}><Check size={16} /><span>{feature}</span></li>
-                  ))}
-                  <li><Check size={16} /><span>مستندات: /developers</span></li>
-                </ul>
-                <div className="membership-card__actions">
-                  <Link className="button" href={`/subscribe/${plan.slug}`}>درخواست پلن API <ArrowUpLeft size={16} /></Link>
-                  <Link className="text-link" href="/developers">مشاهده مستندات ←</Link>
-                </div>
-              </article>
-            );
-          })}
-        </div>
-      ) : (
-        <article className="panel membership-api-fallback">
-          <h3>API زرسیگنال</h3>
-          <p>endpointهای `/api/v1/quotes` و `/api/v1/analysis` آماده‌اند. فروش کلید به‌زودی از همین صفحه فعال می‌شود؛ فعلاً مستندات را ببینید و برای دسترسی تجاری پیام بدهید.</p>
-          <div className="membership-funnel">
-            <Link className="button" href="/developers">مستندات API <ArrowUpLeft size={16} /></Link>
-            <Link className="text-link" href="/subscribe/api">ثبت علاقه به API ←</Link>
-          </div>
-        </article>
-      )}
-
-      {!plans.length && (
-        <p className="panel">پلن‌ها هنوز منتشر نشده‌اند. قیمت‌ها و ماشین‌حساب در دسترس شما هستند.</p>
-      )}
-
-      <section className="membership-clarity">
-        <h2>قبل از خرید بدانید</h2>
-        <p>تاریخچه = گذشته بازار. API = اتصال داده به سیستم شما. هیچ‌کدام سیگنال قطعی یا تضمین سود نیست.</p>
-        <p>پرداخت آنلاین هنوز فعال نیست؛ انتخاب پلن الان مبلغی کم نمی‌کند.</p>
-        <Link href="/markets">برگرد به امکانات رایگان ←</Link>
+      <section className="pricing-footnotes">
+        <p>اشتراک، تضمین سود یا توصیه معامله نیست. عدد حباب اختلاف قیمت است.</p>
+        <p>پرداخت آنلاین هنوز فعال نشده؛ انتخاب پلن فعلاً مبلغی کم نمی‌کند.</p>
+        <Link href="/markets">بازگشت به بازار ←</Link>
       </section>
     </main>
   );
