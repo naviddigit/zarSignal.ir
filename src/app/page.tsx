@@ -68,7 +68,8 @@ export default async function Home() {
         <article className="panel feature-card">
           <Code2 size={26} /><h3>{texts.apiTitle}</h3>
           <p>{texts.apiBody}</p>
-          <Link href="/developers">مستندات توسعه‌دهندگان <ArrowUpLeft size={15} /></Link>
+          <Link href="/pricing#api-plans">خرید پلن API <ArrowUpLeft size={15} /></Link>
+          <Link href="/developers">مستندات <ArrowUpLeft size={15} /></Link>
           <code dir="ltr">GET /api/v1/quotes</code>
         </article>
         <article className="panel feature-card">
