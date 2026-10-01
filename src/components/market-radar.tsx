@@ -56,7 +56,9 @@ export function MarketRadar({ bubbles }: { bubbles: LiveBubbleCard[] }) {
 
     const measure = () => {
       const size = Math.min(root.clientWidth, root.clientHeight);
-      applyRadius(Math.round(Math.max(92, Math.min(size * 0.33, 138))));
+      // Keep planets inside the radar box: radius ≤ half height − half token − padding
+      const maxR = Math.max(72, Math.floor(root.clientHeight / 2 - 44));
+      applyRadius(Math.round(Math.max(84, Math.min(size * 0.3, maxR, 150))));
     };
 
     measure();

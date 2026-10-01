@@ -250,11 +250,11 @@ html[data-theme='light'] .calculator-screen>span,html[data-theme='light'] .calcu
 .radar-pro__planet.token-gold,.radar-pro__planet.token-silver,.radar-pro__planet.token-dollar,
 .radar-pro__planet.tone-gold,.radar-pro__planet.tone-silver,.radar-pro__planet.tone-dollar{animation:none!important;top:50%!important;left:50%!important;right:auto!important;bottom:auto!important}
 .radar-pro__planet.tone-gold{border-color:#8a6a35;background:linear-gradient(145deg,#3a3120e6,#14161be8);color:#e7c479}
-.radar-pro__planet.tone-silver{border-color:#4a5666;background:linear-gradient(145deg,#2e3541e6,#12151ce8);color:#c1cddb}
+.radar-pro__planet.tone-silver{border-color:#8a96a8;background:linear-gradient(145deg,#3a4554f0,#161a22f2);color:#e8eef6;box-shadow:0 10px 24px #0007,0 0 0 1px #9aabc055}
 .radar-pro__planet.tone-dollar{border-color:#3e6454;background:linear-gradient(145deg,#243a32e6,#121a19e8);color:#85c9ac}
 .radar-pro__planet:hover{filter:brightness(1.08)}
 .radar-pro__planet.is-active{scale:1.06;box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 70%,transparent),0 0 20px color-mix(in srgb,var(--accent) 22%,transparent),0 12px 28px #0007}
-.radar-pro__planet.is-locked{opacity:.88;filter:saturate(.8)}
+.radar-pro__planet.is-locked{opacity:1;filter:none}
 .radar-pro__caption{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:8px;white-space:nowrap;font-size:11px;color:var(--text-secondary);background:transparent;border:0;padding:4px 10px;z-index:3}
 @keyframes radar-center-in{from{opacity:0;transform:scale(.9) translateY(6px)}to{opacity:1;transform:none}}
 @keyframes radar-heartbeat{0%,100%{opacity:.55;transform:scale(1)}14%{opacity:.95;transform:scale(1.06)}28%{opacity:.6;transform:scale(1.01)}42%{opacity:1;transform:scale(1.08)}56%{opacity:.55;transform:scale(1)}}
@@ -267,7 +267,16 @@ html[data-theme='light'] .calculator-screen>span,html[data-theme='light'] .calcu
 @media(max-width:760px){.radar-pro{--orbit-r:105px;height:380px}.radar-pro__value{font-size:40px}.radar-pro__token{width:50px;height:50px;min-width:50px;min-height:50px;border-radius:14px}.radar-pro__token b{font-size:16px}.radar-pro__ring{width:210px;height:210px}.radar-pro__pulse{width:180px;height:180px}.radar-pro__pulse--b{width:210px;height:210px}.radar-pro__pulse--c{width:250px;height:250px}}
 @media(prefers-reduced-motion:reduce){.radar-pro__sweep,.radar-pro__glow,.radar-pro__center,.radar-pro__center-beat,.radar-pro__ring-value,.radar-pro__orbit,.radar-pro__pulse,.radar-pro__grid{animation:none!important}}
 
-/* Mobile stability: no layout jump / flash */
+/* Desktop hero: always two columns, radar left / copy right in RTL */
+@media(min-width:901px){
+  .home-page>.hero,
+  .hero{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:28px;align-items:center;min-height:0;padding:4px 0 16px;width:100%}
+  .home-page .hero-copy{order:0;min-width:0}
+  .home-page .radar-pro{order:0;height:min(560px,62vh);width:100%;max-width:none;margin:0;--orbit-r:150px}
+  .home-page>.topline{padding:2px 0 0;margin:0}
+}
+
+/* Tablet/mobile: stack only under 900 */
 @media(max-width:900px){
 .hero{grid-template-columns:1fr;gap:18px;min-height:0;padding:18px 0 28px;align-items:stretch}
 .hero-copy{text-align:right;order:1}
