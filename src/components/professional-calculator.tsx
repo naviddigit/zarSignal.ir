@@ -127,7 +127,7 @@ export function ProfessionalCalculator({ snapshot }: { snapshot: Snapshot }) {
     requestAnimationFrame(() => {
       setKeypadCue(true);
       if (cueTimer.current) window.clearTimeout(cueTimer.current);
-      cueTimer.current = window.setTimeout(() => setKeypadCue(false), 1400);
+      cueTimer.current = window.setTimeout(() => setKeypadCue(false), 3700);
     });
   }
 
