@@ -12,8 +12,8 @@ export async function GET(request: Request) {
   const url = new URL(request.url);
   const formula = url.searchParams.get('formula');
   const range = url.searchParams.get('range') ?? '24h';
-  if (formula !== 'GOLD_BUBBLE' && formula !== 'USD_GAP') {
-    return NextResponse.json({ error: 'formula must be GOLD_BUBBLE or USD_GAP' }, { status: 400 });
+  if (formula !== 'GOLD_BUBBLE' && formula !== 'USD_GAP' && formula !== 'SILVER_BUBBLE') {
+    return NextResponse.json({ error: 'formula must be GOLD_BUBBLE, USD_GAP, or SILVER_BUBBLE' }, { status: 400 });
   }
   if (!(range in ranges)) {
     return NextResponse.json({ error: 'invalid_range' }, { status: 400 });

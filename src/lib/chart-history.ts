@@ -3,7 +3,11 @@ import { market18kToMazaneh } from '@/lib/mazaneh-to-18k';
 
 export type HistoryBar = { t: string; o: number; h: number; l: number; c: number };
 export type BubblePoint = { t: string; marketPrice: number | null; bubblePercent: number | null; cadence?: string };
-export const symbolFormula = (symbol: string) => ['GOLD_MELTED', 'GOLD_18K'].includes(symbol) ? 'GOLD_BUBBLE' : symbol === 'USD' ? 'USD_GAP' : null;
+export const symbolFormula = (symbol: string) =>
+  ['GOLD_MELTED', 'GOLD_18K'].includes(symbol) ? 'GOLD_BUBBLE'
+    : symbol === 'USD' ? 'USD_GAP'
+      : symbol === 'SILVER_999' || symbol === 'XAG_USD' ? 'SILVER_BUBBLE'
+        : null;
 
 export function mergeDailyHistory(bars: HistoryBar[], bubbles: BubblePoint[]): ChartPoint[] {
   const daily = new Map(bubbles.filter(p => p.cadence === 'daily' && Number.isFinite(p.bubblePercent) && Number.isFinite(Date.parse(p.t)))

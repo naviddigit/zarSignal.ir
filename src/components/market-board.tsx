@@ -31,9 +31,13 @@ function bubbleValue(symbol: Symbol, bubbles: LiveBubbleCard[]) {
 function analysisLabel(symbol: Symbol, bubbles: LiveBubbleCard[]) {
   const analysis = analysisFor(symbol, bubbles);
   if (!analysis) return null;
-  if (analysis.status === 'blocked') return 'مدل در حال تکمیل';
+  if (analysis.status === 'unavailable' && analysis.percent == null) return 'داده ناکافی';
   if (analysis.percent == null) return 'در انتظار داده';
   return null;
+}
+
+function bubbleKindFor(symbol: Symbol): 'bubble' | 'gap' {
+  return symbol === 'USD' ? 'gap' : 'bubble';
 }
 
 /** Price board — default attractive cards, optional list layout. */
@@ -156,6 +160,7 @@ export function MarketBoard({ initial, bubbles = [] }: { initial: Snapshot; bubb
                   category: asset.category,
                   quote,
                   bubble: bubbleValue(asset.symbol, bubbles),
+                  bubbleKind: bubbleKindFor(asset.symbol),
                   analysisLabel: analysisLabel(asset.symbol, bubbles),
                   spark: sparks[asset.symbol],
                   updated: updated.includes(asset.symbol),
@@ -182,6 +187,7 @@ export function MarketBoard({ initial, bubbles = [] }: { initial: Snapshot; bubb
                   category: asset.category,
                   quote,
                   bubble: bubbleValue(asset.symbol, bubbles),
+                  bubbleKind: bubbleKindFor(asset.symbol),
                   analysisLabel: analysisLabel(asset.symbol, bubbles),
                   spark: sparks[asset.symbol],
                   updated: updated.includes(asset.symbol),

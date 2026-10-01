@@ -1,6 +1,6 @@
 import { isStale, type Quote, type Snapshot } from '@/lib/market';
 import type { LiveBubbleCard } from '@/lib/bubbles';
-import { goldBubble, usdGap, FORMULA_VERSION } from './bubble-formulas';
+import { goldBubble, silverBubbleV54, usdGap, FORMULA_VERSION, SILVER_FORMULA_VERSION, SILVER_PURITY_999, TROY_OZ_GRAMS } from './bubble-formulas';
 import { mazanehTo18k, MAZANEH_TO_18K_VERSION } from './mazaneh-to-18k';
 
 export type { LiveBubbleCard };
@@ -15,19 +15,106 @@ function requireQuote(snapshot: Snapshot, symbol: Quote['symbol']) {
   return { ok: true as const, quote, value, stale: isStale(quote) };
 }
 
-export function computeLiveBubbles(snapshot: Snapshot): LiveBubbleCard[] {
-  const silver: LiveBubbleCard = {
-    key: 'SILVER_BUBBLE',
-    status: 'blocked',
-    percent: null,
-    theoretical: null,
-    reason: 'مدل حباب نقره تأیید نشده؛ عدد حباب نداریم. ثابت‌ها را از مدیر (چت‌بات) بگیرید.',
-  };
+function computeSilverCard(snapshot: Snapshot, usd: ReturnType<typeof requireQuote>): LiveBubbleCard {
+  const xag = requireQuote(snapshot, 'XAG_USD');
+  const silver = requireQuote(snapshot, 'SILVER_999');
 
+  if (!usd.ok) {
+    return {
+      key: 'SILVER_BUBBLE',
+      status: 'unavailable',
+      percent: null,
+      theoretical: null,
+      reason: usd.reason,
+      formulaVersion: SILVER_FORMULA_VERSION,
+    };
+  }
+
+  if (!xag.ok) {
+    return {
+      key: 'SILVER_BUBBLE',
+      status: 'unavailable',
+      percent: null,
+      theoretical: null,
+      reason: xag.reason,
+      formulaVersion: SILVER_FORMULA_VERSION,
+    };
+  }
+
+  // Spec §7: without SILVER_999, theoretical alone is allowed but gap/premium must stay null.
+  if (!silver.ok) {
+    try {
+      const theoOnly = (xag.value * usd.value) / TROY_OZ_GRAMS * SILVER_PURITY_999;
+      return {
+        key: 'SILVER_BUBBLE',
+        status: 'unavailable',
+        percent: null,
+        theoretical: theoOnly,
+        gap: null,
+        marketPrice: null,
+        usdImplied: null,
+        silverUsdGapPct: null,
+        reason: 'قیمت بازار نقره ۹۹۹ نیست؛ حباب محاسبه نمی‌شود',
+        formulaVersion: SILVER_FORMULA_VERSION,
+      };
+    } catch {
+      return {
+        key: 'SILVER_BUBBLE',
+        status: 'unavailable',
+        percent: null,
+        theoretical: null,
+        reason: silver.reason,
+        formulaVersion: SILVER_FORMULA_VERSION,
+      };
+    }
+  }
+
+  try {
+    const result = silverBubbleV54({
+      xagUsd: xag.value,
+      usdIrt: usd.value,
+      silver999Market: silver.value,
+    });
+    const stale = xag.stale || usd.stale || silver.stale;
+    const observedTimes = [xag.quote.observedAt, usd.quote.observedAt, silver.quote.observedAt]
+      .map(t => Date.parse(t))
+      .filter(Number.isFinite);
+    const observedAt = observedTimes.length
+      ? new Date(Math.max(...observedTimes)).toISOString()
+      : silver.quote.observedAt;
+    return {
+      key: 'SILVER_BUBBLE',
+      status: stale ? 'stale' : 'ok',
+      percent: result.silverPremiumPct,
+      theoretical: result.silverTheo999,
+      gap: result.silverGap,
+      marketPrice: result.silver999Market,
+      usdImplied: result.usdImpliedSilver,
+      silverUsdGapPct: result.silverUsdGapPct,
+      observedAt,
+      reason: stale
+        ? 'داده قدیمی · اختلاف قیمت · سیگنال خرید/فروش نیست'
+        : 'اختلاف قیمت · سیگنال خرید/فروش نیست',
+      provenance: 'LIVE',
+      formulaVersion: SILVER_FORMULA_VERSION,
+    };
+  } catch (error) {
+    return {
+      key: 'SILVER_BUBBLE',
+      status: 'unavailable',
+      percent: null,
+      theoretical: null,
+      reason: error instanceof Error ? error.message : 'calculation_failed',
+      formulaVersion: SILVER_FORMULA_VERSION,
+    };
+  }
+}
+
+export function computeLiveBubbles(snapshot: Snapshot): LiveBubbleCard[] {
   if (snapshot.mode !== 'live' || snapshot.status === 'unavailable' || snapshot.status === 'demo') {
     return [
       { key: 'GOLD_BUBBLE', status: 'unavailable', percent: null, theoretical: null, reason: 'داده زنده در دسترس نیست' },
-      silver,
+      { key: 'SILVER_BUBBLE', status: 'unavailable', percent: null, theoretical: null, reason: 'داده زنده در دسترس نیست', formulaVersion: SILVER_FORMULA_VERSION },
       { key: 'USD_BUBBLE', status: 'unavailable', percent: null, theoretical: null, reason: 'داده زنده در دسترس نیست' },
     ];
   }
@@ -35,12 +122,13 @@ export function computeLiveBubbles(snapshot: Snapshot): LiveBubbleCard[] {
   const melted = requireQuote(snapshot, 'GOLD_MELTED');
   const xau = requireQuote(snapshot, 'XAU_USD');
   const usd = requireQuote(snapshot, 'USD');
+  const silverCard = computeSilverCard(snapshot, usd);
 
   if (!melted.ok || !xau.ok || !usd.ok) {
     const reason = !melted.ok ? melted.reason : !xau.ok ? xau.reason : !usd.ok ? usd.reason : 'unavailable';
     return [
       { key: 'GOLD_BUBBLE', status: 'unavailable', percent: null, theoretical: null, reason },
-      silver,
+      silverCard,
       { key: 'USD_BUBBLE', status: 'unavailable', percent: null, theoretical: null, reason },
     ];
   }
@@ -58,17 +146,21 @@ export function computeLiveBubbles(snapshot: Snapshot): LiveBubbleCard[] {
         status,
         percent: gold.percent,
         theoretical: gold.theoretical,
+        gap: gold.gap,
+        marketPrice: derived.market18k,
         reason: freshness,
         provenance: 'DERIVED',
         formulaVersion: FORMULA_VERSION,
         conversionVersion: MAZANEH_TO_18K_VERSION,
       },
-      silver,
+      silverCard,
       {
         key: 'USD_BUBBLE',
         status,
         percent: dollar.percent,
         theoretical: dollar.theoretical,
+        gap: dollar.gap,
+        marketPrice: usd.value,
         reason: freshness,
         provenance: 'DERIVED',
         formulaVersion: FORMULA_VERSION,
@@ -79,7 +171,7 @@ export function computeLiveBubbles(snapshot: Snapshot): LiveBubbleCard[] {
     const reason = error instanceof Error ? error.message : 'calculation_failed';
     return [
       { key: 'GOLD_BUBBLE', status: 'unavailable', percent: null, theoretical: null, reason },
-      silver,
+      silverCard,
       { key: 'USD_BUBBLE', status: 'unavailable', percent: null, theoretical: null, reason },
     ];
   }

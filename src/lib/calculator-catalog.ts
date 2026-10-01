@@ -14,7 +14,7 @@ export const calculatorCatalog: Record<CalculatorOperation, { title: string; for
 export const formulaRegistry = {
   GOLD_BUBBLE: { approved: true, description: 'فرمول حباب طلا تأیید شده است؛ قیمت ۱۸ عیار از تبدیل تأییدشده مظنه به دست می‌آید. خروجی محاسباتی پیشنهاد خرید یا فروش نیست. محدوده خنثی و آستانه معاملاتی هنوز فعال نیستند.' },
   USD_GAP: { approved: true, description: 'فاصله نرخ دلار با دلار ضمنی طلا با مدل تأییدشده محاسبه می‌شود؛ این معیار ارزش بنیادی دلار یا توصیه معامله نیست.' },
-  SILVER_BUBBLE: { approved: false, description: 'محاسبه حباب نقره تا تکمیل و تأیید داده و مدل نقره داخلی فعال نیست؛ وجود قیمت به‌تنهایی به معنای فعال بودن تحلیل نیست.' },
+  SILVER_BUBBLE: { approved: true, description: 'حباب نقره ۹۹۹ با مدل V5.4-SILVER.1 (×۰٫۹۹۹) محاسبه می‌شود؛ خروجی اختلاف قیمت است و پیشنهاد خرید یا فروش نیست. محدوده خنثی هنوز فعال نیست.' },
 } as const;
 export type CalculatorResult = {
   formulaId: string; version: string; calculatedAt: string;

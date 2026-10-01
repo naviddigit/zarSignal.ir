@@ -10,10 +10,15 @@ import { notFound } from 'next/navigation';
 import { instruments, formatPrice } from '@/lib/market';
 import { getPublicSnapshot } from '@/server/quotes';
 import { computeLiveBubbles } from '@/server/live-bubbles';
+import { freshnessLabel } from '@/lib/bubbles';
 import { RelativeTime } from '@/components/relative-time';
 import { ChartWorkspace } from '@/components/chart-workspace';
 
 export const dynamic = 'force-dynamic';
+
+const money = (value: number, digits = 0) =>
+  new Intl.NumberFormat('fa-IR', { maximumFractionDigits: digits, minimumFractionDigits: digits }).format(value);
+
 export default async function AnalysisPage({ params, searchParams }: { params: Promise<{ symbol: string }>; searchParams: Promise<{ trial?: string; request?: string; warning?: string }> }) {
   const { symbol } = await params;
   const asset = instruments.find(item => item.symbol.toLowerCase() === symbol);
@@ -35,19 +40,85 @@ export default async function AnalysisPage({ params, searchParams }: { params: P
   const key = symbol === 'gold_melted' || symbol === 'gold_18k' ? 'GOLD_BUBBLE' : symbol === 'usd' ? 'USD_BUBBLE' : symbol === 'silver_999' || symbol === 'xag_usd' ? 'SILVER_BUBBLE' : null;
   const bubble = computeLiveBubbles(snapshot).find(item => item.key === key);
   const numeric = bubble && (bubble.status === 'ok' || bubble.status === 'stale') && bubble.percent !== null;
+  const isSilver = key === 'SILVER_BUBBLE';
+  const isUsd = key === 'USD_BUBBLE';
+
   return <main id="main" className="shell content-page analysis-page">
     <nav className="chart-breadcrumb"><Link href="/">خانه</Link><span>/</span><Link href="/markets">قیمت‌ها</Link><span>/ بررسی {asset.name}</span></nav>
     <p className="analysis-warning" role="status">{reliability === 'WARNING' ? 'تحلیل خارج از بازه استاندارد' : 'در بازه استاندارد تحلیل'} · زمان تهران</p>
     <p>موتور تحلیل معاملاتی هنوز آماده نیست؛ اطلاعات زیر بررسی پایه قیمت و حباب است.</p>
     <h1>پشت قیمت {asset.name} چه می‌گذرد؟</h1>
     <p className="lead">اول قیمت و فاصله از مبنای محاسباتی؛ سپس مقایسه با گذشته. حباب به‌تنهایی زمان خرید یا فروش را تعیین نمی‌کند.</p>
-    <section className="panel analysis-summary"><div className="analysis-metrics"><span className="eyebrow">بررسی پایه · رایگان</span><h2>{asset.name}</h2>
-      <dl><div><dt>قیمت دیده‌بان</dt><dd><bdi>{quote ? formatPrice(quote.sell, quote.currency) : 'در انتظار داده'}</bdi><small> / {asset.unit}</small></dd></div><div><dt>{key === 'USD_BUBBLE' ? 'فاصله دلار با دلار ضمنی طلا' : 'فاصله با ارزش محاسباتی'}</dt><dd>{numeric ? <bdi>{new Intl.NumberFormat('fa-IR', { maximumFractionDigits: 2, signDisplay: 'exceptZero' }).format(bubble.percent!)}٪</bdi> : bubble?.status === 'blocked' ? 'مدل هنوز تأیید نشده' : 'محاسبه در دسترس نیست'}</dd></div></dl>
-      </div><div className="analysis-context">
-      {quote && <p>زمان مشاهده: <RelativeTime value={quote.observedAt} /></p>}
-      {bubble?.status === 'stale' && <p className="analysis-warning">این محاسبه از داده قدیمی است؛ وضعیت فعلی بازار نیست.</p>}
-      <p>{numeric ? key === 'USD_BUBBLE' ? 'این اختلاف، مقایسه دلار بازار با دلار ضمنی طلاست؛ ارزش بنیادی دلار نیست.' : 'این عدد فاصله قیمت طلای ۱۸ عیار مشتق از مظنه با ارزش محاسباتی اونس و دلار را نشان می‌دهد؛ سود قابل تحقق نیست.' : 'در نبود مدل یا ورودی معتبر، نتیجه جایگزین ساخته نمی‌شود.'}</p>
-      <details><summary>برای تصمیم چه اطلاعاتی هنوز لازم است؟</summary><p>روند معتبر، هزینه معامله، قیمت قابل اجرا و ریسک شما. موتور توصیه خرید، فروش یا تبدیل هنوز آماده ارائه نیست؛ اشتراک این محدودیت را برطرف نمی‌کند.</p></details>
+    <section className="panel analysis-summary">
+      <div className="analysis-metrics">
+        <span className="eyebrow">بررسی پایه · رایگان</span>
+        <h2>{asset.name}</h2>
+        <dl>
+          <div>
+            <dt>قیمت بازار</dt>
+            <dd>
+              <bdi>{quote ? formatPrice(quote.sell, quote.currency) : bubble?.marketPrice != null ? `${money(bubble.marketPrice)} تومان` : 'در انتظار داده'}</bdi>
+              <small> / {asset.unit}</small>
+            </dd>
+          </div>
+          {isSilver && numeric ? (
+            <>
+              <div>
+                <dt>قیمت نظری</dt>
+                <dd><bdi>{money(bubble!.theoretical!, 0)} تومان</bdi><small> / گرم</small></dd>
+              </div>
+              <div>
+                <dt>اختلاف قیمت</dt>
+                <dd><bdi>{money(bubble!.gap ?? 0, 0)} تومان</bdi><small> / گرم</small></dd>
+              </div>
+              <div>
+                <dt>درصد حباب</dt>
+                <dd><bdi>{new Intl.NumberFormat('fa-IR', { maximumFractionDigits: 2, signDisplay: 'exceptZero' }).format(bubble!.percent!)}٪</bdi></dd>
+              </div>
+            </>
+          ) : (
+            <div>
+              <dt>{isUsd ? 'فاصله دلار با دلار ضمنی طلا' : 'فاصله با ارزش محاسباتی'}</dt>
+              <dd>
+                {numeric
+                  ? <bdi>{new Intl.NumberFormat('fa-IR', { maximumFractionDigits: 2, signDisplay: 'exceptZero' }).format(bubble!.percent!)}٪</bdi>
+                  : 'محاسبه در دسترس نیست'}
+              </dd>
+            </div>
+          )}
+        </dl>
+      </div>
+      <div className="analysis-context">
+        {(quote || bubble?.observedAt) && (
+          <p>آخرین داده: <RelativeTime value={(bubble?.observedAt ?? quote?.observedAt)!} /> · وضعیت: {bubble ? freshnessLabel(bubble.status) : '—'}</p>
+        )}
+        {bubble?.status === 'stale' && <p className="analysis-warning">این محاسبه از داده قدیمی است؛ وضعیت فعلی بازار نیست.</p>}
+        <p role="note">اختلاف قیمت · سیگنال خرید/فروش نیست</p>
+        <p>
+          {numeric
+            ? isUsd
+              ? 'این اختلاف، مقایسه دلار بازار با دلار ضمنی طلاست؛ ارزش بنیادی دلار نیست.'
+              : isSilver
+                ? 'حباب نقره اختلاف قیمت بازار ۹۹۹ با ارزش محاسباتی است (V5.4-SILVER.1). محدوده خنثی هنوز فعال نیست.'
+                : 'این عدد فاصله قیمت طلای ۱۸ عیار مشتق از مظنه با ارزش محاسباتی اونس و دلار را نشان می‌دهد؛ سود قابل تحقق نیست.'
+            : 'در نبود ورودی معتبر هم‌زمان، نتیجه جایگزین ساخته نمی‌شود.'}
+        </p>
+        {isSilver && numeric ? (
+          <details>
+            <summary>معیارهای حرفه‌ای (معماری آماده · entitlement جدا)</summary>
+            <dl className="analysis-pro-metrics">
+              <div><dt>دلار بازار</dt><dd><bdi>—</bdi><small> با اشتراک حرفه‌ای</small></dd></div>
+              <div><dt>دلار ضمنی نقره</dt><dd><bdi>—</bdi><small> با اشتراک حرفه‌ای</small></dd></div>
+              <div><dt>SilverUSDGapPct</dt><dd><bdi>—</bdi><small> با اشتراک حرفه‌ای</small></dd></div>
+            </dl>
+            <p className="subtle-note">مقادیر محاسبه‌شده در موتور موجودند؛ نمایش کامل پس از entitlement حرفه‌ای آزاد می‌شود. فرمول در UI عمومی نشان داده نمی‌شود.</p>
+          </details>
+        ) : (
+          <details>
+            <summary>برای تصمیم چه اطلاعاتی هنوز لازم است؟</summary>
+            <p>روند معتبر، هزینه معامله، قیمت قابل اجرا و ریسک شما. موتور توصیه خرید، فروش یا تبدیل هنوز آماده ارائه نیست؛ اشتراک این محدودیت را برطرف نمی‌کند.</p>
+          </details>
+        )}
       </div>
     </section>
     <section className="analysis-upgrade" aria-label="دسترسی آزمایشی">

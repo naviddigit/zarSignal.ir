@@ -566,9 +566,9 @@ html.ds-scroll-locked body{
 .price-card__side{display:grid;justify-items:center;align-content:center;gap:8px;width:64px;min-height:64px}
 .price-card__spark{display:grid;place-items:center;width:64px;height:20px}
 .price-card__foot{display:flex;align-items:center;justify-content:space-between;gap:10px;color:var(--text-muted);font-size:10px;min-height:22px}
-.price-card__bubble-slot{display:inline-flex;align-items:center;min-width:64px;min-height:22px}
+.price-card__bubble-slot{display:inline-flex;align-items:center;min-width:88px;min-height:22px}
 .price-card__time-slot{display:inline-block;min-width:64px;min-height:1em}
-.price-card__bubble{padding:3px 8px;border-radius:999px;font-size:10px;font-weight:800;border:1px solid var(--border-subtle);white-space:nowrap}
+.price-card__bubble{padding:3px 8px;border-radius:999px;font-size:10px;font-weight:800;border:1px solid var(--border-subtle);white-space:nowrap;letter-spacing:-.2px}
 .price-card__bubble.is-up{color:var(--success);border-color:color-mix(in srgb,var(--success) 35%,var(--border-subtle));background:color-mix(in srgb,var(--success) 8%,transparent)}
 .price-card__bubble.is-down{color:var(--danger);border-color:color-mix(in srgb,var(--danger) 35%,var(--border-subtle));background:color-mix(in srgb,var(--danger) 8%,transparent)}
 
@@ -658,7 +658,7 @@ html.ds-scroll-locked body{
   .price-card__spark{width:48px;height:16px}
   .price-card__foot{font-size:9px;min-height:18px;gap:6px}
   .price-card__bubble{padding:2px 6px;font-size:9px}
-  .price-card__bubble-slot{min-width:52px;min-height:18px}
+  .price-card__bubble-slot{min-width:78px;min-height:18px}
   .price-fav{width:28px;height:28px;border-radius:8px}
   .price-fav svg{width:13px;height:13px}
   .mini-spark.is-compact,.mini-spark.is-compact svg{width:48px;height:16px}

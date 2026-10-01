@@ -23,6 +23,8 @@ const statements = [
     "mazanehVersion" TEXT,
     "silver999Mid" DECIMAL(24,6),
     "silver999ObservedAt" TIMESTAMP(3),
+    "xagUsdMid" DECIMAL(24,6),
+    "xagUsdObservedAt" TIMESTAMP(3),
     CONSTRAINT "MarketInputSnapshot_pkey" PRIMARY KEY ("id")
   )`,
   `CREATE TABLE IF NOT EXISTS "BubbleSnapshot" (
@@ -39,11 +41,17 @@ const statements = [
     "theoreticalPrice" DECIMAL(24,6),
     "bubbleAbsolute" DECIMAL(24,8),
     "bubblePercent" DECIMAL(24,8),
+    "usdImplied" DECIMAL(24,6),
+    "usdGapPercent" DECIMAL(24,8),
     "status" TEXT NOT NULL,
     "computedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "capturedAt" TIMESTAMP(3) NOT NULL,
     CONSTRAINT "BubbleSnapshot_pkey" PRIMARY KEY ("id")
   )`,
+  `ALTER TABLE "MarketInputSnapshot" ADD COLUMN IF NOT EXISTS "xagUsdMid" DECIMAL(24,6)`,
+  `ALTER TABLE "MarketInputSnapshot" ADD COLUMN IF NOT EXISTS "xagUsdObservedAt" TIMESTAMP(3)`,
+  `ALTER TABLE "BubbleSnapshot" ADD COLUMN IF NOT EXISTS "usdImplied" DECIMAL(24,6)`,
+  `ALTER TABLE "BubbleSnapshot" ADD COLUMN IF NOT EXISTS "usdGapPercent" DECIMAL(24,8)`,
   `CREATE INDEX IF NOT EXISTS "MarketInputSnapshot_capturedAt_idx" ON "MarketInputSnapshot"("capturedAt" DESC)`,
   `CREATE UNIQUE INDEX IF NOT EXISTS "BubbleSnapshot_inputSnapshotId_formulaId_key" ON "BubbleSnapshot"("inputSnapshotId", "formulaId")`,
   `CREATE INDEX IF NOT EXISTS "BubbleSnapshot_formulaId_capturedAt_idx" ON "BubbleSnapshot"("formulaId", "capturedAt" DESC)`,

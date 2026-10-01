@@ -23,13 +23,14 @@ const meta: Record<Focus, {
   analysisHref: string;
 }> = {
   GOLD_BUBBLE: { label: 'حباب طلا', short: 'طلا', token: 'Au', className: 'tone-gold', tint: 'gold', analysisHref: '/analysis/gold_melted' },
-  SILVER_BUBBLE: { label: 'حباب نقره', short: 'نقره', token: 'Ag', className: 'tone-silver', tint: 'silver', locked: true, analysisHref: '/analysis/silver_999' },
+  SILVER_BUBBLE: { label: 'حباب نقره', short: 'نقره', token: 'Ag', className: 'tone-silver', tint: 'silver', analysisHref: '/analysis/silver_999' },
   USD_BUBBLE: { label: 'فاصله دلار', short: 'دلار', token: '$', className: 'tone-dollar', tint: 'dollar', analysisHref: '/analysis/usd' },
 };
 
-function formatPercent(value: number) {
+function formatPercent(value: number, kind: 'bubble' | 'gap' = 'bubble') {
   const sign = value > 0 ? '+' : '';
-  return `${sign}${new Intl.NumberFormat('fa-IR', { maximumFractionDigits: 2, minimumFractionDigits: 2 }).format(value)}٪`;
+  const pct = `${sign}${new Intl.NumberFormat('fa-IR', { maximumFractionDigits: 2, minimumFractionDigits: 2 }).format(value)}٪`;
+  return kind === 'gap' ? `فاصله ${pct}` : `حباب ${pct}`;
 }
 
 function formatSilverPrice(value: number, currency: string) {
@@ -172,22 +173,19 @@ export function MarketRadar({
   const bubblePercent = ready ? card!.percent! : null;
   const ring = ringFromPercent(bubblePercent);
 
-  // Silver bubble is not approved — never show market price as if it were bubble %.
   const direction = ready
     ? (card!.percent! >= 0 ? 'up' : 'down')
-    : locked || silverFocus
+    : locked
       ? 'locked'
       : 'empty';
 
-  const centerValue = ready ? formatPercent(card!.percent!) : '—';
+  const centerValue = ready
+    ? formatPercent(card!.percent!, focus === 'USD_BUBBLE' ? 'gap' : 'bubble')
+    : '—';
 
   const centerStatus = ready
     ? (card!.status === 'stale' ? 'داده قدیمی' : 'اختلاف قیمت · سیگنال نیست')
-    : silverFocus
-      ? 'مدل حباب نقره تأیید نشده؛ عدد حباب نداریم. ثابت‌ها را از مدیر (چت‌بات) بگیرید تا اضافه کنیم.'
-      : locked
-        ? 'مدل نقره هنوز فعال نیست'
-        : (card?.reason ?? 'در انتظار داده');
+    : (card?.reason ?? 'در انتظار داده');
 
   return (
     <div
@@ -226,14 +224,14 @@ export function MarketRadar({
       <div className="radar-pro__center" aria-live={automatic ? 'off' : 'polite'} key={focus}>
         <div className="radar-pro__center-beat">
           <span className="radar-pro__eyebrow">
-            {silverFocus ? 'حباب نقره · غیرفعال' : locked ? `${info.short} · به‌زودی` : info.label}
+            {locked ? `${info.short} · به‌زودی` : info.label}
           </span>
           <strong dir="ltr" className={`radar-pro__value is-${direction}`}>
             {centerValue}
           </strong>
           {silverFocus && silverPrice != null ? (
             <span className="radar-pro__market-note" dir="ltr">
-              قیمت بازار: {formatSilverPrice(silverPrice, silverQuote!.currency)}
+              بازار: {formatSilverPrice(silverPrice, silverQuote!.currency)}
               {' '}
               {silverQuote!.currency === 'USD' ? 'دلار/اونس' : 'تومان/گرم'}
               {silverStale ? ' · قدیمی' : ''}
@@ -262,7 +260,7 @@ export function MarketRadar({
               type="button"
               className={`radar-pro__token radar-pro__planet radar-pro__planet--${index} ${meta[key].className}${focus === key ? ' is-active' : ''}${itemLocked ? ' is-locked' : ''}`}
               aria-pressed={focus === key}
-              aria-label={`${meta[key].short}${itemLocked ? ' · مدل غیرفعال' : ''}`}
+              aria-label={`${meta[key].short}${itemLocked ? ' · غیرفعال' : ''}`}
               onClick={() => {
                 setFocus(key);
                 setAutomatic(false);

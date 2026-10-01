@@ -10,6 +10,10 @@ import { useMarketSparks, type SparkSeries } from '@/components/use-market-spark
 
 const spotlight = ['GOLD_MELTED', 'GOLD_18K', 'USD', 'SEKE_CASH', 'SILVER_999', 'XAU_USD'] as const;
 
+function bubbleKindFor(symbol: string): 'bubble' | 'gap' {
+  return symbol === 'USD' ? 'gap' : 'bubble';
+}
+
 function bubbleFor(symbol: string, bubbles: LiveBubbleCard[]) {
   const key =
     symbol === 'GOLD_MELTED' || symbol === 'GOLD_18K' ? 'GOLD_BUBBLE'
@@ -31,7 +35,7 @@ function analysisLabel(symbol: string, bubbles: LiveBubbleCard[]) {
   if (!key) return null;
   const card = bubbles.find(item => item.key === key);
   if (!card) return null;
-  if (card.status === 'blocked') return 'مدل در حال تکمیل';
+  if (card.status === 'unavailable' && card.percent == null) return 'داده ناکافی';
   if (card.percent == null) return 'در انتظار داده';
   return null;
 }
@@ -89,6 +93,7 @@ export function MarketTeaser({ snapshot, bubbles }: { snapshot: Snapshot; bubble
                 category: asset.category,
                 quote,
                 bubble,
+                bubbleKind: bubbleKindFor(asset.symbol),
                 analysisLabel: label,
                 spark,
               }}
@@ -108,6 +113,7 @@ export function MarketTeaser({ snapshot, bubbles }: { snapshot: Snapshot; bubble
                 category: asset.category,
                 quote,
                 bubble,
+                bubbleKind: bubbleKindFor(asset.symbol),
                 analysisLabel: label,
                 spark,
               }}

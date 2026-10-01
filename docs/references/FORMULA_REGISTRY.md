@@ -2,27 +2,29 @@
 
 | formula_id | version | status | notes |
 | --- | --- | --- | --- |
-| MAZANEH_TO_18K | 1.0 | APPROVED | DERIVED MARKET_18K from GOLD_MELTED |
+| MAZANEH_TO_18K | 1.0 / 1.1 | APPROVED | DERIVED MARKET_18K from GOLD_MELTED ÷ 4.3318 |
 | GOLD_BUBBLE | 1.0 | APPROVED_LIVE_VIA_DERIVED | Uses MAZANEH_TO_18K; neutral SPEC_BLOCKER |
 | USD_GAP | 1.0 | APPROVED_LIVE_VIA_DERIVED | USD bubble card; neutral SPEC_BLOCKER |
-| SILVER_BUBBLE | 1.0 | BLOCKED | Needs SILVER_999_MARKET |
+| SILVER_BUBBLE | 1.0 | LEGACY / DEPRECATED for live | Without ×0.999; kept for GT-SILVER-01..03 only — do not activate live |
+| SILVER_BUBBLE | V5.4-SILVER.1 | APPROVED_LIVE | SilverTheo999 × 0.999; SILVER_999 Toman/gram direct; no 4.3318 divisor; neutral SPEC_BLOCKER |
 
-Code: `mazaneh-to-18k.ts`, `bubble-formulas.ts`, `live-bubbles.ts`
+Code: `mazaneh-to-18k.ts`, `bubble-formulas.ts` (`silverBubble` legacy, `silverBubbleV54` live), `live-bubbles.ts`
 
-## V5.4 package import — documentation only
+## V5.4-SILVER.1 activation
+
+| Field | Formula | Unit |
+| --- | --- | --- |
+| silverTheo999 | `(XAG_USD × USD_IRT / 31.1034768) × 0.999` | Toman / gram |
+| silverGap | `SILVER_999 − silverTheo999` | Toman / gram |
+| silverPremiumPct | `silverGap / silverTheo999 × 100` | Percent |
+| usdImpliedSilver | `(SILVER_999 × 31.1034768) / (XAG_USD × 0.999)` | Toman / USD |
+| silverUsdGapPct | `(usdImpliedSilver − USD_IRT) / USD_IRT × 100` | Percent |
+
+`silverPremiumPct` and `silverUsdGapPct` are separate API/UI fields — never merge into one generic `silver_gap`.
+No Buy/Sell/Hold / Decision emission from this formula.
+Neutral band: SPEC_BLOCKER.
+
+## V5.4 package import — documentation only (historical)
 
 Source: ../trading-agent/TRADING_AGENT_CONTRACT_PACKAGE_V1.md, sections 04–07, 24.
-Existing rows above describe legacy implementation; they are not V5.4 certification.
-
-| Source formula name | Source version | Import status | Mapping / remaining prerequisite |
-| --- | --- | --- | --- |
-| GOLD_THEORETICAL_18K | SOURCE_REQUIRED | Supplied expression matches existing theoretical calculation | Exact V5.4 formula identifier/version and engine fixtures required |
-| USD_IMPLIED_GOLD | SOURCE_REQUIRED | Supplied expression matches existing implied USD calculation | This is not the independent FX/Dollar Bubble; exact version required |
-| SilverTheo999 | V5.4-SILVER.1 | APPROVED expression, NOT ACTIVATED | New factor 0.999 differs from legacy SILVER_BUBBLE 1.0; V5.4 Golden Test required |
-| USDImpliedSilver | V5.4-SILVER.1 | APPROVED expression, NOT ACTIVATED | Synchronization, validation, fixture required |
-| SilverPremiumPct | V5.4-SILVER.1 | APPROVED expression, NOT ACTIVATED | Depends on SilverTheo999; do not reuse old silver fixtures |
-| SilverUSDGapPct | V5.4-SILVER.1 | APPROVED expression, NOT ACTIVATED | Separate field; engine must prevent double counting |
-
-Source names above are preserved; no new canonical formula IDs have been invented.
-Existing USD_GAP percent is (actual - implied) / implied ×100. The package supplies implied USD but no replacement Gold Gap percent expression. Preserve existing definition until exact engine mapping is supplied; never silently reverse sign or denominator.
-No production formula or historical record changed in this import.
+Legacy rows above are preserved; V5.4-SILVER.1 is now the live silver path.

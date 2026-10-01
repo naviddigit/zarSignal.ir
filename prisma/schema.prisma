@@ -224,6 +224,8 @@ model MarketInputSnapshot {
   mazanehVersion       String?
   silver999Mid         Decimal? @db.Decimal(24, 6)
   silver999ObservedAt  DateTime?
+  xagUsdMid            Decimal? @db.Decimal(24, 6)
+  xagUsdObservedAt     DateTime?
   bubbles              BubbleSnapshot[]
 
   @@index([capturedAt(sort: Desc)])
@@ -243,6 +245,8 @@ model BubbleSnapshot {
   theoreticalPrice  Decimal? @db.Decimal(24, 6)
   bubbleAbsolute    Decimal? @db.Decimal(24, 8)
   bubblePercent     Decimal? @db.Decimal(24, 8)
+  usdImplied        Decimal? @db.Decimal(24, 6)
+  usdGapPercent     Decimal? @db.Decimal(24, 8)
   status            String
   computedAt        DateTime @default(now())
   capturedAt        DateTime

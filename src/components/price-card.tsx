@@ -8,9 +8,10 @@ import { AssetMark } from '@/components/asset-mark';
 import { Sparkline } from '@/components/sparkline';
 import { sparkPriceTone, type SparkSeries } from '@/components/use-market-sparks';
 
-export function formatBubblePercent(value: number) {
+export function formatBubblePercent(value: number, kind: 'bubble' | 'gap' = 'bubble') {
   const sign = value > 0 ? '+' : '';
-  return `${sign}${new Intl.NumberFormat('fa-IR', { maximumFractionDigits: 2, minimumFractionDigits: 2 }).format(value)}٪`;
+  const pct = `${sign}${new Intl.NumberFormat('fa-IR', { maximumFractionDigits: 2, minimumFractionDigits: 2 }).format(value)}٪`;
+  return kind === 'gap' ? `فاصله ${pct}` : `حباب ${pct}`;
 }
 
 export type PriceCardModel = {
@@ -20,6 +21,7 @@ export type PriceCardModel = {
   category: string;
   quote?: Quote;
   bubble: number | null;
+  bubbleKind?: 'bubble' | 'gap';
   analysisLabel?: string | null;
   updated?: boolean;
   favorite?: boolean;
@@ -73,7 +75,7 @@ export function PriceCard({ item, href }: { item: PriceCardModel; href: string }
           <footer className="price-card__foot">
             <span className="price-card__bubble-slot">
               {item.bubble != null ? (
-                <span className={`price-card__bubble ${item.bubble >= 0 ? 'is-up' : 'is-down'}`}>{formatBubblePercent(item.bubble)}</span>
+                <span className={`price-card__bubble ${item.bubble >= 0 ? 'is-up' : 'is-down'}`}>{formatBubblePercent(item.bubble, item.bubbleKind)}</span>
               ) : null}
             </span>
             {item.quote ? <RelativeTime value={item.quote.observedAt} /> : <span className="price-card__time-slot" aria-hidden="true" />}
@@ -115,7 +117,7 @@ export function PriceListRow({ item, href }: { item: PriceCardModel; href: strin
         <span className="price-list-row__meta">
           <span className="price-card__bubble-slot">
             {item.bubble != null ? (
-              <span className={`price-card__bubble ${item.bubble >= 0 ? 'is-up' : 'is-down'}`}>{formatBubblePercent(item.bubble)}</span>
+              <span className={`price-card__bubble ${item.bubble >= 0 ? 'is-up' : 'is-down'}`}>{formatBubblePercent(item.bubble, item.bubbleKind)}</span>
             ) : null}
           </span>
           {item.quote ? <small><RelativeTime value={item.quote.observedAt} /></small> : <small className="is-empty" aria-hidden="true" />}

@@ -35,6 +35,7 @@ export function useMarketSparks(symbols: Symbol[]) {
       const next: Partial<Record<Symbol, SparkSeries>> = {};
       const needsGold = symbols.some(s => s === 'GOLD_MELTED' || s === 'GOLD_18K');
       const needsUsd = symbols.includes('USD');
+      const needsSilver = symbols.some(s => s === 'SILVER_999' || s === 'XAG_USD');
       const plain = symbols.filter(s => !symbolFormula(s));
 
       const tasks: Promise<void>[] = [];
@@ -61,6 +62,22 @@ export function useMarketSparks(symbols: Symbol[]) {
             const points = snapshotChartPoints(data.points ?? [], 'USD');
             if (enoughHistory(points)) {
               next.USD = {
+                price: points.map(p => p.value),
+                bubble: points.every(p => Number.isFinite(p.bubble)) ? points.map(p => p.bubble!) : undefined,
+              };
+            }
+          } catch { /* keep empty spark */ }
+        })());
+      }
+      if (needsSilver) {
+        tasks.push((async () => {
+          try {
+            const data = await fetchJson<{ points?: BubblePoint[] }>('/api/public/bubbles/history?formula=SILVER_BUBBLE&range=24h', controller.signal, 10_000);
+            for (const symbol of ['SILVER_999', 'XAG_USD'] as const) {
+              if (!symbols.includes(symbol)) continue;
+              const points = snapshotChartPoints(data.points ?? [], symbol);
+              if (!enoughHistory(points)) continue;
+              next[symbol] = {
                 price: points.map(p => p.value),
                 bubble: points.every(p => Number.isFinite(p.bubble)) ? points.map(p => p.bubble!) : undefined,
               };

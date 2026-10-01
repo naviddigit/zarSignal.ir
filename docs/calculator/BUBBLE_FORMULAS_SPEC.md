@@ -26,7 +26,7 @@ Approved path (option B):
 
 - Derive `MARKET_18K` via `MAZANEH_TO_18K` (provenance DERIVED)
 - Enable GOLD_BUBBLE + USD_GAP
-- SILVER_BUBBLE remains SPEC_BLOCKER
+- SILVER_BUBBLE live path: V5.4-SILVER.1 (`silverBubbleV54`, ×0.999); legacy 1.0 kept for GT only
 
 When a direct 18K feed arrives later, keep DERIVED and DIRECT side-by-side for data-quality cross-check.
 

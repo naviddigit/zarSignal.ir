@@ -1,5 +1,5 @@
 import { db } from '@/lib/db';
-import { goldBubble, usdGap, FORMULA_VERSION } from '@/server/bubble-formulas';
+import { goldBubble, silverBubbleV54, usdGap, FORMULA_VERSION, SILVER_FORMULA_VERSION } from '@/server/bubble-formulas';
 import { mazanehTo18k, MAZANEH_TO_18K_VERSION } from '@/lib/mazaneh-to-18k';
 
 type QuoteRow = {
@@ -21,12 +21,14 @@ export async function recordBubbleSnapshots(quotes: QuoteRow[], mode: 'live' | '
 
   const melted = pick(quotes, 'GOLD_MELTED');
   const xau = pick(quotes, 'XAU_USD');
+  const xag = pick(quotes, 'XAG_USD');
   const usd = pick(quotes, 'USD');
   const silver999 = pick(quotes, 'SILVER_999');
   const capturedAt = new Date();
 
   const goldMeltedMid = melted ? mid(melted.buy, melted.sell) : null;
   const xauUsdMid = xau ? mid(xau.buy, xau.sell) : null;
+  const xagUsdMid = xag ? mid(xag.buy, xag.sell) : null;
   const usdIrtMid = usd ? mid(usd.buy, usd.sell) : null;
   const silver999Mid = silver999 ? mid(silver999.buy, silver999.sell) : null;
 
@@ -60,6 +62,8 @@ export async function recordBubbleSnapshots(quotes: QuoteRow[], mode: 'live' | '
       mazanehVersion: market18k ? MAZANEH_TO_18K_VERSION : null,
       silver999Mid,
       silver999ObservedAt: silver999?.observedAt ?? null,
+      xagUsdMid,
+      xagUsdObservedAt: xag?.observedAt ?? null,
     },
   });
 
@@ -76,6 +80,8 @@ export async function recordBubbleSnapshots(quotes: QuoteRow[], mode: 'live' | '
     theoreticalPrice: number | null;
     bubbleAbsolute: number | null;
     bubblePercent: number | null;
+    usdImplied: number | null;
+    usdGapPercent: number | null;
     status: string;
     capturedAt: Date;
   }[] = [];
@@ -96,6 +102,8 @@ export async function recordBubbleSnapshots(quotes: QuoteRow[], mode: 'live' | '
         theoreticalPrice: gold.theoretical,
         bubbleAbsolute: gold.gap,
         bubblePercent: gold.percent,
+        usdImplied: null,
+        usdGapPercent: null,
         status: 'ok',
         capturedAt,
       });
@@ -113,6 +121,8 @@ export async function recordBubbleSnapshots(quotes: QuoteRow[], mode: 'live' | '
         theoreticalPrice: dollar.theoretical,
         bubbleAbsolute: dollar.gap,
         bubblePercent: dollar.percent,
+        usdImplied: null,
+        usdGapPercent: null,
         status: 'ok',
         capturedAt,
       });
@@ -121,11 +131,41 @@ export async function recordBubbleSnapshots(quotes: QuoteRow[], mode: 'live' | '
     }
   }
 
+  if (silver999Mid && silver999Mid > 0 && xagUsdMid && xagUsdMid > 0 && usdIrtMid && usdIrtMid > 0) {
+    try {
+      const silver = silverBubbleV54({
+        xagUsd: xagUsdMid,
+        usdIrt: usdIrtMid,
+        silver999Market: silver999Mid,
+      });
+      rows.push({
+        inputSnapshotId: input.id,
+        instrumentKey: 'SILVER_999',
+        formulaId: 'SILVER_BUBBLE',
+        formulaVersion: SILVER_FORMULA_VERSION,
+        conversionVersion: null,
+        provenance: 'LIVE',
+        marketPrice: silver.silver999Market,
+        marketBid: silver999?.buy ?? null,
+        marketAsk: silver999?.sell ?? null,
+        theoreticalPrice: silver.silverTheo999,
+        bubbleAbsolute: silver.silverGap,
+        bubblePercent: silver.silverPremiumPct,
+        usdImplied: silver.usdImpliedSilver,
+        usdGapPercent: silver.silverUsdGapPct,
+        status: 'ok',
+        capturedAt,
+      });
+    } catch {
+      /* leave without silver metric row */
+    }
+  }
+
   if (rows.length) await db.bubbleSnapshot.createMany({ data: rows });
   return { saved: rows.length, inputId: input.id };
 }
 
-export async function getBubbleHistory(formulaId: 'GOLD_BUBBLE' | 'USD_GAP', rangeHours: number) {
+export async function getBubbleHistory(formulaId: 'GOLD_BUBBLE' | 'USD_GAP' | 'SILVER_BUBBLE', rangeHours: number) {
   const since = new Date(Date.now() - rangeHours * 3_600_000);
   const rows = await db.bubbleSnapshot.findMany({
     where: { formulaId, capturedAt: { gte: since, lte: new Date() }, status: 'ok', bubblePercent: { not: null } },
