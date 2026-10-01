@@ -114,9 +114,22 @@ export function ProfessionalCalculator({ snapshot }: { snapshot: Snapshot }) {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState('');
   const [activeField, setActiveField] = useState('');
+  const [keypadCue, setKeypadCue] = useState(false);
   const request = useRef<AbortController | null>(null);
-  useEffect(() => () => request.current?.abort(), []);
-  // calculator_open tracked once from page FunnelTrack
+  const cueTimer = useRef<number | null>(null);
+  useEffect(() => () => {
+    request.current?.abort();
+    if (cueTimer.current) window.clearTimeout(cueTimer.current);
+  }, []);
+
+  function flashKeypadCue() {
+    setKeypadCue(false);
+    requestAnimationFrame(() => {
+      setKeypadCue(true);
+      if (cueTimer.current) window.clearTimeout(cueTimer.current);
+      cueTimer.current = window.setTimeout(() => setKeypadCue(false), 1400);
+    });
+  }
 
   const available = toolsByProduct[product];
   const operation = isOperation(tool) ? tool : null;
@@ -167,9 +180,10 @@ export function ProfessionalCalculator({ snapshot }: { snapshot: Snapshot }) {
       const field = spec.fields.find(item => item.key === key);
       if (!field) return current;
       if (mode === 'LIVE') return { ...current, [key]: liveEntry(field, market) };
-      // Manual: reset to 0; neon ring signals type-here mode.
+      // Manual: reset to 0; thin cue on keypad tells user where to type.
       return { ...current, [key]: { value: '0', provenance: 'MANUAL' } };
     });
+    if (mode === 'MANUAL') flashKeypadCue();
   }
 
   async function refresh() {
@@ -285,7 +299,7 @@ export function ProfessionalCalculator({ snapshot }: { snapshot: Snapshot }) {
                       </button>
                     </div>
                   </div>
-                  <div className={`calc-tool-panel__control${input.provenance === 'MANUAL' ? ' is-manual-neon' : ''}`}>
+                  <div className="calc-tool-panel__control">
                     <input
                       className="ds-input"
                       inputMode="none"
@@ -340,8 +354,9 @@ export function ProfessionalCalculator({ snapshot }: { snapshot: Snapshot }) {
       <CalculatorLiveStrip snapshot={market} />
 
       <div className="calc-stage__side">
-        <div className="calc-keypad-wrap">
+        <div className={`calc-keypad-wrap${keypadCue ? ' is-keypad-cue' : ''}`} aria-describedby={keypadCue ? 'calc-keypad-hint' : undefined}>
           <span className="calc-entry-target">{keypadTarget}</span>
+          {keypadCue ? <span id="calc-keypad-hint" className="calc-keypad-hint">عدد را از اینجا وارد کنید</span> : null}
           <CalculatorKeypad key={`${tool}-${activeField}`} value={keypadValue} onChange={value => {
             if (tool === 'weight') { setWeightAmount(value); return; }
             if (tool === 'purity') { setPurityAmount(value); return; }

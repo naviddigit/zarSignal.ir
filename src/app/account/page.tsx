@@ -4,21 +4,28 @@ import {
   ArrowUpLeft,
   BellOff,
   Calculator,
+  ChartNoAxesCombined,
   CreditCard,
   History,
+  LineChart,
+  LockKeyhole,
   LogOut,
+  Radar,
   Store,
   UserRound,
 } from 'lucide-react';
 import { auth, signOut } from '@/auth';
 import { db } from '@/lib/db';
+import { planHistoryDays } from '@/lib/history-access';
 import { PendingButton } from '@/components/pending-button';
 import { FunnelTrack } from '@/components/funnel-track';
 import { deleteP0TestAccount } from '@/app/login/actions';
+import { analysisTrial } from '@/server/analysis-trial';
+import { getPublishedPlans } from '@/server/plans';
 
 export const metadata: Metadata = {
   title: 'حساب من',
-  description: 'پروفایل، اشتراک و دسترسی‌های زرسیگنال.',
+  description: 'وضعیت اشتراک، دسترسی تاریخچه و میان‌برهای زرسیگنال.',
   alternates: { canonical: '/account' },
 };
 export const dynamic = 'force-dynamic';
@@ -29,6 +36,10 @@ const statusFa: Record<string, string> = {
   CANCELED: 'لغو شده',
   EXPIRED: 'منقضی',
 };
+
+function faDate(value: Date | string) {
+  return new Intl.DateTimeFormat('fa-IR', { dateStyle: 'medium', timeZone: 'Asia/Tehran' }).format(new Date(value));
+}
 
 export default async function AccountPage({
   searchParams,
@@ -42,27 +53,48 @@ export default async function AccountPage({
   if (!user?.id) {
     return (
       <main id="main" className="shell content-page account-page">
-        <span className="eyebrow">حساب کاربری</span>
-        <h1>برای پروفایل وارد شوید</h1>
-        <p className="lead">بعد از ورود، اشتراک و دسترسی تاریخچه اینجا می‌آید.</p>
+        <span className="eyebrow">عضویت زرسیگنال</span>
+        <h1>برای دیدن دسترسی‌ها وارد شوید</h1>
+        <p className="lead">اینجا وضعیت اشتراک، عمق تاریخچه نمودار و میان‌بر ابزارهاست — نه صفحه عمومی بازار.</p>
         <Link className="button" href="/login?next=%2Faccount">ورود / عضویت <ArrowUpLeft size={16} /></Link>
       </main>
     );
   }
 
-  const subscriptions = await db.subscription.findMany({
-    where: { userId: user.id },
-    orderBy: { startsAt: 'desc' },
-    take: 20,
-  }).catch(() => []);
+  const [subscriptions, plans, trial] = await Promise.all([
+    db.subscription.findMany({
+      where: { userId: user.id },
+      orderBy: { startsAt: 'desc' },
+      take: 20,
+    }).catch(() => []),
+    getPublishedPlans().catch(() => []),
+    analysisTrial().catch(() => ({ enabled: false, hours: 24, available: false, loggedIn: true, used: false, expiresAt: null as string | null })),
+  ]);
 
-  const hasActive = subscriptions.some(s => s.status === 'ACTIVE');
-  const hasPending = subscriptions.some(s => s.status === 'PENDING');
+  const active = subscriptions.find(s => s.status === 'ACTIVE' && !String(s.product).startsWith('__'));
+  const pending = subscriptions.find(s => s.status === 'PENDING' && !String(s.product).startsWith('__'));
+  const activePlan = active ? plans.find(p => p.slug === active.product) : null;
+  const historyDays = activePlan ? planHistoryDays(activePlan.features) : 0;
+  const trialLive = Boolean(trial.enabled && trial.expiresAt && new Date(trial.expiresAt) > new Date());
+
+  let membershipLabel = 'حساب رایگان';
+  let membershipDetail = 'قیمت زنده و ماشین‌حساب تأییدشده همیشه باز است. عمق بیشتر تاریخچه با اشتراک.';
+  if (active && historyDays > 0) {
+    membershipLabel = `اشتراک فعال · تاریخچه ${new Intl.NumberFormat('fa-IR').format(historyDays)} روز`;
+    membershipDetail = `تا ${faDate(active.expiresAt)} · پلن «${active.product}»`;
+  } else if (pending) {
+    membershipLabel = 'در انتظار پرداخت';
+    membershipDetail = `پلن «${pending.product}» ثبت شده؛ بعد از تأیید سرور درگاه، تاریخچه باز می‌شود.`;
+  } else if (trialLive && trial.expiresAt) {
+    membershipLabel = `آزمایش تاریخچه · ${new Intl.NumberFormat('fa-IR').format(trial.hours)} ساعت`;
+    membershipDetail = `تا ${faDate(trial.expiresAt)}`;
+  }
 
   return (
     <main id="main" className="shell content-page account-page">
       {signup === '1' ? <FunnelTrack event="signup_complete" /> : null}
-      <span className="eyebrow">پروفایل</span>
+
+      <span className="eyebrow">عضویت زرسیگنال</span>
       <header className="account-hero">
         <span className="account-hero__avatar" aria-hidden="true"><UserRound size={26} /></span>
         <div>
@@ -71,23 +103,134 @@ export default async function AccountPage({
         </div>
       </header>
 
-      {reserved ? (
-        <p className="lead" role="status">
-          پلن «{reserved}» ثبت شد (در انتظار پرداخت). درگاه هنوز فعال نیست.
-        </p>
-      ) : null}
+      <section className="account-status" aria-label="وضعیت عضویت">
+        <div className={`account-status__badge${active ? ' is-active' : pending ? ' is-pending' : ''}`}>
+          <CreditCard size={18} aria-hidden="true" />
+          <div>
+            <strong>{membershipLabel}</strong>
+            <small>{membershipDetail}</small>
+          </div>
+        </div>
+        {reserved ? (
+          <p className="account-status__note" role="status">
+            پلن «{reserved}» رزرو شد. فعال‌سازی فقط بعد از تأیید پرداخت سمت سرور است.
+          </p>
+        ) : null}
+        <div className="account-status__actions">
+          {active ? (
+            <Link className="button" href="/charts">باز کردن نمودار <ArrowUpLeft size={15} /></Link>
+          ) : (
+            <Link className="button" href="/pricing">ارتقا دسترسی تاریخچه <ArrowUpLeft size={15} /></Link>
+          )}
+          <Link className="text-link" href="/pricing">مقایسه پلن‌ها</Link>
+        </div>
+      </section>
+
+      <section className="account-shortcuts" aria-label="ابزارهای شما">
+        <h2>از کجا شروع کنید</h2>
+        <div className="account-grid">
+          <Link className="account-card" href="/markets">
+            <Store size={18} />
+            <span>
+              <strong>تابلوی قیمت</strong>
+              <small>قیمت و حباب زنده — رایگان</small>
+            </span>
+            <ArrowUpLeft size={16} />
+          </Link>
+          <Link className="account-card" href="/calculator">
+            <Calculator size={18} />
+            <span>
+              <strong>ماشین‌حساب</strong>
+              <small>تبدیل و حباب با منبع مشخص</small>
+            </span>
+            <ArrowUpLeft size={16} />
+          </Link>
+          <Link className="account-card" href="/#bubbles">
+            <Radar size={18} />
+            <span>
+              <strong>رادار حباب</strong>
+              <small>طلا، نقره، فاصله دلار</small>
+            </span>
+            <ArrowUpLeft size={16} />
+          </Link>
+          <Link className="account-card" href="/charts">
+            <LineChart size={18} />
+            <span>
+              <strong>نمودار تاریخچه</strong>
+              <small>
+                {historyDays > 0
+                  ? `تا ${new Intl.NumberFormat('fa-IR').format(historyDays)} روز با پلن شما`
+                  : trialLive
+                    ? 'در دوره آزمایشی'
+                    : '۲۴ ساعت رایگان · عمق بیشتر با اشتراک'}
+              </small>
+            </span>
+            <ArrowUpLeft size={16} />
+          </Link>
+        </div>
+      </section>
+
+      <section className="account-access" aria-label="شفافیت دسترسی">
+        <h2>چه چیزی باز است؟</h2>
+        <ul className="account-access__list">
+          <li>
+            <Store size={16} aria-hidden="true" />
+            <div>
+              <strong>قیمت و حباب زنده</strong>
+              <small>همیشه رایگان — هسته شفافیت محصول</small>
+            </div>
+          </li>
+          <li>
+            <Calculator size={16} aria-hidden="true" />
+            <div>
+              <strong>ماشین‌حساب تأییدشده</strong>
+              <small>رایگان؛ فقط ماژول‌هایی که Source دارند</small>
+            </div>
+          </li>
+          <li>
+            <History size={16} aria-hidden="true" />
+            <div>
+              <strong>عمق تاریخچه نمودار</strong>
+              <small>
+                {historyDays > 0
+                  ? `پلن شما: ${new Intl.NumberFormat('fa-IR').format(historyDays)} روز`
+                  : 'قابل پولی‌سازی از ادمین (۷ / ۳۰ / ۹۰ روز) — الان پلن فعال ندارید'}
+              </small>
+            </div>
+          </li>
+          <li className="is-muted">
+            <ChartNoAxesCombined size={16} aria-hidden="true" />
+            <div>
+              <strong>تحلیل V5.4 (اطمینان، دلیل، ریسک، فرصت)</strong>
+              <small>هنوز منتشر نشده — بعد از Spec؛ همان بخشی که ارزش اشتراک را بالا می‌برد</small>
+            </div>
+          </li>
+          <li className="is-muted">
+            <BellOff size={16} aria-hidden="true" />
+            <div>
+              <strong>هشدار قیمت</strong>
+              <small>SOURCE_REQUIRED — حدس نمی‌زنیم</small>
+            </div>
+          </li>
+          <li className="is-muted">
+            <LockKeyhole size={16} aria-hidden="true" />
+            <div>
+              <strong>سیگنال خرید/فروش رنگی</strong>
+              <small>ممنوع محصولی تا Spec صریح مجتبی</small>
+            </div>
+          </li>
+        </ul>
+      </section>
 
       <section className="account-subs" aria-label="اشتراک‌ها">
-        <h2>اشتراک‌های من</h2>
-        {subscriptions.length ? (
+        <h2>تاریخچه اشتراک</h2>
+        {subscriptions.filter(s => !String(s.product).startsWith('__')).length ? (
           <ul className="account-subs__list">
-            {subscriptions.map(item => (
+            {subscriptions.filter(s => !String(s.product).startsWith('__')).map(item => (
               <li key={item.id}>
                 <strong>{item.product}</strong>
                 <span>{statusFa[item.status] ?? item.status}</span>
-                <small>
-                  تا {new Intl.DateTimeFormat('fa-IR', { dateStyle: 'medium', timeZone: 'Asia/Tehran' }).format(item.expiresAt)}
-                </small>
+                <small>تا {faDate(item.expiresAt)}</small>
               </li>
             ))}
           </ul>
@@ -97,57 +240,6 @@ export default async function AccountPage({
             <Link className="text-link" href="/pricing">انتخاب پلن ←</Link>
           </p>
         )}
-      </section>
-
-      <section className="account-access" aria-label="وضعیت دسترسی">
-        <h2>الان چه چیزی باز است؟</h2>
-        <ul className="account-access__list">
-          <li>
-            <Store size={16} aria-hidden="true" />
-            <div>
-              <strong>قیمت و حباب زنده</strong>
-              <small>همیشه رایگان</small>
-            </div>
-          </li>
-          <li>
-            <Calculator size={16} aria-hidden="true" />
-            <div>
-              <strong>ماشین‌حساب تأییدشده</strong>
-              <small>همیشه رایگان</small>
-            </div>
-          </li>
-          <li>
-            <History size={16} aria-hidden="true" />
-            <div>
-              <strong>تاریخچه نمودار</strong>
-              <small>
-                {hasActive
-                  ? 'طبق پلن فعال شما'
-                  : hasPending
-                    ? 'پلن ثبت شده؛ بعد از پرداخت فعال می‌شود'
-                    : '۲۴ ساعت رایگان · ۷/۳۰/۹۰ روز با اشتراک'}
-              </small>
-            </div>
-          </li>
-          <li className="is-muted">
-            <BellOff size={16} aria-hidden="true" />
-            <div>
-              <strong>هشدار و اعلان قیمت</strong>
-              <small>هنوز در محصول فعال نیست — بعد از تأیید Source منتشر می‌شود</small>
-            </div>
-          </li>
-          <li>
-            <CreditCard size={16} aria-hidden="true" />
-            <div>
-              <strong>بعد از خرید چه می‌شود؟</strong>
-              <small>فعلاً فقط عمق تاریخچه (و در پلن API، سهمیه درخواست). سیگنال خرید/فروش نیست.</small>
-            </div>
-          </li>
-        </ul>
-        <div className="account-access__actions">
-          <Link className="button" href="/pricing">پلن‌ها</Link>
-          <Link className="text-link" href="/markets">تابلوی قیمت ←</Link>
-        </div>
       </section>
 
       <form

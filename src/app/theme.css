@@ -191,17 +191,28 @@ html[data-theme='light'] .calculator-screen>span,html[data-theme='light'] .calcu
 .account-page>.lead{margin:0 0 18px;color:var(--text-secondary);line-height:1.85}
 .account-page>.button{display:inline-flex;margin-bottom:14px}
 .account-page>.text-link{display:inline-flex}
+.account-page>h2,.account-shortcuts>h2,.account-access>h2,.account-subs>h2{font-size:16px;margin:0 0 12px}
 .account-hero{display:flex;align-items:center;gap:14px;margin:12px 0 18px;padding:16px;border:1px solid var(--border-subtle);border-radius:16px;background:var(--surface-card)}
 .account-hero__avatar{width:52px;height:52px;display:grid;place-items:center;border-radius:14px;background:color-mix(in srgb,var(--accent) 14%,var(--surface-soft));color:var(--accent);flex:none}
 .account-hero h1{margin:0;font-size:20px}
 .account-hero p{margin:4px 0 0;color:var(--text-secondary);font-size:13px}
-.account-grid{display:grid;gap:10px;margin-bottom:18px}
+.account-status{margin:0 0 18px;padding:16px;border:1px solid var(--border-subtle);border-radius:16px;background:linear-gradient(145deg,color-mix(in srgb,var(--accent) 10%,var(--surface-card)),var(--surface-card))}
+.account-status__badge{display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:start}
+.account-status__badge>svg{color:var(--accent);margin-top:2px}
+.account-status__badge.is-active>svg{color:var(--success)}
+.account-status__badge.is-pending>svg{color:var(--accent)}
+.account-status__badge strong{display:block;font-size:15px;line-height:1.5}
+.account-status__badge small{display:block;margin-top:4px;color:var(--text-secondary);font-size:12px;line-height:1.7}
+.account-status__note{margin:12px 0 0;padding:10px 12px;border-radius:10px;background:var(--surface-soft);color:var(--text-secondary);font-size:12px;line-height:1.7}
+.account-status__actions{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-top:14px}
+.account-shortcuts{margin:0 0 18px}
+.account-grid{display:grid;gap:10px;margin-bottom:0;grid-template-columns:1fr 1fr}
 .account-card{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:12px;min-height:64px;padding:14px;border:1px solid var(--border-subtle);border-radius:14px;background:var(--surface-card);color:var(--text-primary);text-decoration:none}
 .account-card>svg:first-child{color:var(--accent)}
 .account-card>svg:last-child{color:var(--text-muted)}
 .account-card span{display:grid;gap:2px;min-width:0}
 .account-card strong{font-size:14px}
-.account-card small{font-size:11px;color:var(--text-muted)}
+.account-card small{font-size:11px;color:var(--text-muted);line-height:1.5}
 .account-card:hover{border-color:color-mix(in srgb,var(--accent) 40%,var(--border-subtle));background:color-mix(in srgb,var(--accent) 5%,var(--surface-card))}
 .account-logout .button,.account-logout button{width:100%;min-height:46px;display:inline-flex;align-items:center;justify-content:center;gap:8px;background:transparent;border:1px solid color-mix(in srgb,var(--danger) 45%,var(--border-subtle));color:var(--danger)}
 .account-subs{margin:0 0 18px;padding:16px;border:1px solid var(--border-subtle);border-radius:16px;background:var(--surface-card)}
@@ -221,6 +232,7 @@ html[data-theme='light'] .calculator-screen>span,html[data-theme='light'] .calcu
 .account-access__list strong{display:block;font-size:13px}
 .account-access__list small{display:block;margin-top:2px;color:var(--text-muted);font-size:11px;line-height:1.7}
 .account-access__actions{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-top:16px}
+@media(max-width:640px){.account-grid{grid-template-columns:1fr}}
 .header-auth{display:inline-flex;align-items:center;gap:7px;max-width:160px}
 .header-auth__label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px}
 

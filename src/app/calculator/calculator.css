@@ -144,34 +144,35 @@
   font-variant-numeric:tabular-nums;
 }
 .calc-tool-panel__field.is-live .ds-input{border-color:color-mix(in srgb,var(--success) 40%,var(--border-subtle))}
-.calc-tool-panel__control.is-manual-neon{position:relative;isolation:isolate;border-radius:12px;overflow:visible}
-.calc-tool-panel__control.is-manual-neon::before{
+.calc-tool-panel__field.is-manual .ds-input{border-color:color-mix(in srgb,var(--accent) 35%,var(--border-subtle))}
+/* Keypad cue: thin gold arc runs once around keypad border — use numbers here */
+.calc-keypad-wrap{position:relative}
+.calc-keypad-wrap.is-keypad-cue{
+  border-color:color-mix(in srgb,var(--accent) 45%,var(--border-subtle));
+}
+.calc-keypad-wrap.is-keypad-cue::before{
   content:'';
   position:absolute;
-  inset:-3px;
-  border-radius:14px;
-  background:conic-gradient(from 0deg,#0000 0 52%,var(--accent) 68%,#ffe6a3 80%,#0000 92%);
-  animation:calc-neon-spin 1.45s linear infinite;
+  inset:-1px;
+  border-radius:inherit;
+  padding:1.5px;
+  background:conic-gradient(from 0deg,#0000 0 78%,var(--accent) 88%,#ffe6a3 94%,#0000 100%);
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;
+  mask-composite:exclude;
   pointer-events:none;
-  z-index:0;
+  z-index:2;
+  animation:calc-keypad-cue 1.35s linear 1 forwards;
 }
-.calc-tool-panel__control.is-manual-neon::after{
-  content:'';
-  position:absolute;
-  inset:0;
-  border-radius:12px;
-  background:var(--surface-card);
-  pointer-events:none;
-  z-index:0;
+@keyframes calc-keypad-cue{
+  0%{transform:rotate(0deg);opacity:1}
+  85%{opacity:1}
+  100%{transform:rotate(360deg);opacity:0}
 }
-.calc-tool-panel__control.is-manual-neon .ds-input,
-.calc-tool-panel__control.is-manual-neon .calc-tool-panel__unit{position:relative;z-index:1}
-.calc-tool-panel__control.is-manual-neon .ds-input{
-  border-color:color-mix(in srgb,var(--accent) 55%,var(--border-subtle));
-  box-shadow:0 0 0 1px color-mix(in srgb,var(--accent) 18%,transparent),0 0 22px color-mix(in srgb,var(--accent) 22%,transparent);
-  background:var(--surface-input);
+@media(prefers-reduced-motion:reduce){
+  .calc-keypad-wrap.is-keypad-cue::before{animation:none;opacity:.55;background:var(--accent)}
 }
-@keyframes calc-neon-spin{to{transform:rotate(360deg)}}
 .calc-result-panel{padding:12px 14px;border:1px solid color-mix(in srgb,var(--accent) 35%,var(--border-subtle));border-radius:14px;background:color-mix(in srgb,var(--accent) 8%,var(--surface-card));display:grid;gap:8px}
 .calc-result-panel>strong{font-size:12px;color:var(--accent)}
 .calc-result-panel__row{display:flex;justify-content:space-between;gap:10px;align-items:baseline}
@@ -179,9 +180,6 @@
 .calc-result-panel__row bdi{font:800 15px Vazirmatn;color:var(--text-primary);font-variant-numeric:tabular-nums}
 .calc-result-panel__row small{font:600 10px Vazirmatn;color:var(--text-muted);margin-right:4px}
 .calc-result-panel__ver{font-size:10px;color:var(--text-muted)}
-@media(prefers-reduced-motion:reduce){
-  .calc-tool-panel__control.is-manual-neon::before{animation:none;background:var(--accent);opacity:.45}
-}
 .calc-tool-panel__unit{font:600 10px Vazirmatn;color:var(--text-muted);max-width:96px;line-height:1.25;text-align:start}
 .calc-tool-panel__go{width:100%;min-height:42px}
 .calc-tool-panel--locked{place-items:center;text-align:center;padding:28px 16px;color:var(--text-secondary)}
@@ -247,6 +245,13 @@
 .calc-keypad button{min-height:0;height:100%;font-size:21px}
 .calc-keypad-status{grid-column:span 2;display:grid;place-items:center;color:var(--text-secondary);font-size:12px;overflow-wrap:anywhere;text-align:center}
 .calc-entry-target{display:block;font-size:12px;color:var(--accent);margin:0 0 8px}
+.calc-keypad-hint{
+  display:block;
+  margin:-2px 0 8px;
+  font:700 11px Vazirmatn;
+  color:var(--accent);
+  letter-spacing:.01em;
+}
 .calc-tool-panel input[data-active=true]{outline:2px solid var(--accent);outline-offset:1px}
 .calc-weight-widget__pair{direction:ltr}.calc-weight-box{direction:rtl;min-width:0}
 .calc-weight-box.is-out{grid-area:out}.calc-weight-box.is-in{grid-area:in}.calc-weight-swap{grid-area:swap}
