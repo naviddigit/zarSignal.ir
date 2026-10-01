@@ -23,6 +23,8 @@ model User {
   apiKeys       ApiKey[]
   payments      Payment[]
   analysisAcknowledgements AnalysisAcknowledgement[]
+  analysisReads           AnalysisRead[]
+  analysisFeedbacks       AnalysisFeedback[]
   accounts      Account[]
   sessions      Session[]
 
@@ -355,4 +357,34 @@ model AnalysisAcknowledgement {
   warningPolicyVersion String
   acknowledgedAt DateTime @default(now())
   @@index([userId, requestId, warningPolicyVersion])
+}
+
+/** One completed reading per user + report version — study counter, not a recoverable archive. */
+model AnalysisRead {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reportId      String
+  schemaVersion String
+  symbol        String?
+  completedAt   DateTime @default(now())
+
+  @@unique([userId, reportId, schemaVersion])
+  @@index([userId, completedAt])
+}
+
+/** One editable rating/comment per user + report version. */
+model AnalysisFeedback {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reportId      String
+  schemaVersion String
+  rating        Int
+  comment       String?  @db.VarChar(500)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([userId, reportId, schemaVersion])
+  @@index([userId, updatedAt])
 }

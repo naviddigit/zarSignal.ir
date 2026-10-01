@@ -61,6 +61,9 @@ test('narrative layers stay distinct: view reason meaning result', () => {
   assert.equal(prose.decision.tradeAction, null);
   assert.ok(prose.decision.valuation);
   assert.match(prose.decision.valuation!.detail, /٪/);
+  assert.match(prose.decision.valuation!.title, /طلا/);
+  assert.equal(prose.decision.valuation!.marketLabel.length > 0, true);
+  assert.ok(prose.decision.valuation!.percent != null);
 });
 
 test('gold silver parity stays in meaning without inventing executable swap', () => {
@@ -179,6 +182,8 @@ test('same snapshot supports overall and focused reports, preview redacts full p
   assert.equal(overall.decision.kind, 'needs_confirmation');
   assert.equal(overall.decision.tradeAction, null);
   assert.ok(overall.decision.valuation);
+  assert.match(overall.decision.valuation!.detail, /برداشت مقایسه‌ای بازار/);
+  assert.match(overall.decision.valuation!.title, /·/);
   assert.ok(overall.valuationMarks.length);
   const silver = marketViewReportFromSnapshot(snapshot, 'full', 'SILVER_999');
   assert.deepEqual(silver.evidence.map(row => row.id), ['silver']);

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { isAftermathItemVisible, visibleAftermathCount } from '../src/lib/analysis-reveal';
+import { AFTERMATH_FADE_MS, AFTERMATH_STEP_GAP_MS, isAftermathItemVisible, visibleAftermathCount } from '../src/lib/analysis-reveal';
 
 test('aftermath stays empty while typing is incomplete', () => {
   assert.equal(visibleAftermathCount({
@@ -8,25 +8,16 @@ test('aftermath stays empty while typing is incomplete', () => {
     step: 99,
     total: 5,
     reducedMotion: false,
-    skipped: false,
   }), 0);
   assert.equal(isAftermathItemVisible(0, 0), false);
 });
 
-test('skip and reduced-motion reveal every aftermath item immediately', () => {
-  assert.equal(visibleAftermathCount({
-    typingComplete: true,
-    step: 1,
-    total: 4,
-    reducedMotion: false,
-    skipped: true,
-  }), 4);
+test('reduced-motion reveals every aftermath item immediately', () => {
   assert.equal(visibleAftermathCount({
     typingComplete: true,
     step: 0,
     total: 4,
     reducedMotion: true,
-    skipped: false,
   }), 4);
 });
 
@@ -36,16 +27,20 @@ test('after typing, step grows item visibility without reserving future slots', 
     step: 1,
     total: 4,
     reducedMotion: false,
-    skipped: false,
   }), 1);
   assert.equal(visibleAftermathCount({
     typingComplete: true,
     step: 3,
     total: 4,
     reducedMotion: false,
-    skipped: false,
   }), 3);
   assert.equal(isAftermathItemVisible(0, 1), true);
   assert.equal(isAftermathItemVisible(1, 1), false);
   assert.equal(isAftermathItemVisible(3, 4), true);
+});
+
+test('aftermath stagger is deliberately slower than a single flash', () => {
+  assert.ok(AFTERMATH_STEP_GAP_MS >= 400);
+  assert.ok(AFTERMATH_FADE_MS >= 280);
+  assert.ok(AFTERMATH_STEP_GAP_MS > AFTERMATH_FADE_MS);
 });

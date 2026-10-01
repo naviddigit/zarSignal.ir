@@ -50,6 +50,7 @@ export default async function MarketAnalysisPage({ searchParams }: { searchParam
       <MarketViewReportView
         initial={report}
         canRefresh
+        signedIn={Boolean(userId)}
         trialCta={!fullAccess ? (
           <Link className="button" href={`/login?next=${encodeURIComponent('/analysis')}`}>
             ورود / شروع آزمایش <ArrowUpLeft size={15} />

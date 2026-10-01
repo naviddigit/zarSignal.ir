@@ -37,6 +37,10 @@ export type MarketViewValuationSummary = {
   stance: 'below' | 'above' | 'equal' | 'unknown';
   title: string;
   detail: string;
+  /** Short market name for the result card — never omit the asset. */
+  marketLabel: string;
+  /** Percent gap vs reference; null when unknown. */
+  percent: number | null;
 };
 
 export type MarketViewDecision = {
@@ -162,17 +166,63 @@ function buildValuationSummary(
   const focus = [...independent].sort((a, b) => Math.abs(b.diffPercent!) - Math.abs(a.diffPercent!))[0] ?? usable[0];
   const direction = stance(focus.diffPercent);
   const name = shortMarketLabel(focus.id, symbol);
+  const percent = focus.diffPercent != null && Number.isFinite(focus.diffPercent) ? focus.diffPercent : null;
+
+  // Overall market: comparative takeaway with named assets — not a vague "below reference".
+  if (!symbol && usable.length > 1) {
+    const parts = usable
+      .filter(row => row.id !== 'coin')
+      .map(row => {
+        const rowName = shortMarketLabel(row.id, symbol);
+        const rowDir = stance(row.diffPercent);
+        if (rowDir === 'none' || row.diffPercent == null) return null;
+        if (rowDir === 'equal') return `${rowName} برابر مرجع`;
+        return `${rowName} ${formatFaMoney(Math.abs(row.diffPercent), 2)}٪ ${rowDir === 'below' ? 'پایین‌تر' : 'بالاتر'}`;
+      })
+      .filter((part): part is string => Boolean(part));
+    if (direction === 'none') {
+      return {
+        stance: 'unknown',
+        title: `${name} · مرجع نامشخص`,
+        detail: parts.length ? `برداشت مقایسه‌ای بازار: ${parts.join('؛ ')}.` : `برای ${name} اختلاف معتبر با مرجع در دسترس نیست.`,
+        marketLabel: name,
+        percent: null,
+      };
+    }
+    return {
+      stance: direction === 'equal' ? 'equal' : direction,
+      title: `${name} · ${stanceLabel(direction)}`,
+      detail: `برداشت مقایسه‌ای بازار: ${parts.join('؛ ')}.`,
+      marketLabel: name,
+      percent,
+    };
+  }
+
   if (direction === 'none') {
-    return { stance: 'unknown', title: 'مرجع نامشخص', detail: `برای ${name} اختلاف معتبر با مرجع در دسترس نیست.` };
+    return {
+      stance: 'unknown',
+      title: `${name} · مرجع نامشخص`,
+      detail: `برای ${name} اختلاف معتبر با مرجع در دسترس نیست.`,
+      marketLabel: name,
+      percent: null,
+    };
   }
   if (direction === 'equal') {
-    return { stance: 'equal', title: 'برابر با مرجع', detail: `${name} با مرجع محاسباتی برابر است.` };
+    return {
+      stance: 'equal',
+      title: `${name} · برابر با مرجع`,
+      detail: `${name} با مرجع محاسباتی برابر است.`,
+      marketLabel: name,
+      percent: 0,
+    };
   }
   const pct = formatFaMoney(Math.abs(focus.diffPercent!), 2);
   return {
     stance: direction,
-    title: stanceLabel(direction),
+    title: `${name} · ${stanceLabel(direction)}`,
     detail: `${name} ${pct}٪ ${direction === 'below' ? 'پایین‌تر از' : 'بالاتر از'} مرجع است.`,
+    marketLabel: name,
+    percent,
   };
 }
 
