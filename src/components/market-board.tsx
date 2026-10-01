@@ -119,7 +119,7 @@ export function MarketBoard({ initial, bubbles = [] }: { initial: Snapshot; bubb
       <header className="market-heading">
         <div>
 
-          <h1>قیمت‌های بازار</h1>
+          <h1>نرخ‌های تابلو</h1>
           <p>نماد دلخواه را انتخاب کنید؛ قیمت و تاریخچه را ببینید.</p>
         </div>
         <div className={`feed-state ${fresh ? 'is-live' : stale ? 'is-stale' : 'is-offline'}`}>
