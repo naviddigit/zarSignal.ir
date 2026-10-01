@@ -10,6 +10,7 @@ import { formatNumericInput, sanitizeNumericInput } from '@/lib/numeric-input';
 import { isStale, type Snapshot } from '@/lib/market';
 import { mazanehTo18k } from '@/lib/mazaneh-to-18k';
 import { Select } from '@/components/ui/select';
+import { HScrollRail } from '@/components/ui/h-scroll-rail';
 import { keypadMath } from '@/lib/keypad-math';
 
 const unitOptions = Object.entries(weightUnits).map(([value, unit]) => ({ value, label: unit.label }));
@@ -114,7 +115,7 @@ export function CalculatorLiveStrip({ snapshot }: { snapshot: Snapshot }) {
           {snapshot.status === 'ok' ? `دریافت: ${clock(latest)}` : 'داده قدیمی / نامعتبر'}
         </span>
       </header>
-      <div className="calc-live-strip__grid">
+      <HScrollRail className="calc-live-strip__rail" trackClassName="calc-live-strip__grid" label="قیمت‌های بازار" step={140}>
         {cells.map(cell => {
           const quote = snapshot.quotes.find(item => item.symbol === cell.symbol);
           const melted = snapshot.quotes.find(item => item.symbol === 'GOLD_MELTED');
@@ -134,7 +135,7 @@ export function CalculatorLiveStrip({ snapshot }: { snapshot: Snapshot }) {
             </article>
           );
         })}
-      </div>
+      </HScrollRail>
     </section>
   );
 }
@@ -209,7 +210,7 @@ export function CalculatorPopularRow({
       <header>
         <strong>محاسبات محبوب</strong><small className="calc-currency-note">محاسبات: تومانی</small>
       </header>
-      <div className="calc-popular__icons">
+      <HScrollRail className="calc-popular__rail" trackClassName="calc-popular__icons" label="محاسبات محبوب" step={120}>
         {items.map(item => {
           const Icon = item.Icon;
           return (
@@ -225,7 +226,7 @@ export function CalculatorPopularRow({
             </button>
           );
         })}
-      </div>
+      </HScrollRail>
     </section>
   );
 }
@@ -271,8 +272,15 @@ export function WeightConvertWidget({ amount, onAmountChange }: { amount: string
               onChange={event => onAmountChange(sanitizeNumericInput(event.target.value, 8))}
             />
             {amount ? (
-              <button type="button" className="calc-weight-box__clear" aria-label="پاک‌کردن" onClick={() => onAmountChange('')}>
-                <X size={12} />
+              <button
+                type="button"
+                className="calc-weight-box__clear"
+                aria-label="پاک‌کردن"
+                tabIndex={-1}
+                onMouseDown={event => event.preventDefault()}
+                onClick={() => onAmountChange('')}
+              >
+                <X size={10} strokeWidth={2.4} />
               </button>
             ) : null}
           </div>

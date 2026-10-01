@@ -1,11 +1,12 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
-import { Calculator, LockKeyhole, RefreshCw, ArrowUpLeft } from 'lucide-react';
+import { LockKeyhole, RefreshCw, ArrowUpLeft } from 'lucide-react';
 import { calculatorCatalog, type CalculatorOperation, type CalculatorResult } from '@/lib/calculator-catalog';
 import { isStale, type Quote, type Snapshot } from '@/lib/market';
 import { formatNumericInput, sanitizeNumericInput } from '@/lib/numeric-input';
 import { fetchJson } from '@/lib/fetch-json';
 import { mazanehTo18k } from '@/lib/mazaneh-to-18k';
+import { OverlaySheet } from '@/components/ui/overlay-sheet';
 import {
   CalculatorKeypad,
   CalculatorLiveStrip,
@@ -116,6 +117,7 @@ export function ProfessionalCalculator({ snapshot }: { snapshot: Snapshot }) {
   const [market, setMarket] = useState(snapshot);
   const [inputs, setInputs] = useState<Record<string, Entry>>(() => prefill('mazanehTo18k', snapshot));
   const [result, setResult] = useState<CalculatorResult | null>(null);
+  const [resultOpen, setResultOpen] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState('');
   const [activeField, setActiveField] = useState(() => calculatorCatalog.mazanehTo18k.fields[0].key);
@@ -131,6 +133,7 @@ export function ProfessionalCalculator({ snapshot }: { snapshot: Snapshot }) {
     request.current?.abort();
     request.current = null;
     setResult(null);
+    setResultOpen(false);
     setError('');
     setPending(false);
   }
@@ -216,7 +219,10 @@ export function ProfessionalCalculator({ snapshot }: { snapshot: Snapshot }) {
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error ?? 'محاسبه ممکن نشد.');
-      if (request.current === controller && !controller.signal.aborted) setResult(data);
+      if (request.current === controller && !controller.signal.aborted) {
+        setResult(data);
+        setResultOpen(true);
+      }
     } catch (e) {
       if (request.current === controller) {
         setError(controller.signal.aborted ? 'پاسخ دیر رسید؛ دوباره تلاش کنید.' : e instanceof Error ? e.message : 'محاسبه ممکن نشد.');
@@ -325,24 +331,6 @@ export function ProfessionalCalculator({ snapshot }: { snapshot: Snapshot }) {
       <CalculatorLiveStrip snapshot={market} />
 
       <div className="calc-stage__side">
-        {!isLocalTool(tool) && (result || pending) && (
-          <div className="calc-result-slot" aria-live="polite" aria-busy={pending}>
-            <p className="calc-result-slot__label">نتیجه</p>
-            {result ? (
-              result.outputs.map(output => (
-                <div className="calc-result-slot__row" key={output.label}>
-                  <span>{output.label}</span>
-                  <strong dir="ltr"><bdi>{number(output.value)}</bdi> <small>{output.unit}</small></strong>
-                </div>
-              ))
-            ) : (
-              <div className="calc-result-slot__empty">
-                <Calculator size={28} />
-                <p>{pending ? 'در حال محاسبه…' : 'مقدار را وارد کنید و محاسبه را بزنید'}</p>
-              </div>
-            )}
-          </div>
-        )}
         <div className="calc-keypad-wrap">
           <span className="calc-entry-target">{keypadTarget}</span>
           <CalculatorKeypad key={`${tool}-${activeField}`} value={keypadValue} onChange={value => {
@@ -354,6 +342,26 @@ export function ProfessionalCalculator({ snapshot }: { snapshot: Snapshot }) {
           }} />
         </div>
       </div>
+
+      <OverlaySheet
+        open={resultOpen && !!result}
+        title="نتیجه محاسبه"
+        onClose={() => setResultOpen(false)}
+      >
+        {result ? (
+          <div className="ds-overlay__result" aria-live="polite">
+            {result.outputs.map(output => (
+              <div className="ds-overlay__result-row" key={output.label}>
+                <span>{output.label}</span>
+                <strong dir="ltr">
+                  <bdi>{number(output.value)}</bdi>
+                  <small>{output.unit}</small>
+                </strong>
+              </div>
+            ))}
+          </div>
+        ) : null}
+      </OverlaySheet>
     </section>
   );
 }
