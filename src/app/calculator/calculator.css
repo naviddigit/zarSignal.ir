@@ -145,34 +145,30 @@
 }
 .calc-tool-panel__field.is-live .ds-input{border-color:color-mix(in srgb,var(--success) 40%,var(--border-subtle))}
 .calc-tool-panel__field.is-manual .ds-input{border-color:color-mix(in srgb,var(--accent) 35%,var(--border-subtle))}
-/* Keypad cue: overlay on top — parent size never changes; 3 full laps */
+/* Keypad cue: same border-box technique as before — only more laps, no size change */
 @property --cue-angle{syntax:'<angle>';inherits:false;initial-value:0deg}
-.calc-keypad-wrap{position:relative}
-.calc-keypad-wrap.is-keypad-cue{border-color:color-mix(in srgb,var(--accent) 35%,var(--border-subtle))}
-.calc-keypad-wrap.is-keypad-cue::after{
-  content:'';
-  position:absolute;
-  inset:0;
-  border-radius:inherit;
-  border:1.5px solid transparent;
-  box-sizing:border-box;
+.calc-keypad-wrap{position:relative;box-sizing:border-box;border-width:1px;border-style:solid}
+.calc-keypad-wrap.is-keypad-cue{
+  border-width:1px;
+  border-style:solid;
+  border-color:transparent;
   background:
-    linear-gradient(transparent,transparent) padding-box,
-    conic-gradient(from var(--cue-angle),#0000 0 78%,var(--accent) 88%,#ffe6a3 94%,#0000 100%) border-box;
+    linear-gradient(var(--surface-card),var(--surface-card)) padding-box,
+    conic-gradient(from var(--cue-angle),#0000 0 72%,var(--accent) 84%,#ffe6a3 92%,#0000 100%) border-box;
   background-origin:border-box;
   background-clip:padding-box,border-box;
-  pointer-events:none;
-  z-index:4;
-  animation:calc-keypad-cue 3.6s linear 1 forwards;
+  animation:calc-keypad-cue 4s linear 1 forwards;
 }
 @keyframes calc-keypad-cue{
-  0%{--cue-angle:0deg;opacity:1}
-  85%{opacity:1}
-  100%{--cue-angle:1080deg;opacity:0}
+  0%{--cue-angle:0deg}
+  100%{--cue-angle:1080deg}
 }
 @media(prefers-reduced-motion:reduce){
-  .calc-keypad-wrap.is-keypad-cue::after{animation:none;opacity:0}
-  .calc-keypad-wrap.is-keypad-cue{border-color:color-mix(in srgb,var(--accent) 55%,var(--border-subtle))}
+  .calc-keypad-wrap.is-keypad-cue{
+    animation:none;
+    border-color:color-mix(in srgb,var(--accent) 55%,var(--border-subtle));
+    background:var(--surface-card);
+  }
 }
 .calc-result-panel{padding:12px 14px;border:1px solid color-mix(in srgb,var(--accent) 35%,var(--border-subtle));border-radius:14px;background:color-mix(in srgb,var(--accent) 8%,var(--surface-card));display:grid;gap:8px}
 .calc-result-panel>strong{font-size:12px;color:var(--accent)}
