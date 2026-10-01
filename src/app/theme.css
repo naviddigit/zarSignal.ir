@@ -386,8 +386,8 @@ html[data-theme='light'] .calculator-screen>span,html[data-theme='light'] .calcu
 .market-panel{margin-block:28px;min-width:0}.market-panel .table-scroll{width:100%;overflow-x:auto}.market-table{width:100%;table-layout:auto}.market-table th{white-space:nowrap}.market-table td{vertical-align:middle}.market-table .price-cell strong{white-space:nowrap;font-variant-numeric:tabular-nums}
 @media(max-width:760px){.asset-price-panel.is-single-price{grid-template-columns:1fr}.symbol-history,.bubble-history{padding:18px}.market-panel{padding:16px}.market-table{min-width:670px}.market-table th:nth-child(4),.market-table td:nth-child(4),.market-table th:nth-child(5),.market-table td:nth-child(5){display:table-cell}.market-table td{padding:12px 10px}.chart-tooltip{gap:12px;font-size:12px}.chart-tooltip time{width:100%}.chart-caption{padding:12px}}
 .premium-decoration{left:8px!important;top:30px!important;width:150px;height:150px;color:var(--accent)!important;opacity:.07;font-size:0!important;transform:rotate(20deg);pointer-events:none}.premium-decoration path{fill:none;stroke:currentColor;stroke-width:7;stroke-linecap:round}
-.home-page>.topline{padding-block:8px 4px;margin:0;position:static}
-.home-page>.hero{margin-top:0;padding-top:8px;padding-bottom:12px}
+.home-page>.topline{padding:2px 0 0;margin:0;position:static}
+.home-page>.hero{margin-top:0;padding:0 0 10px}
 .home-page>.market-teaser{margin-block:0 24px}
 .route-loading-home>span,.route-loading-market>span{display:block;text-align:center;color:var(--text-muted);margin-top:22px;font-size:11px}
 .hero-skeleton{display:grid;grid-template-columns:1.15fr 1fr;gap:30px;align-items:center;padding:28px 0 48px}
