@@ -97,10 +97,12 @@ export function CalculatorProductTiles({
 /** Live prices as compact market cards. */
 export function CalculatorLiveStrip({ snapshot }: { snapshot: Snapshot }) {
   const cells = [
-    { symbol: 'XAU_USD' as const, label: 'اونس جهانی' },
-    { symbol: 'USD' as const, label: 'دلار آزاد' },
-    { symbol: 'GOLD_MELTED' as const, label: 'مظنه تهران' },
-    { symbol: 'GOLD_18K' as const, label: 'گرم ۱۸ عیار' },
+    { symbol: 'XAU_USD' as const, label: 'اونس طلا', unit: 'دلار' },
+    { symbol: 'USD' as const, label: 'دلار آزاد', unit: 'تومان' },
+    { symbol: 'GOLD_MELTED' as const, label: 'مظنه تهران', unit: 'تومان' },
+    { symbol: 'GOLD_18K' as const, label: 'گرم ۱۸ عیار', unit: 'تومان' },
+    { symbol: 'SILVER_999' as const, label: 'نقره ۹۹۹', unit: 'تومان' },
+    { symbol: 'SEKE_CASH' as const, label: 'سکه نقدی', unit: 'تومان' },
   ];
   const latest = snapshot.quotes.map(q => q.fetchedAt).sort().at(-1);
   return (
@@ -117,7 +119,7 @@ export function CalculatorLiveStrip({ snapshot }: { snapshot: Snapshot }) {
           const quote = snapshot.quotes.find(item => item.symbol === cell.symbol);
           const melted = snapshot.quotes.find(item => item.symbol === 'GOLD_MELTED');
           const derived18k = !quote && cell.symbol === 'GOLD_18K' && melted
-            ? mazanehTo18k(Number(melted.sell)).market18k
+            ? mazanehTo18k(Number(melted.sell) || Number(melted.buy)).market18k
             : null;
           const stale = quote ? isStale(quote) : melted && derived18k != null ? isStale(melted) : true;
           const display = quote
@@ -126,8 +128,8 @@ export function CalculatorLiveStrip({ snapshot }: { snapshot: Snapshot }) {
               ? money(Math.round(derived18k), 'TMN')
               : '—';
           return (
-            <article key={cell.symbol} className={stale ? 'is-stale' : ''}>
-              <small>{cell.label} · {cell.symbol === 'XAU_USD' ? 'دلار' : 'تومان'}</small>
+            <article key={cell.symbol} className={stale || display === '—' ? 'is-stale' : ''}>
+              <small>{cell.label} · {cell.unit}</small>
               <bdi>{display}</bdi>
             </article>
           );

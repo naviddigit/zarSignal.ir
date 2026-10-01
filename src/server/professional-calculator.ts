@@ -1,7 +1,37 @@
 import { calculatorCatalog, type CalculatorOperation, type CalculatorResult } from '@/lib/calculator-catalog';
-import { isStale, type Snapshot } from '@/lib/market';
+import { isStale, type Quote, type Snapshot } from '@/lib/market';
 import { mazanehTo18k, market18kToMazaneh } from './mazaneh-to-18k';
 import { goldBubble, usdGap } from './bubble-formulas';
+
+function midQuote(quote: Quote) {
+  const mid = (Number(quote.buy) + Number(quote.sell)) / 2;
+  return Number.isFinite(mid) && mid > 0 && Number(quote.buy) <= Number(quote.sell) ? mid : null;
+}
+
+function resolveLiveValue(field: (typeof calculatorCatalog)[CalculatorOperation]['fields'][number], snapshot: Snapshot) {
+  if (snapshot.mode !== 'live') return null;
+  const quote = snapshot.quotes.find(q => q.symbol === field.symbol);
+  if (quote && !isStale(quote) && quote.currency === field.currency && quote.unit === field.quoteUnit) {
+    const mid = midQuote(quote);
+    if (mid != null) return { value: mid, observedAt: quote.observedAt, source: 'زرسیگنال · میانگین دو سمت یا قیمت دیده‌بان' };
+  }
+  if (field.symbol === 'GOLD_18K') {
+    const melted = snapshot.quotes.find(q => q.symbol === 'GOLD_MELTED');
+    if (melted && !isStale(melted) && melted.currency === 'TMN') {
+      const mid = midQuote(melted);
+      if (mid != null) {
+        try {
+          return {
+            value: mazanehTo18k(mid).market18k,
+            observedAt: melted.observedAt,
+            source: 'زرسیگنال · مشتق از مظنه با ÷ ۴٫۳۳۱۸',
+          };
+        } catch { /* fall through */ }
+      }
+    }
+  }
+  return null;
+}
 
 export function calculateProfessional(body: unknown, snapshot: Snapshot): CalculatorResult {
   if (!body || typeof body !== 'object') throw new Error('ورودی معتبر نیست.');
@@ -12,11 +42,9 @@ export function calculateProfessional(body: unknown, snapshot: Snapshot): Calcul
     const input = request.inputs[field.key];
     if (!input || !['LIVE', 'MANUAL'].includes(input.provenance)) throw new Error('منبع هر ورودی را مشخص کنید.');
     if (input.provenance === 'LIVE') {
-      const quote = snapshot.quotes.find(q => q.symbol === field.symbol);
-      if (snapshot.mode !== 'live' || !quote || isStale(quote) || quote.currency !== field.currency || quote.unit !== field.quoteUnit) throw new Error('داده تازه و هم‌واحد در دسترس نیست؛ مقدار دستی وارد کنید.');
-      const bid = Number(quote.buy), ask = Number(quote.sell);
-      if (![bid, ask].every(n => Number.isFinite(n) && n > 0) || bid > ask) throw new Error('قیمت منبع معتبر نیست.');
-      return { key: field.key, label: field.label, value: (bid + ask) / 2, unit: field.unit, provenance: 'LIVE', observedAt: quote.observedAt, source: 'زرسیگنال · میانگین دو سمت یا قیمت دیده‌بان' };
+      const live = resolveLiveValue(field, snapshot);
+      if (!live) throw new Error('داده تازه و هم‌واحد در دسترس نیست؛ مقدار دستی وارد کنید.');
+      return { key: field.key, label: field.label, value: live.value, unit: field.unit, provenance: 'LIVE', observedAt: live.observedAt, source: live.source };
     }
     if (typeof input.value !== 'number' || !Number.isFinite(input.value) || input.value <= 0 || input.value > 1e15) throw new Error('برای هر ورودی عدد مثبت و معتبر وارد کنید.');
     return { key: field.key, label: field.label, value: input.value, unit: field.unit, provenance: 'MANUAL', observedAt: null, source: 'ورودی شما' };

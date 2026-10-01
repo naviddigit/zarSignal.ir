@@ -2,9 +2,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { Calculator, LockKeyhole, RefreshCw, ArrowUpLeft } from 'lucide-react';
 import { calculatorCatalog, type CalculatorOperation, type CalculatorResult } from '@/lib/calculator-catalog';
-import { isStale, type Snapshot } from '@/lib/market';
+import { isStale, type Quote, type Snapshot } from '@/lib/market';
 import { formatNumericInput, sanitizeNumericInput } from '@/lib/numeric-input';
 import { fetchJson } from '@/lib/fetch-json';
+import { mazanehTo18k } from '@/lib/mazaneh-to-18k';
 import {
   CalculatorKeypad,
   CalculatorLiveStrip,
@@ -71,12 +72,36 @@ const number = (value: number) => new Intl.NumberFormat('en-US', { maximumFracti
 const isLocalTool = (tool: Tool): tool is LocalTool => tool === 'weight' || tool === 'purity';
 const isOperation = (tool: Tool): tool is CalculatorOperation => !isLocalTool(tool) && tool in calculatorCatalog;
 
+function midQuote(quote: Quote) {
+  const mid = (Number(quote.buy) + Number(quote.sell)) / 2;
+  return Number.isFinite(mid) && mid > 0 ? mid : null;
+}
+
+/** Resolve a live calculator field from market quotes, including derived ۱۸ عیار from مظنه. */
 function liveEntry(field: (typeof calculatorCatalog)[CalculatorOperation]['fields'][number], snapshot: Snapshot): Entry {
+  if (snapshot.mode !== 'live') return { value: '', provenance: 'MANUAL' };
+
   const quote = snapshot.quotes.find(q => q.symbol === field.symbol);
-  const usable = snapshot.mode === 'live' && quote && !isStale(quote) && quote.currency === field.currency && quote.unit === field.quoteUnit;
-  return usable
-    ? { value: String((Number(quote.buy) + Number(quote.sell)) / 2), provenance: 'LIVE', observedAt: quote.observedAt }
-    : { value: '', provenance: 'MANUAL' };
+  if (quote && !isStale(quote) && quote.currency === field.currency && quote.unit === field.quoteUnit) {
+    const mid = midQuote(quote);
+    if (mid != null) return { value: String(mid), provenance: 'LIVE', observedAt: quote.observedAt };
+  }
+
+  // Strip already shows derived ۱۸ عیار when GOLD_18K is missing — calculator must match.
+  if (field.symbol === 'GOLD_18K') {
+    const melted = snapshot.quotes.find(q => q.symbol === 'GOLD_MELTED');
+    if (melted && !isStale(melted) && melted.currency === 'TMN') {
+      const mid = midQuote(melted);
+      if (mid != null) {
+        try {
+          const derived = mazanehTo18k(mid).market18k;
+          return { value: String(Math.round(derived * 100) / 100), provenance: 'LIVE', observedAt: melted.observedAt };
+        } catch { /* fall through */ }
+      }
+    }
+  }
+
+  return { value: '', provenance: 'MANUAL' };
 }
 
 function prefill(operation: CalculatorOperation, snapshot: Snapshot): Record<string, Entry> {
@@ -85,7 +110,7 @@ function prefill(operation: CalculatorOperation, snapshot: Snapshot): Record<str
 
 export function ProfessionalCalculator({ snapshot }: { snapshot: Snapshot }) {
   const [product, setProduct] = useState<Product>('gold');
-  const [tool, setTool] = useState<Tool>('weight');
+  const [tool, setTool] = useState<Tool>('mazanehTo18k');
   const [weightAmount, setWeightAmount] = useState('3.5');
   const [purityAmount, setPurityAmount] = useState('');
   const [market, setMarket] = useState(snapshot);
@@ -93,7 +118,7 @@ export function ProfessionalCalculator({ snapshot }: { snapshot: Snapshot }) {
   const [result, setResult] = useState<CalculatorResult | null>(null);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState('');
-  const [activeField, setActiveField] = useState('');
+  const [activeField, setActiveField] = useState(() => calculatorCatalog.mazanehTo18k.fields[0].key);
   const request = useRef<AbortController | null>(null);
   useEffect(() => () => request.current?.abort(), []);
 

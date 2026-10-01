@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useId, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, X } from 'lucide-react';
 
 export type SelectOption = { value: string; label: string; disabled?: boolean };
 
@@ -21,7 +21,11 @@ type SelectProps = {
   'aria-label'?: string;
 };
 
-/** Mobile-first design-system select: bottom sheet on small screens, anchored menu on desktop. */
+/**
+ * Design-system select used site-wide:
+ * - mobile: bottom sheet (slide up / slide down)
+ * - desktop: centered modal
+ */
 export function Select({
   name,
   label,
@@ -37,23 +41,26 @@ export function Select({
   'aria-label': ariaLabel,
 }: SelectProps) {
   const listId = useId();
+  const titleId = useId();
   const rootRef = useRef<HTMLDivElement>(null);
   const isControlled = value !== undefined;
   const [internal, setInternal] = useState(defaultValue ?? options.find(option => !option.disabled)?.value ?? '');
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [closing, setClosing] = useState(false);
   const selected = isControlled ? value : internal;
   const selectedLabel = useMemo(
     () => options.find(option => option.value === selected)?.label ?? placeholder,
     [options, selected, placeholder],
   );
+  const title = ariaLabel ?? label ?? placeholder;
 
   useEffect(() => setMounted(true), []);
 
   useEffect(() => {
     if (!open) return;
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setOpen(false);
+      if (event.key === 'Escape') beginClose();
     };
     window.addEventListener('keydown', onKey);
     const previous = document.body.style.overflow;
@@ -64,25 +71,39 @@ export function Select({
     };
   }, [open]);
 
+  function beginClose() {
+    if (closing) return;
+    setClosing(true);
+    window.setTimeout(() => {
+      setOpen(false);
+      setClosing(false);
+    }, 220);
+  }
+
   function choose(next: string) {
     if (!isControlled) setInternal(next);
     onChange?.(next);
-    setOpen(false);
+    beginClose();
   }
 
   const menu = open && mounted
     ? createPortal(
-        <>
-          <button type="button" className="ds-select__backdrop" aria-label="بستن فهرست" onClick={() => setOpen(false)} />
+        <div className={`ds-select-layer${closing ? ' is-closing' : ''}`} role="presentation">
+          <button type="button" className="ds-select__backdrop" aria-label="بستن فهرست" onClick={beginClose} />
           <div
             className="ds-select__panel"
-            role="listbox"
-            id={listId}
-            aria-label={ariaLabel ?? label ?? placeholder}
-            style={anchorStyle(rootRef.current)}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={titleId}
           >
             <div className="ds-select__sheet-handle" aria-hidden="true" />
-            <ul className="ds-select__list">
+            <header className="ds-select__header">
+              <strong id={titleId}>{title}</strong>
+              <button type="button" className="ds-select__close" aria-label="بستن" onClick={beginClose}>
+                <X size={18} />
+              </button>
+            </header>
+            <ul className="ds-select__list" role="listbox" id={listId} aria-label={title}>
               {options.map(option => (
                 <li key={option.value}>
                   <button
@@ -99,7 +120,7 @@ export function Select({
               ))}
             </ul>
           </div>
-        </>,
+        </div>,
         document.body,
       )
     : null;
@@ -113,11 +134,14 @@ export function Select({
         className="ds-select__trigger"
         dir={dir}
         disabled={disabled}
-        aria-haspopup="listbox"
+        aria-haspopup="dialog"
         aria-expanded={open}
         aria-controls={listId}
-        aria-label={ariaLabel ?? label ?? placeholder}
-        onClick={() => setOpen(current => !current)}
+        aria-label={title}
+        onClick={() => {
+          if (open) beginClose();
+          else setOpen(true);
+        }}
       >
         <span data-empty={selected ? undefined : 'true'}>{selectedLabel}</span>
         <ChevronDown size={16} aria-hidden="true" />
@@ -125,21 +149,4 @@ export function Select({
       {menu}
     </div>
   );
-}
-
-function anchorStyle(root: HTMLDivElement | null): CSSProperties | undefined {
-  if (typeof window === 'undefined' || !root) return undefined;
-  if (window.matchMedia('(max-width: 700px)').matches) return undefined;
-  const trigger = root.querySelector('.ds-select__trigger') as HTMLElement | null;
-  const box = (trigger ?? root).getBoundingClientRect();
-  const spaceBelow = window.innerHeight - box.bottom;
-  const openUp = spaceBelow < 240 && box.top > spaceBelow;
-  return {
-    position: 'fixed',
-    left: box.left,
-    width: Math.max(box.width, 180),
-    top: openUp ? undefined : box.bottom + 6,
-    bottom: openUp ? window.innerHeight - box.top + 6 : undefined,
-    maxHeight: Math.min(320, openUp ? box.top - 16 : spaceBelow - 16),
-  };
 }
