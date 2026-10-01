@@ -336,7 +336,7 @@ html.ds-scroll-locked body{
 .bubble-value{font-weight:800;font-variant-numeric:tabular-nums;color:var(--text-primary)!important;letter-spacing:-.5px}
 .bubble-value.is-up{color:var(--success)!important}
 .bubble-value.is-down{color:var(--danger)!important}
-.bubble-value span{display:block;max-width:210px;line-height:1.7;font-size:12px!important;color:var(--text-secondary)!important;font-weight:500}
+.bubble-value span{display:block;max-width:100%;line-height:1.7;font-size:12px!important;color:var(--text-secondary)!important;font-weight:500;overflow-wrap:anywhere}
 .bubble-card p{font-size:13px!important;line-height:1.9;color:var(--text-secondary)!important}
 .bubble-card.is-blocked{opacity:.88}
 .bubble-card.is-stale .bubble-value span{color:color-mix(in srgb,var(--accent) 80%,var(--text-secondary))!important}
