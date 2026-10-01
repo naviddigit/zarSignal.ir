@@ -145,33 +145,35 @@
 }
 .calc-tool-panel__field.is-live .ds-input{border-color:color-mix(in srgb,var(--success) 40%,var(--border-subtle))}
 .calc-tool-panel__field.is-manual .ds-input{border-color:color-mix(in srgb,var(--accent) 35%,var(--border-subtle))}
-/* Keypad cue: thin gold arc runs once around keypad border — use numbers here */
-.calc-keypad-wrap{position:relative}
+/* Keypad cue: gold arc travels ON the border once — no transform (avoids outer spinning square) */
+@property --cue-angle{syntax:'<angle>';inherits:false;initial-value:0deg}
+.calc-keypad-wrap{position:relative;isolation:isolate}
 .calc-keypad-wrap.is-keypad-cue{
-  border-color:color-mix(in srgb,var(--accent) 45%,var(--border-subtle));
+  border-color:color-mix(in srgb,var(--accent) 50%,var(--border-subtle));
 }
 .calc-keypad-wrap.is-keypad-cue::before{
   content:'';
   position:absolute;
-  inset:-1px;
+  inset:0;
   border-radius:inherit;
-  padding:1.5px;
-  background:conic-gradient(from 0deg,#0000 0 78%,var(--accent) 88%,#ffe6a3 94%,#0000 100%);
+  padding:1px;
+  box-sizing:border-box;
+  background:conic-gradient(from var(--cue-angle),#0000 0 80%,var(--accent) 88%,#ffe6a3 94%,#0000 100%);
   -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
   mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
   -webkit-mask-composite:xor;
   mask-composite:exclude;
   pointer-events:none;
   z-index:2;
-  animation:calc-keypad-cue 1.35s linear 1 forwards;
+  animation:calc-keypad-cue 1.4s linear 1 forwards;
 }
 @keyframes calc-keypad-cue{
-  0%{transform:rotate(0deg);opacity:1}
-  85%{opacity:1}
-  100%{transform:rotate(360deg);opacity:0}
+  0%{--cue-angle:0deg;opacity:1}
+  80%{opacity:1}
+  100%{--cue-angle:360deg;opacity:0}
 }
 @media(prefers-reduced-motion:reduce){
-  .calc-keypad-wrap.is-keypad-cue::before{animation:none;opacity:.55;background:var(--accent)}
+  .calc-keypad-wrap.is-keypad-cue::before{animation:none;opacity:.5;background:var(--accent)}
 }
 .calc-result-panel{padding:12px 14px;border:1px solid color-mix(in srgb,var(--accent) 35%,var(--border-subtle));border-radius:14px;background:color-mix(in srgb,var(--accent) 8%,var(--surface-card));display:grid;gap:8px}
 .calc-result-panel>strong{font-size:12px;color:var(--accent)}
