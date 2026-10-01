@@ -54,6 +54,8 @@
 .pricing-footnotes p{margin:0 0 8px;font-size:12px;line-height:1.8;color:var(--text-secondary)}
 .pricing-footnotes a{font:700 13px Vazirmatn;color:var(--accent)}
 
+.pricing-swipe-hint{display:none}
+
 .subscription-review{max-width:680px}.subscription-review dl{display:grid;gap:12px}.subscription-review dl>div{display:flex;justify-content:space-between;gap:16px}.subscription-review dd{margin:0;font-weight:700}.subscription-payment-status{padding:16px;border:1px solid var(--border-subtle);background:var(--surface-soft);border-radius:12px;margin:20px 0}.subscription-review .text-link{display:inline-flex;margin:14px 0}.subscription-review p{font-size:14px;line-height:1.9}
 @media(max-width:1100px){.pricing-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:900px){.hero{gap:8px;min-height:0;padding:18px 0 28px}.content-editor-fields{grid-template-columns:1fr}}
@@ -73,15 +75,92 @@
   .pricing-hero .eyebrow{justify-content:flex-start}
   .pricing-hero h1{font-size:26px;margin:10px 0 12px}
   .pricing-hero p{font-size:13px;line-height:1.85}
-  .pricing-grid{grid-template-columns:1fr;gap:12px}
-  .pricing-card{padding:18px 16px;gap:12px}
-  .pricing-card__head p{min-height:0}
+  .pricing-grid{
+    display:flex;
+    gap:12px;
+    overflow-x:auto;
+    scroll-snap-type:x mandatory;
+    -webkit-overflow-scrolling:touch;
+    overscroll-behavior-x:contain;
+    scrollbar-width:none;
+    margin:0 -4px 18px;
+    padding:4px 4px 14px;
+  }
+  .pricing-grid::-webkit-scrollbar{display:none}
+  .pricing-grid::after{content:'';flex:0 0 8px}
+  .pricing-card{
+    flex:0 0 min(86vw,320px);
+    max-width:320px;
+    scroll-snap-align:center;
+    padding:16px 14px;
+    gap:10px;
+    border-radius:16px;
+    overflow:hidden;
+  }
+  .pricing-card__head h2{font-size:18px}
+  .pricing-card__head p{min-height:0;font-size:12px;line-height:1.7}
+  .pricing-card__price strong{font-size:28px}
+  .pricing-card__includes{padding-top:12px;min-width:0}
+  .pricing-card__includes ul{gap:8px}
+  .pricing-card__includes li{
+    display:grid;
+    grid-template-columns:18px minmax(0,1fr);
+    gap:8px;
+    align-items:start;
+    font-size:12px;
+    line-height:1.65;
+    min-width:0;
+    overflow:hidden;
+  }
+  .pricing-card__includes li svg{width:14px;height:14px;margin-top:3px;flex:none}
+  .pricing-card__includes li span{min-width:0;overflow-wrap:anywhere}
+  .pricing-swipe-hint{
+    display:block;
+    margin:-6px 0 16px;
+    font-size:11px;
+    color:var(--text-muted);
+    text-align:center;
+  }
   .pricing-badge{top:10px;left:10px}
   .pricing-trial{flex-direction:column;align-items:stretch;gap:10px;padding:14px}
   .pricing-trial a{justify-content:flex-start}
+  .pricing-compare{margin:0 0 22px}
   .pricing-compare h2{font-size:18px;text-align:right}
-  .pricing-compare>header{text-align:right}
-  .pricing-compare th,.pricing-compare td{padding:12px 10px;font-size:12px}
+  .pricing-compare>header{text-align:right;margin-bottom:10px}
+  .pricing-compare>header p{font-size:12px}
+  .pricing-compare__scroll{
+    overflow-x:auto;
+    -webkit-overflow-scrolling:touch;
+    overscroll-behavior-x:contain;
+    scroll-snap-type:x proximity;
+    border-radius:14px;
+    padding-bottom:2px;
+  }
+  .pricing-compare table{min-width:520px;width:max-content}
+  .pricing-compare th,.pricing-compare td{
+    padding:10px 8px;
+    font-size:11px;
+    vertical-align:middle;
+    overflow:hidden;
+  }
+  .pricing-compare tbody th{
+    position:sticky;
+    right:0;
+    z-index:1;
+    background:var(--surface-card);
+    box-shadow:-8px 0 12px color-mix(in srgb,var(--shadow) 35%,transparent);
+    max-width:42vw;
+    white-space:normal;
+    line-height:1.45;
+  }
+  .pricing-compare thead th:first-child{
+    position:sticky;
+    right:0;
+    z-index:2;
+    background:var(--surface-soft);
+  }
+  .pricing-cell-yes,.pricing-cell-no{width:16px;height:16px;display:block;margin-inline:auto}
+  .pricing-swipe-hint{display:block}
   .mobile-tab-bar{bottom:0;padding:0 8px calc(6px + env(safe-area-inset-bottom));background:linear-gradient(transparent,var(--surface-page) 35%)}.mobile-tab-bar__inner{min-height:62px;padding:4px;border-radius:20px}.mobile-tab-bar__item{min-height:50px;padding:5px 2px;gap:3px}.mobile-tab-bar__icon{height:24px}.mobile-tab-bar__item span:last-child{font-size:10px}
 }
 

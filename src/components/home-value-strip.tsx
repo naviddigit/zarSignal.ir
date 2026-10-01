@@ -8,7 +8,7 @@ export function HomeValueStrip() {
       <nav className="home-value-strip__actions" aria-label="میانبرها">
         <Link href="/markets" className="button">قیمت‌ها <ArrowUpLeft size={15} /></Link>
         <Link href="/calculator" className="home-value-strip__ghost"><Calculator size={15} /> ماشین‌حساب</Link>
-        <Link href="/analysis/gold_melted" className="home-value-strip__ghost"><LineChart size={15} /> تحلیل طلا</Link>
+        <Link href="/analysis/gold_melted" className="home-value-strip__ghost"><LineChart size={15} /> تحلیل پیشرفته</Link>
       </nav>
     </section>
   );

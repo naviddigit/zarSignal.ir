@@ -40,8 +40,8 @@ export function BubbleBoard({ bubbles }: { bubbles: LiveBubbleCard[] }) {
                 <span>{blocked ? 'مدل هنوز تأیید نشده' : state.reason}</span>
               </div>
               <p>{item.desc}</p>
-              <Link href={blocked ? '/analysis/gold_melted' : '/methodology'}>
-                {blocked ? 'فعلاً تحلیل طلا را ببین' : 'جزئیات محاسبه'} <ArrowUpLeft size={14} />
+              <Link href={item.key === 'SILVER_BUBBLE' ? '/analysis/silver_999' : blocked ? '/methodology' : item.key === 'GOLD_BUBBLE' ? '/analysis/gold_melted' : '/analysis/usd'}>
+                {item.key === 'SILVER_BUBBLE' ? 'تحلیل پیشرفته نقره' : 'تحلیل پیشرفته'} <ArrowUpLeft size={14} />
               </Link>
             </article>
           );

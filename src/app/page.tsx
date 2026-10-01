@@ -46,7 +46,7 @@ export default async function Home() {
             <span><Layers3 size={16} /> زبان ساده</span>
           </div>
         </div>}
-        {sections.radar && <MarketRadar bubbles={bubbles} />}
+        {sections.radar && <MarketRadar bubbles={bubbles} quotes={snapshot.quotes} />}
       </section>}
 
       {sections.market && <MarketTeaser snapshot={snapshot} bubbles={bubbles} />}

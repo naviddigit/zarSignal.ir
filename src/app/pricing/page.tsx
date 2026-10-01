@@ -191,7 +191,7 @@ export default async function Pricing() {
                 <span>شامل</span>
                 <ul>
                   {features.map(feature => (
-                    <li key={feature}><Check size={15} /><span>{feature}</span></li>
+                    <li key={feature}><Check size={14} aria-hidden="true" /><span>{feature}</span></li>
                   ))}
                 </ul>
               </div>
@@ -202,6 +202,7 @@ export default async function Pricing() {
           );
         })}
       </section>
+      <p className="pricing-swipe-hint" aria-hidden="true">پلن‌ها را به چپ و راست بکشید</p>
 
       {trialDays != null && (
         <aside className="pricing-trial">
@@ -216,7 +217,7 @@ export default async function Pricing() {
       <section className="pricing-compare" aria-label="جدول مقایسه امکانات">
         <header>
           <h2>مقایسه امکانات</h2>
-          <p>یک نگاه سریع به تفاوت پلن‌ها.</p>
+          <p>برای دیدن همه پلن‌ها جدول را به چپ و راست بکشید.</p>
         </header>
         <div className="pricing-compare__scroll">
           <table>

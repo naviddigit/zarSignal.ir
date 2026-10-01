@@ -299,6 +299,10 @@ html.ds-scroll-locked body{
 .radar-pro__eyebrow{font-size:12px;color:var(--accent);letter-spacing:0;transition:color .4s}
 .radar-pro__value{font-size:clamp(40px,5vw,54px);line-height:1;font-weight:900;font-variant-numeric:tabular-nums;color:var(--text-primary);transition:color .4s}
 .radar-pro__value.is-up{color:var(--success)}.radar-pro__value.is-down{color:var(--danger)}.radar-pro__value.is-locked{color:var(--text-muted);font-size:42px}
+.radar-pro__value.is-neutral,.radar-pro__value.is-price{color:var(--text-primary)}
+.radar-pro__value.is-price{font-size:clamp(28px,4vw,40px);display:flex;flex-direction:column;align-items:center;gap:2px;line-height:1.15}
+.radar-pro__value.is-price small{font:700 11px Vazirmatn;color:var(--text-muted)}
+.radar-pro__ring-value.is-neutral{stroke:color-mix(in srgb,var(--text-secondary) 70%,transparent);filter:none}
 .radar-pro__status{max-width:210px;font-size:11px;line-height:1.7;color:var(--text-secondary)}
 .radar-pro__pips{display:flex;gap:6px;margin-top:4px}.radar-pro__pips i{width:7px;height:7px;border-radius:50%;background:color-mix(in srgb,var(--text-muted) 45%,transparent);transition:background .35s,box-shadow .35s,transform .35s}.radar-pro__pips i.is-on{background:var(--accent);transform:scale(1.25);box-shadow:0 0 12px color-mix(in srgb,var(--accent) 60%,transparent)}
 .radar-pro{--orbit-r:125px}
@@ -676,17 +680,7 @@ html.ds-scroll-locked body{
   .edu-rules h2{font-size:14px}
   .edu-rules li{font-size:12px;padding:10px 12px;line-height:1.75}
   .edu-foot{font-size:11px;margin-top:12px;padding:10px 12px}
-  .pricing-grid{display:grid;gap:10px;margin-top:12px}
-  .pricing-grid>.panel{padding:14px 14px 16px;border-radius:14px;display:grid;gap:8px}
-  .pricing-grid>.panel h2{font-size:16px;margin:0}
-  .pricing-grid>.panel .eyebrow{font-size:9px}
-  .pricing-grid .plan-price{margin:0}
-  .pricing-grid .plan-price strong{font-size:28px;line-height:1}
-  .pricing-grid .plan-price small{font-size:11px;margin-top:2px}
-  .pricing-grid>.panel>p{font-size:12px;margin:0;color:var(--text-secondary)}
-  .pricing-grid>.panel ul{margin:4px 0 8px;padding:0;list-style:none;display:grid;gap:6px}
-  .pricing-grid>.panel li{font-size:12px;padding:8px 10px;border-radius:10px;background:var(--surface-soft);color:var(--text-secondary)}
-  .pricing-grid>.panel .button{width:100%;min-height:44px;justify-content:center;border-radius:12px;margin-top:4px}
+  /* Pricing page mobile overrides live in product-quality.css (horizontal snap cards) */
   .pricing-empty{padding:16px;margin-top:12px;border-radius:14px}
   .pricing-empty h2{font-size:15px;margin:0 0 6px}
   .pricing-empty p{font-size:12px;margin:0}
