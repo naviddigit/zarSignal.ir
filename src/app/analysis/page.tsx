@@ -8,7 +8,7 @@ import { buildMarketViewReport } from '@/server/market-view-report';
 import { MarketViewReportView } from '@/components/market-view-report';
 import { analysisTrial } from '@/server/analysis-trial';
 import { AnalysisTrialAccess } from '@/components/analysis-trial-access';
-import { instruments } from '@/lib/market';
+import { AnalysisMarketSelect } from '@/components/analysis-market-select';
 import { getWarningPolicy } from '@/server/time-reliability';
 import { timeReliability } from '@/lib/time-reliability';
 
@@ -40,14 +40,25 @@ export default async function MarketAnalysisPage({ searchParams }: { searchParam
         <span>/</span>
         <span>دید بازار</span>
       </nav>
-      {timeReliability(timePolicy) === 'WARNING' && <p className="analysis-warning" role="status">خارج از بازهٔ استاندارد تحلیل ({timePolicy.warningEnd} تا {timePolicy.warningStart} به وقت تهران)؛ اعتبار نرخ‌ها را پیش از استفاده بررسی کنید.</p>}
+      {timeReliability(timePolicy) === 'WARNING' && (
+        <p className="analysis-warning" role="status">
+          خارج از بازهٔ استاندارد تحلیل ({timePolicy.warningEnd} تا {timePolicy.warningStart} به وقت تهران)؛ اعتبار نرخ‌ها را پیش از استفاده بررسی کنید.
+        </p>
+      )}
 
-      <nav className="home-quick-tools" aria-label="انتخاب تحلیل">
-        <Link href="/analysis" aria-current="page">کل بازار</Link>
-        {instruments.map(asset => <Link key={asset.symbol} href={`/analysis/${asset.symbol.toLowerCase()}`}>{asset.short}</Link>)}
-      </nav>
-      <MarketViewReportView initial={report} canRefresh />
-      {(!fullAccess || entitlement?.statusLabel === 'آزمایشی') && <AnalysisTrialAccess trial={trial} error={query.trial} />}
+      <AnalysisMarketSelect />
+      <MarketViewReportView
+        initial={report}
+        canRefresh
+        trialCta={!fullAccess ? (
+          <Link className="button" href={`/login?next=${encodeURIComponent('/analysis')}`}>
+            ورود / شروع آزمایش <ArrowUpLeft size={15} />
+          </Link>
+        ) : null}
+      />
+      {(!fullAccess || entitlement?.statusLabel === 'آزمایشی') && (
+        <AnalysisTrialAccess trial={trial} error={query.trial} />
+      )}
 
       <div className="home-quick-tools">
         <Link href="/markets">نرخ‌های تابلو</Link>

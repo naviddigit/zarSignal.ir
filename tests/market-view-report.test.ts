@@ -1,6 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { composeMarketViewProse, type MarketViewEvidenceRow } from '../src/lib/market-view-report';
+import {
+  buildMarketViewDecision,
+  composeMarketViewProse,
+  type MarketViewEvidenceRow,
+} from '../src/lib/market-view-report';
 
 function row(partial: Partial<MarketViewEvidenceRow> & Pick<MarketViewEvidenceRow, 'id' | 'marketLabel'>): MarketViewEvidenceRow {
   return {
@@ -23,6 +27,8 @@ test('composeMarketViewProse refuses fake conclusion without usable rows', () =>
   ], 'unavailable');
   assert.equal(prose.conclusion, null);
   assert.equal(prose.reading, null);
+  assert.equal(prose.decision.kind, 'insufficient_data');
+  assert.equal(prose.decision.tradeAction, null);
   assert.match(prose.summaryLines[0], /در دسترس نیست|داده/);
 });
 
@@ -39,8 +45,10 @@ test('composeMarketViewProse describes gold below reference without trade advice
   assert.doesNotMatch(prose.reading!, /بخرید|بفروشید|پیشنهاد خرید|پیشنهاد فروش/);
   assert.ok(prose.conclusion);
   assert.doesNotMatch(prose.conclusion!, /بخرید|بفروشید/);
+  assert.equal(prose.decision.kind, 'needs_confirmation');
+  assert.equal(prose.decision.tradeAction, null);
+  assert.match(prose.decision.title, /نیاز به تأیید/);
 });
-
 
 test('no invented neutral band and no unusable row in narrative', () => {
   const prose = composeMarketViewProse([
@@ -60,6 +68,7 @@ test('gold implied dollar is not counted as an independent valuation', () => {
   ], 'ok');
   assert.match(prose.reading!, /تأیید مستقل/);
   assert.match(prose.conclusion!, /^طلا/);
+  assert.doesNotMatch(prose.conclusion!, /نسبت قیمت طلا به نقره/);
 });
 
 test('gold silver parity describes the supplied example without inventing executable swap', () => {
@@ -69,8 +78,9 @@ test('gold silver parity describes the supplied example without inventing execut
   ];
   const prose = composeMarketViewProse(evidence, 'ok');
   assert.match(prose.reading!, /۱٫۱۴٪ پایین‌تر/);
-  assert.match(prose.conclusion!, /تبدیل طلا به نقره مزیت ارزشی نشان نمی‌دهد/);
+  assert.match(prose.reading!, /تبدیل طلا به نقره مزیت ارزشی نشان نمی‌دهد/);
   assert.match(prose.reading!, /بازده قابل اجرای تبدیل نیست/);
+  assert.doesNotMatch(prose.conclusion!, /تبدیل طلا به نقره/);
   const reversed = composeMarketViewProse(evidence.map(r => ({ ...r, diffPercent: r.id === 'gold' ? 0.42 : -0.72 })), 'ok');
   assert.match(reversed.reading!, /نقره نسبت به طلا اضافه‌قیمت کمتری/);
   const stale = composeMarketViewProse(evidence.map(r => ({ ...r, status: 'stale' as const })), 'stale');
@@ -79,6 +89,19 @@ test('gold silver parity describes the supplied example without inventing execut
   assert.doesNotMatch(missing.reading!, /نسبت قیمت طلا به نقره/);
 });
 
+test('decision card never invents BUY/SELL/HOLD from bubble gaps', () => {
+  const pending = buildMarketViewDecision([
+    row({ id: 'gold', marketLabel: 'طلا', status: 'ok', diffPercent: -3 }),
+  ], 'ok', null);
+  assert.equal(pending.kind, 'needs_confirmation');
+  assert.equal(pending.tradeAction, null);
+  const buy = buildMarketViewDecision([], 'ok', 'buy');
+  assert.equal(buy.kind, 'buy');
+  assert.equal(buy.tradeAction, 'buy');
+  const empty = buildMarketViewDecision([], 'unavailable', null);
+  assert.equal(empty.kind, 'insufficient_data');
+  assert.match(empty.title, /داده کافی نیست/);
+});
 
 import { marketViewReportFromSnapshot } from '../src/server/market-view-report';
 import { instruments, type Snapshot } from '../src/lib/market';
@@ -96,6 +119,8 @@ test('same snapshot supports overall and focused reports, preview redacts full p
   const snapshot = liveSnapshot();
   const overall = marketViewReportFromSnapshot(snapshot, 'full');
   assert.equal(overall.evidence.length, 4);
+  assert.equal(overall.decision.kind, 'needs_confirmation');
+  assert.ok(overall.valuationMarks.length);
   const silver = marketViewReportFromSnapshot(snapshot, 'full', 'SILVER_999');
   assert.deepEqual(silver.evidence.map(row => row.id), ['silver']);
   assert.match(silver.title, /نقره/);
@@ -104,6 +129,9 @@ test('same snapshot supports overall and focused reports, preview redacts full p
   const preview = marketViewReportFromSnapshot(snapshot, 'preview', 'SILVER_999');
   assert.equal(preview.reading, null);
   assert.equal(preview.conclusion, null);
+  assert.equal(preview.decision.tradeAction, null);
+  assert.match(preview.decision.title, /پیش‌نمایش/);
+  assert.doesNotMatch(JSON.stringify(preview), /برداشت زرسیگنال|نسبت قیمت طلا به نقره/);
 });
 
 test('international ounce never masquerades as the local silver valuation', () => {
@@ -111,6 +139,7 @@ test('international ounce never masquerades as the local silver valuation', () =
   assert.equal(report.evidence.length, 0);
   assert.equal(report.currentQuote?.unit, 'اونس تروا');
   assert.equal(report.conclusion, null);
+  assert.equal(report.decision.kind, 'insufficient_data');
 });
 
 test('report timestamp uses oldest relevant input and fingerprint ignores refetch time', () => {

@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { ArrowUpLeft } from 'lucide-react';
 import { auth } from '@/auth';
 import { instruments } from '@/lib/market';
 import { hasCapability } from '@/lib/capabilities';
@@ -11,6 +12,7 @@ import { resolveAccountEntitlement } from '@/server/account-entitlement';
 import { buildMarketViewReport } from '@/server/market-view-report';
 import { MarketViewReportView } from '@/components/market-view-report';
 import { AnalysisTrialAccess } from '@/components/analysis-trial-access';
+import { AnalysisMarketSelect } from '@/components/analysis-market-select';
 import { ChartWorkspace } from '@/components/chart-workspace';
 
 export const dynamic = 'force-dynamic';
@@ -35,21 +37,44 @@ export default async function AnalysisPage({ params, searchParams }: {
   const entitlement = session?.user?.id ? await resolveAccountEntitlement(session.user.id) : null;
   const fullAccess = entitlement ? hasCapability(entitlement.level, 'ANALYSIS_BASIC') : false;
   const [report, trial] = await Promise.all([
-    buildMarketViewReport(fullAccess ? 'full' : 'preview', asset.symbol), analysisTrial(),
+    buildMarketViewReport(fullAccess ? 'full' : 'preview', asset.symbol),
+    analysisTrial(),
   ]);
-  return <main id="main" className="shell content-page analysis-page market-view-page">
-    <nav className="chart-breadcrumb" aria-label="مسیر"><Link href="/">خانه</Link><span>/</span><Link href="/analysis">دید بازار</Link><span>/ {asset.name}</span></nav>
-    <nav className="home-quick-tools" aria-label="انتخاب تحلیل">
-      <Link href="/analysis">کل بازار</Link>
-      {instruments.map(item => <Link key={item.symbol} href={`/analysis/${item.symbol.toLowerCase()}`} aria-current={item.symbol === asset.symbol ? 'page' : undefined}>{item.short}</Link>)}
-    </nav>
-    <p className="market-view__meta" role="status">{reliability === 'WARNING' ? 'تحلیل خارج از بازه استاندارد' : 'در بازه استاندارد تحلیل'} · زمان تهران</p>
-    <MarketViewReportView initial={report} canRefresh />
-    {(!fullAccess || entitlement?.statusLabel === 'آزمایشی') && <AnalysisTrialAccess trial={trial} symbol={symbol} error={query.trial} />}
-    <details className="market-view__details">
-      <summary>بررسی نمودار و تاریخچهٔ {asset.short}</summary>
-      <ChartWorkspace symbol={asset.symbol} />
-    </details>
-    <div className="home-quick-tools"><Link href="/calculator">محاسبهٔ معامله</Link><Link href={`/markets/${symbol}`}>قیمت و مشخصات {asset.short}</Link><Link href="/methodology">روش محاسبه</Link></div>
-  </main>;
+  const path = `/analysis/${symbol}`;
+
+  return (
+    <main id="main" className="shell content-page analysis-page market-view-page">
+      <nav className="chart-breadcrumb" aria-label="مسیر">
+        <Link href="/">خانه</Link>
+        <span>/</span>
+        <Link href="/analysis">دید بازار</Link>
+        <span>/ {asset.name}</span>
+      </nav>
+      <AnalysisMarketSelect current={asset.symbol} />
+      <p className="market-view__meta" role="status">
+        {reliability === 'WARNING' ? 'تحلیل خارج از بازه استاندارد' : 'در بازه استاندارد تحلیل'} · زمان تهران
+      </p>
+      <MarketViewReportView
+        initial={report}
+        canRefresh
+        trialCta={!fullAccess ? (
+          <Link className="button" href={`/login?next=${encodeURIComponent(path)}`}>
+            ورود / شروع آزمایش <ArrowUpLeft size={15} />
+          </Link>
+        ) : null}
+      />
+      {(!fullAccess || entitlement?.statusLabel === 'آزمایشی') && (
+        <AnalysisTrialAccess trial={trial} symbol={symbol} error={query.trial} />
+      )}
+      <details className="market-view__details">
+        <summary>بررسی نمودار و تاریخچهٔ {asset.short}</summary>
+        <ChartWorkspace symbol={asset.symbol} />
+      </details>
+      <div className="home-quick-tools">
+        <Link href="/calculator">محاسبهٔ معامله</Link>
+        <Link href={`/markets/${symbol}`}>قیمت و مشخصات {asset.short}</Link>
+        <Link href="/methodology">روش محاسبه</Link>
+      </div>
+    </main>
+  );
 }

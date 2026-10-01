@@ -158,6 +158,8 @@ export function marketViewReportFromSnapshot(snapshot: Snapshot, access: MarketV
     reading: prose.reading,
     unconfirmed: prose.unconfirmed,
     conclusion: prose.conclusion,
+    decision: prose.decision,
+    valuationMarks: prose.valuationMarks,
     changeFromPrior: null,
     details: {
       formulaNotes: [
@@ -172,16 +174,27 @@ export function marketViewReportFromSnapshot(snapshot: Snapshot, access: MarketV
 
   if (access === 'full') return full;
 
-  // Preview: keep evidence labels + freshness, shorten narrative, hide deep reading/conclusion.
+  // Preview: keep evidence labels + freshness, shorten narrative, hide private reading/conclusion.
   return {
     ...full,
     access: 'preview',
     summaryLines: [
       prose.summaryLines[0],
-      'متن کامل برداشت و جمع‌بندی با دسترسی تحلیل خانگی یا بالاتر در دسترس است.',
+      'متن کامل برداشت و نتیجه با دسترسی تحلیل خانگی یا بالاتر در دسترس است.',
     ],
     reading: null,
     conclusion: null,
+    decision: prose.decision.kind === 'insufficient_data'
+      ? prose.decision
+      : {
+          kind: 'needs_confirmation',
+          tradeAction: null,
+          title: 'پیش‌نمایش تحلیل',
+          reason: 'برداشت کامل و کارت نتیجه پشت دسترسی تحلیل است؛ قیمت و خلاصهٔ شواهد همین‌جا رایگان‌اند.',
+          changeConditions: 'با پلن مجاز یا دورهٔ آزمایش فعال، نتیجهٔ کامل همین‌جا باز می‌شود.',
+        },
+    // Public preview may show valuation chips from evidence already visible — not private prose.
+    valuationMarks: prose.valuationMarks,
     unconfirmed: [
       ...prose.unconfirmed.slice(0, 2),
       'گزارش کامل و تفسیر ارتباط اعداد پشت دسترسی تحلیل است.',
