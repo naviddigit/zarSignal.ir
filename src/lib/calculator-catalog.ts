@@ -1,7 +1,7 @@
 import type { Symbol } from '@/lib/market';
 export type CalculatorOperation = 'mazanehTo18k' | 'market18kToMazaneh' | 'goldBubble' | 'usdGap' | 'silverBubble';
 export type CalculatorField = { key: string; label: string; unit: string; symbol: Symbol; currency: string; quoteUnit: string };
-const melted: CalculatorField = { key: 'melted', label: 'مظنه آب‌شده ۷۰۵', unit: 'تومان / مثقال', symbol: 'GOLD_MELTED', currency: 'TMN', quoteUnit: 'مثقال' };
+const melted: CalculatorField = { key: 'melted', label: 'مظنه آب‌شده ۷۰۵', unit: 'تومان / مثقال (مثقال فیزیکی)', symbol: 'GOLD_MELTED', currency: 'TMN', quoteUnit: 'مثقال' };
 const gram: CalculatorField = { key: 'gram', label: 'قیمت گرم طلای ۱۸ عیار', unit: 'تومان / گرم', symbol: 'GOLD_18K', currency: 'TMN', quoteUnit: 'گرم' };
 const xau: CalculatorField = { key: 'xau', label: 'اونس جهانی طلا', unit: 'دلار / اونس تروا', symbol: 'XAU_USD', currency: 'USD', quoteUnit: 'اونس تروا' };
 const xag: CalculatorField = { key: 'xag', label: 'اونس جهانی نقره', unit: 'دلار / اونس تروا', symbol: 'XAG_USD', currency: 'USD', quoteUnit: 'اونس تروا' };

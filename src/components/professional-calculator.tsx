@@ -73,12 +73,12 @@ function midQuote(quote: Quote) {
 }
 
 /** Resolve a live calculator field from market quotes. ۱۸ عیار همیشه از مظنه ÷ ۴٫۳۳۱۸. */
-function liveEntry(field: (typeof calculatorCatalog)[CalculatorOperation]['fields'][number], snapshot: Snapshot): Entry {
+function liveEntry(field: (typeof calculatorCatalog)[CalculatorOperation]['fields'][number], snapshot: Snapshot, allowStale = true): Entry {
   if (snapshot.mode !== 'live') return { value: '', provenance: 'MANUAL' };
 
   if (field.symbol === 'GOLD_18K') {
     const melted = snapshot.quotes.find(q => q.symbol === 'GOLD_MELTED');
-    if (melted && !isStale(melted) && melted.currency === 'TMN') {
+    if (melted && (allowStale || !isStale(melted)) && melted.currency === 'TMN') {
       const mid = midQuote(melted);
       if (mid != null) {
         try {
@@ -90,7 +90,7 @@ function liveEntry(field: (typeof calculatorCatalog)[CalculatorOperation]['field
   }
 
   const quote = snapshot.quotes.find(q => q.symbol === field.symbol);
-  if (quote && !isStale(quote) && quote.currency === field.currency && quote.unit === field.quoteUnit) {
+  if (quote && (allowStale || !isStale(quote)) && quote.currency === field.currency && quote.unit === field.quoteUnit) {
     const mid = midQuote(quote);
     if (mid != null) return { value: String(mid), provenance: 'LIVE', observedAt: quote.observedAt };
   }
@@ -212,9 +212,11 @@ export function ProfessionalCalculator({ snapshot }: { snapshot: Snapshot }) {
   async function calculate(event: React.FormEvent) {
     event.preventDefault();
     if (!operation) return;
-    invalidate();
+    // Do not wipe inputs / live availability — only cancel prior request.
+    request.current?.abort();
     const controller = new AbortController();
     request.current = controller;
+    setError('');
     setPending(true);
     const timeout = window.setTimeout(() => controller.abort(), 15000);
     try {
@@ -285,7 +287,8 @@ export function ProfessionalCalculator({ snapshot }: { snapshot: Snapshot }) {
             </div>
             {spec.fields.map(field => {
               const input = inputs[field.key] ?? { value: '', provenance: 'MANUAL' as const };
-              const liveAvailable = liveEntry(field, market).provenance === 'LIVE';
+              // Keep «لحظه‌ای» clickable whenever market feed is live — stale quotes still fill.
+              const liveAvailable = market.mode === 'live' && liveEntry(field, market, true).provenance === 'LIVE';
               return (
                 <div className={`calc-tool-panel__field${input.provenance === 'LIVE' ? ' is-live' : ' is-manual'}`} key={field.key}>
                   <div className="calc-tool-panel__head">
