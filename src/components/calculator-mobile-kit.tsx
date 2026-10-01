@@ -109,15 +109,15 @@ export function CalculatorLiveStrip({ snapshot }: { snapshot: Snapshot }) {
   const sparks = useMarketSparks(symbols);
   const latest = snapshot.quotes.map(q => q.fetchedAt).sort().at(-1);
   return (
-    <section className="calc-live-strip" aria-label="قیمت‌های بازار">
+    <section className="calc-live-strip" aria-label="نرخ‌های تابلو">
       <header>
-        <strong><ChartNoAxesColumn size={12} aria-hidden="true" /> قیمت‌های بازار</strong>
+        <strong><ChartNoAxesColumn size={12} aria-hidden="true" /> نرخ‌های تابلو</strong>
         <span>
           <i className={snapshot.status === 'ok' ? 'is-live' : ''} />
           {snapshot.status === 'ok' ? `دریافت: ${clock(latest)}` : 'داده قدیمی / نامعتبر'}
         </span>
       </header>
-      <HScrollRail className="calc-live-strip__rail" trackClassName="calc-live-strip__grid" label="قیمت‌های بازار" step={140}>
+      <HScrollRail className="calc-live-strip__rail" trackClassName="calc-live-strip__grid" label="نرخ‌های تابلو" step={140}>
         {cells.map(cell => {
           const quote = snapshot.quotes.find(item => item.symbol === cell.symbol);
           const melted = snapshot.quotes.find(item => item.symbol === 'GOLD_MELTED');
