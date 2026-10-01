@@ -8,10 +8,9 @@ import { AssetMark } from '@/components/asset-mark';
 import { Sparkline } from '@/components/sparkline';
 import { sparkPriceTone, type SparkSeries } from '@/components/use-market-sparks';
 
-export function formatBubblePercent(value: number, kind: 'bubble' | 'gap' = 'bubble') {
+export function formatBubblePercent(value: number, _kind: 'bubble' | 'gap' = 'bubble') {
   const sign = value > 0 ? '+' : '';
-  const pct = `${sign}${new Intl.NumberFormat('fa-IR', { maximumFractionDigits: 2, minimumFractionDigits: 2 }).format(value)}٪`;
-  return kind === 'gap' ? `فاصله ${pct}` : `حباب ${pct}`;
+  return `${sign}${new Intl.NumberFormat('fa-IR', { maximumFractionDigits: 2, minimumFractionDigits: 2 }).format(value)}٪`;
 }
 
 export type PriceCardModel = {

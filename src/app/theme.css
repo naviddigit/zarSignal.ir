@@ -362,17 +362,23 @@ html.ds-scroll-locked body{
 .radar-bubble-value.is-locked{color:var(--text-muted);font-size:28px}
 .radar-center small{max-width:180px;line-height:1.5;font-size:10px}
 .radar-token.is-locked{opacity:.78;filter:saturate(.85)}
-.bubble-value{font-weight:800;font-variant-numeric:tabular-nums;color:var(--text-primary)!important;letter-spacing:-.5px}
+.bubble-grid{gap:12px!important}
+.bubble-card{padding:14px 16px!important;min-height:0}
+.bubble-card:hover{transform:none;box-shadow:none}
+.bubble-title{gap:8px}
+.bubble-title h3{font-size:13px!important;font-weight:700}
+.bubble-value{display:grid!important;gap:4px!important;align-items:start!important;font-size:26px!important;font-weight:800;font-variant-numeric:tabular-nums;margin:8px 0 6px!important;letter-spacing:-.4px;color:var(--text-primary)!important;line-height:1.15}
 .bubble-value.is-up{color:var(--success)!important}
 .bubble-value.is-down{color:var(--danger)!important}
-.bubble-value span{display:block;max-width:100%;line-height:1.7;font-size:12px!important;color:var(--text-secondary)!important;font-weight:500;overflow-wrap:anywhere}
-.bubble-card p{font-size:13px!important;line-height:1.9;color:var(--text-secondary)!important}
+.bubble-value span{display:block;max-width:100%;line-height:1.55;font-size:11px!important;color:var(--text-secondary)!important;font-weight:500;overflow-wrap:anywhere}
+.bubble-card p{font-size:11px!important;line-height:1.6;margin:0 0 10px!important;color:var(--text-muted)!important}
+.bubble-card>a{padding-top:10px;font-size:11px}
 .bubble-card.is-blocked{opacity:.88}
 .bubble-card.is-stale .bubble-value span{color:color-mix(in srgb,var(--accent) 80%,var(--text-secondary))!important}
 .gauge{margin-top:8px}
 .gauge>i{position:absolute;top:-3px;width:10px;height:10px;border-radius:50%;background:var(--accent);transform:translateX(-50%);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 25%,transparent);transition:inset-inline-start .45s ease}
 .gauge-labels{font-size:10px!important;color:var(--text-muted)}
-@media(max-width:760px){.radar-bubble-value{font-size:28px}.bubble-value{font-size:42px!important}}
+@media(max-width:760px){.radar-bubble-value{font-size:28px}.bubble-value{font-size:24px!important}.bubble-grid{gap:10px!important}}
 
 /* Pro bubble radar — thin power ring, visible orbits, heartbeat pulse */
 .radar-pro{position:relative;isolation:isolate;height:420px;overflow:clip;border:0;border-radius:0;background:radial-gradient(ellipse at center,color-mix(in srgb,var(--accent) 10%,transparent),transparent 62%);box-shadow:none}

@@ -3,15 +3,14 @@ import { ArrowUpLeft } from 'lucide-react';
 import type { LiveBubbleCard } from '@/lib/bubbles';
 
 const cards = [
-  { key: 'GOLD_BUBBLE' as const, name: 'طلا', symbol: 'Au', type: 'gold', desc: 'اختلاف قیمت طلای ۱۸ عیار بازار با ارزش محاسباتی' },
-  { key: 'SILVER_BUBBLE' as const, name: 'نقره', symbol: 'Ag', type: 'silver', desc: 'اختلاف قیمت نقره ۹۹۹ بازار با ارزش محاسباتی · سیگنال خرید/فروش نیست' },
-  { key: 'USD_BUBBLE' as const, name: 'دلار', symbol: '$', type: 'currency', desc: 'فاصله دلار بازار با دلار ضمنی از طلا — نه ارزش بنیادی دلار' },
+  { key: 'GOLD_BUBBLE' as const, name: 'طلا', symbol: 'Au', type: 'gold', title: 'حباب طلا', desc: 'اختلاف ۱۸ عیار بازار با ارزش محاسباتی' },
+  { key: 'SILVER_BUBBLE' as const, name: 'نقره', symbol: 'Ag', type: 'silver', title: 'حباب نقره', desc: 'اختلاف ۹۹۹ بازار با ارزش محاسباتی' },
+  { key: 'USD_BUBBLE' as const, name: 'دلار', symbol: '$', type: 'currency', title: 'فاصله دلار', desc: 'دلار بازار نسبت به دلار ضمنی طلا' },
 ];
 
-function formatPercent(value: number, kind: 'bubble' | 'gap' = 'bubble') {
+function formatPercent(value: number) {
   const sign = value > 0 ? '+' : '';
-  const pct = `${sign}${new Intl.NumberFormat('fa-IR', { maximumFractionDigits: 2, minimumFractionDigits: 2 }).format(value)}٪`;
-  return kind === 'gap' ? `فاصله ${pct}` : `حباب ${pct}`;
+  return `${sign}${new Intl.NumberFormat('fa-IR', { maximumFractionDigits: 2, minimumFractionDigits: 2 }).format(value)}٪`;
 }
 
 export function BubbleBoard({ bubbles }: { bubbles: LiveBubbleCard[] }) {
@@ -33,22 +32,22 @@ export function BubbleBoard({ bubbles }: { bubbles: LiveBubbleCard[] }) {
             <article className={`panel bubble-card bubble-${item.type} is-${state.status}`} key={item.key}>
               <div className="bubble-title">
                 <span className={`asset-icon ${item.type}`}>{item.symbol}</span>
-                <h3>{item.key === 'USD_BUBBLE' ? 'فاصله دلار' : `حباب ${item.name}`}</h3>
-                <span className="muted">۰{index + 1}</span>
+                <h3>{item.title}</h3>
+                <span className="muted">{String(index + 1).padStart(2, '0')}</span>
               </div>
               <div className={`bubble-value ${ready ? (state.percent! >= 0 ? 'is-up' : 'is-down') : ''}`}>
-                <bdi dir="ltr">{ready ? formatPercent(state.percent!, item.key === 'USD_BUBBLE' ? 'gap' : 'bubble') : '—'}</bdi>
+                <bdi dir="ltr">{ready ? formatPercent(state.percent!) : '—'}</bdi>
                 <span>{state.reason}</span>
               </div>
               <p>{item.desc}</p>
               <Link href={item.key === 'SILVER_BUBBLE' ? '/analysis/silver_999' : blocked ? '/methodology' : item.key === 'GOLD_BUBBLE' ? '/analysis/gold_melted' : '/analysis/usd'}>
-                {item.key === 'SILVER_BUBBLE' ? 'تحلیل پیشرفته نقره' : 'تحلیل پیشرفته'} <ArrowUpLeft size={14} />
+                تحلیل <ArrowUpLeft size={14} />
               </Link>
             </article>
           );
         })}
       </div>
-      <p className="subtle-note">عدد حباب توصیه خرید/فروش نیست. محدوده خنثی هنوز فعال نیست.</p>
+      <p className="subtle-note">عدد اختلاف قیمت توصیه خرید/فروش نیست. محدوده خنثی هنوز فعال نیست.</p>
     </section>
   );
 }
