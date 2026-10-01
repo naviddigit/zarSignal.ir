@@ -20,6 +20,7 @@ export function SiteBoot() {
       done = true;
       const wait = Math.max(0, MIN_MS - (performance.now() - started));
       window.setTimeout(() => {
+        window.scrollTo(0, 0);
         root.classList.add('site-ready');
         root.classList.remove('is-booting');
         window.setTimeout(() => {

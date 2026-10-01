@@ -23,8 +23,8 @@ export async function Header() {
         <nav aria-label="ناوبری اصلی">
           <Link href="/markets">بازارها</Link>
           <Link href="/#bubbles">رادار حباب</Link>
+          <Link href="/news">مقالات</Link>
           <Link href="/pricing">اشتراک</Link>
-          <Link href="/methodology">روش داده</Link>
         </nav>
 
         <div className="header-actions">

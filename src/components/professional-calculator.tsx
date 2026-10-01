@@ -354,9 +354,8 @@ export function ProfessionalCalculator({ snapshot }: { snapshot: Snapshot }) {
       <CalculatorLiveStrip snapshot={market} />
 
       <div className="calc-stage__side">
-        <div className={`calc-keypad-wrap${keypadCue ? ' is-keypad-cue' : ''}`} aria-describedby={keypadCue ? 'calc-keypad-hint' : undefined}>
+        <div className={`calc-keypad-wrap${keypadCue ? ' is-keypad-cue' : ''}`}>
           <span className="calc-entry-target">{keypadTarget}</span>
-          {keypadCue ? <span id="calc-keypad-hint" className="calc-keypad-hint">عدد را از اینجا وارد کنید</span> : null}
           <CalculatorKeypad key={`${tool}-${activeField}`} value={keypadValue} onChange={value => {
             if (tool === 'weight') { setWeightAmount(value); return; }
             if (tool === 'purity') { setPurityAmount(value); return; }

@@ -52,6 +52,7 @@ export default function Layout({ children }: Readonly<{ children: React.ReactNod
           <Link href="/" className="footer-brand">زرسیگنال <span>دید روشن‌تر به بازار.</span></Link>
           <div>
             <Link href="/methodology">شفافیت داده</Link>
+            <Link href="/news">اخبار و مقالات</Link>
             <Link href="/faq">پرسش‌های متداول</Link>
             <Link href="/developers">مستندات API</Link>
             <Link href="/mobile">اپلیکیشن</Link>

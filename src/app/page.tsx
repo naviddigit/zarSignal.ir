@@ -12,6 +12,7 @@ import { FunnelTrack } from '@/components/funnel-track';
 import { getPublicSnapshot } from '@/server/quotes';
 import { computeLiveBubbles } from '@/server/live-bubbles';
 import { auth } from '@/auth';
+import { articles } from '@/lib/articles';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -56,6 +57,24 @@ export default async function Home() {
       {sections.bubbles && <BubbleBoard bubbles={bubbles} />}
       {sections.chart && <ChartTeaser />}
       {sections.calculator && <CalculatorPreview />}
+
+      <section className="home-news section-reveal" aria-label="مقالات">
+        <div className="home-news__head">
+          <div>
+            <span className="eyebrow">NEWS</span>
+            <h2>بخوانید تا بازار را اشتباه نفهمید</h2>
+          </div>
+          <Link className="text-link" href="/news">همه مقالات <ArrowUpLeft size={15} /></Link>
+        </div>
+        <div className="home-news__grid">
+          {articles.slice(0, 3).map(article => (
+            <Link key={article.slug} href={`/news/${article.slug}`}>
+              <strong>{article.title}</strong>
+              <small>{article.description}</small>
+            </Link>
+          ))}
+        </div>
+      </section>
 
       {sections.products && <section className="product-grid section-reveal">
         <article className="panel premium-card">
