@@ -6,6 +6,7 @@ import { isStale, type Quote, type Snapshot } from '@/lib/market';
 import { formatNumericInput, sanitizeNumericInput } from '@/lib/numeric-input';
 import { fetchJson } from '@/lib/fetch-json';
 import { mazanehTo18k } from '@/lib/mazaneh-to-18k';
+import { track } from '@/lib/analytics';
 import { OverlaySheet } from '@/components/ui/overlay-sheet';
 import {
   CalculatorKeypad,
@@ -24,13 +25,12 @@ type Tool = LocalTool | CalculatorOperation;
 type Entry = { value: string; provenance: 'LIVE' | 'MANUAL'; observedAt?: string };
 type PopularPick = { id: string; label: string; Icon: typeof popularIcons.weight; locked?: boolean };
 
-const products: [Product, string][] = [['gold', 'طلا'], ['silver', 'نقره'], ['coin', 'سکه'], ['fx', 'ارز'], ['more', 'بیشتر']];
+const products: [Product, string][] = [['gold', 'طلا'], ['silver', 'نقره'], ['fx', 'دلار'], ['coin', 'سکه']];
 const toolsByProduct: Record<Product, Tool[]> = {
   gold: ['weight', 'mazanehTo18k', 'market18kToMazaneh', 'goldBubble', 'purity'],
-  silver: ['weight', 'purity'],
-  coin: ['weight', 'purity'],
+  silver: ['weight', 'silverBubble', 'purity'],
   fx: ['usdGap'],
-  more: ['weight', 'purity'],
+  coin: ['weight', 'purity'],
 };
 /** Default open tool — تبدیل وزن کاربردی‌ترین ورودی عمومی است. */
 const DEFAULT_TOOL: Tool = 'weight';
@@ -46,10 +46,14 @@ const popularByProduct: Record<Product, PopularPick[]> = {
   ],
   silver: [
     { id: 'weight', label: 'تبدیل وزن', Icon: popularIcons.weight },
+    { id: 'silverBubble', label: 'حباب نقره', Icon: popularIcons.silverBubble },
     { id: 'purity', label: 'عیار نقره', Icon: popularIcons.purity },
     { id: 'ratio', label: 'نسبت طلا/نقره', Icon: popularIcons.ratio, locked: true },
-    { id: 'silverBubble', label: 'حباب نقره', Icon: popularIcons.silverBubble, locked: true },
     { id: 'jewelry', label: 'زیور نقره', Icon: popularIcons.jewelry, locked: true },
+  ],
+  fx: [
+    { id: 'usdGap', label: 'فاصله دلار', Icon: popularIcons.usdGap },
+    { id: 'fxConvert', label: 'مبدل ارز', Icon: popularIcons.usdGap, locked: true },
   ],
   coin: [
     { id: 'weight', label: 'تبدیل وزن', Icon: popularIcons.weight },
@@ -57,17 +61,6 @@ const popularByProduct: Record<Product, PopularPick[]> = {
     { id: 'sekeBubble', label: 'حباب سکه', Icon: popularIcons.coin, locked: true },
     { id: 'robSeke', label: 'ربع سکه', Icon: popularIcons.coin, locked: true },
     { id: 'nimSeke', label: 'نیم سکه', Icon: popularIcons.coin, locked: true },
-  ],
-  fx: [
-    { id: 'usdGap', label: 'فاصله دلار', Icon: popularIcons.usdGap },
-    { id: 'fxConvert', label: 'مبدل ارز', Icon: popularIcons.usdGap, locked: true },
-  ],
-  more: [
-    { id: 'weight', label: 'تبدیل وزن', Icon: popularIcons.weight },
-    { id: 'purity', label: 'تبدیل عیار', Icon: popularIcons.purity },
-    { id: 'pnl', label: 'سود و زیان', Icon: popularIcons.goldBubble, locked: true },
-    { id: 'dca', label: 'میانگین خرید', Icon: popularIcons.market18kToMazaneh, locked: true },
-    { id: 'tax', label: 'مالیات اجرت', Icon: popularIcons.jewelry, locked: true },
   ],
 };
 const number = (value: number) => new Intl.NumberFormat('en-US', { maximumFractionDigits: 4 }).format(value);
@@ -123,6 +116,7 @@ export function ProfessionalCalculator({ snapshot }: { snapshot: Snapshot }) {
   const [activeField, setActiveField] = useState('');
   const request = useRef<AbortController | null>(null);
   useEffect(() => () => request.current?.abort(), []);
+  useEffect(() => { track('calculator_open'); }, []);
 
   const available = toolsByProduct[product];
   const operation = isOperation(tool) ? tool : null;
@@ -222,6 +216,7 @@ export function ProfessionalCalculator({ snapshot }: { snapshot: Snapshot }) {
       if (request.current === controller && !controller.signal.aborted) {
         setResult(data);
         setResultOpen(true);
+        track('calculator_complete', { operation: tool });
       }
     } catch (e) {
       if (request.current === controller) {

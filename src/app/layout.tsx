@@ -1,8 +1,10 @@
 import type { Metadata, Viewport } from 'next';
 import Link from 'next/link';
+import { Activity } from 'lucide-react';
 import { Header } from '@/components/header';
 import { MobileTabBar } from '@/components/mobile-tab-bar';
 import { JsonLd } from '@/components/json-ld';
+import { SiteBoot } from '@/components/site-boot';
 import './globals.css';
 import './theme.css';
 import './product-quality.css';
@@ -17,8 +19,47 @@ export const metadata: Metadata = {
   twitter: { card: 'summary_large_image', images: ['/og-card.svg'] },
   robots: process.env.MARKET_MODE === 'live' ? { index: true, follow: true } : { index: false, follow: false },
 };
-export const viewport: Viewport = { themeColor: [{ media: '(prefers-color-scheme: light)', color: '#f5f7fa' }, { media: '(prefers-color-scheme: dark)', color: '#080c13' }], width: 'device-width', initialScale: 1 };
+export const viewport: Viewport = {
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#f5f7fa' },
+    { media: '(prefers-color-scheme: dark)', color: '#080c13' },
+  ],
+  width: 'device-width',
+  initialScale: 1,
+};
+
+const themeBootScript = `try{const t=localStorage.getItem('zarsignal-theme');const p=t==='light'||t==='dark'?t:'system';const v=p==='system'?(matchMedia('(prefers-color-scheme:light)').matches?'light':'dark'):p;const r=document.documentElement;r.dataset.themePreference=p;r.dataset.theme=v;r.style.colorScheme=v;r.classList.add('is-booting')}catch{const r=document.documentElement;r.dataset.theme='dark';r.dataset.themePreference='system';r.classList.add('is-booting')}`;
+
 export default function Layout({ children }: Readonly<{ children: React.ReactNode }>) {
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://zarsignal.ir';
-  return <html lang="fa" dir="rtl" suppressHydrationWarning data-scroll-behavior="smooth"><head><script dangerouslySetInnerHTML={{ __html: `try{const t=localStorage.getItem('zarsignal-theme');const p=t==='light'||t==='dark'?t:'system';const v=p==='system'?(matchMedia('(prefers-color-scheme:light)').matches?'light':'dark'):p;const r=document.documentElement;r.dataset.themePreference=p;r.dataset.theme=v;r.style.colorScheme=v}catch{document.documentElement.dataset.theme='dark';document.documentElement.dataset.themePreference='system'}` }}/></head><body className="has-mobile-tabs"><JsonLd data={{ '@context': 'https://schema.org', '@type': 'WebSite', name: 'زرسیگنال', url: siteUrl, inLanguage: 'fa-IR', description: 'دیده‌بان فارسی بازار طلا، نقره و ارز با زمان و منبع مشخص داده.' }}/><a href="#main" className="skip-link">رفتن به محتوای اصلی</a><Header/>{children}<footer className="shell footer"><Link href="/" className="footer-brand">زرسیگنال <span>دید روشن‌تر به بازار.</span></Link><div><Link href="/methodology">شفافیت داده</Link><Link href="/faq">پرسش‌های متداول</Link><Link href="/developers">مستندات API</Link><Link href="/mobile">اپلیکیشن</Link></div><small>نسخهٔ اولیه · تحلیل، تضمین نتیجهٔ معامله نیست.</small></footer><MobileTabBar/></body></html>;
+  return (
+    <html lang="fa" dir="rtl" suppressHydrationWarning data-scroll-behavior="smooth" className="is-booting">
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeBootScript }} />
+      </head>
+      <body className="has-mobile-tabs">
+        <div id="boot-splash" role="status" aria-live="polite" aria-label="در حال آماده‌سازی زرسیگنال">
+          <span className="boot-splash__mark" aria-hidden="true"><Activity size={28} /></span>
+          <strong className="boot-splash__brand">زر<span>سیگنال</span></strong>
+          <small>ZARSIGNAL</small>
+        </div>
+        <SiteBoot />
+        <JsonLd data={{ '@context': 'https://schema.org', '@type': 'WebSite', name: 'زرسیگنال', url: siteUrl, inLanguage: 'fa-IR', description: 'دیده‌بان فارسی بازار طلا، نقره و ارز با زمان و منبع مشخص داده.' }} />
+        <a href="#main" className="skip-link">رفتن به محتوای اصلی</a>
+        <Header />
+        {children}
+        <footer className="shell footer">
+          <Link href="/" className="footer-brand">زرسیگنال <span>دید روشن‌تر به بازار.</span></Link>
+          <div>
+            <Link href="/methodology">شفافیت داده</Link>
+            <Link href="/faq">پرسش‌های متداول</Link>
+            <Link href="/developers">مستندات API</Link>
+            <Link href="/mobile">اپلیکیشن</Link>
+          </div>
+          <small>نسخهٔ اولیه · تحلیل، تضمین نتیجهٔ معامله نیست.</small>
+        </footer>
+        <MobileTabBar />
+      </body>
+    </html>
+  );
 }

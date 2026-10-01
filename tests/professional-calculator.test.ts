@@ -26,7 +26,14 @@ test('LIVE ignores forged client values and fails closed on demo, stale or wrong
   assert.throws(() => calculateProfessional(request, { ...snapshot, mode: 'demo' }));
   assert.throws(() => calculateProfessional(request, { ...snapshot, quotes: [{ ...quote, currency: 'IRR' }] }));
   assert.throws(() => calculateProfessional(request, { ...snapshot, quotes: [{ ...quote, observedAt: '2020-01-01' }] }));
-  assert.throws(() => calculateProfessional({ operation: 'silverBubble', inputs: {} }, snapshot));
+  assert.throws(() => calculateProfessional({ operation: 'unknownOp' as 'mazanehTo18k', inputs: {} }, snapshot));
+  const silver = calculateProfessional({
+    operation: 'silverBubble',
+    inputs: { xag: manual(50), usd: manual(200000), silver999: manual(350000) },
+  }, empty);
+  assert.equal(silver.version, 'V5.4-SILVER.1');
+  assert.ok(Math.abs(silver.outputs[0].value - 321185.9582205935) < 0.01);
+  assert.ok(Math.abs(silver.outputs[2].value - 8.971139939939944) < 0.0001);
   assert.throws(() => calculateProfessional({ operation: 'mazanehTo18k', inputs: { melted: manual(-1) } }, snapshot));
   assert.throws(() => calculateProfessional({ operation: 'mazanehTo18k', inputs: { melted: { provenance: 'CONSTANT', value: 1 } } }, snapshot));
 });

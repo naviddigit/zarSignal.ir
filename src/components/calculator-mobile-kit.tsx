@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import {
   ArrowLeftRight, Banknote, ChartNoAxesColumn, CircleDollarSign, Coins, Delete,
-  Gem, Grid2X2, Info, Menu, Percent, Scale, X,
+  Gem, Info, Menu, Percent, Scale, X,
 } from 'lucide-react';
 import { convertWeight, convertPurityPrice, weightUnits, purityOptions, type WeightUnit, type Purity } from '@/lib/calculator-conversions';
 import { formatNumericInput, sanitizeNumericInput } from '@/lib/numeric-input';
@@ -33,14 +33,13 @@ function clock(value?: string) {
   return new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Tehran' }).format(new Date(value));
 }
 
-export type CalcProduct = 'gold' | 'silver' | 'coin' | 'fx' | 'more';
+export type CalcProduct = 'gold' | 'silver' | 'fx' | 'coin';
 
 const productMeta: { key: CalcProduct; label: string; Icon: typeof Gem }[] = [
   { key: 'gold', label: 'طلا', Icon: ChartNoAxesColumn },
   { key: 'silver', label: 'نقره', Icon: Gem },
+  { key: 'fx', label: 'دلار', Icon: CircleDollarSign },
   { key: 'coin', label: 'سکه', Icon: Coins },
-  { key: 'fx', label: 'ارز', Icon: CircleDollarSign },
-  { key: 'more', label: 'بیشتر', Icon: Grid2X2 },
 ];
 
 /** App header from Mojtaba mock. */

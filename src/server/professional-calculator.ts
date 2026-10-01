@@ -1,7 +1,7 @@
 import { calculatorCatalog, type CalculatorOperation, type CalculatorResult } from '@/lib/calculator-catalog';
 import { isStale, type Quote, type Snapshot } from '@/lib/market';
 import { mazanehTo18k, market18kToMazaneh } from './mazaneh-to-18k';
-import { goldBubble, usdGap } from './bubble-formulas';
+import { goldBubble, silverBubbleV54, usdGap } from './bubble-formulas';
 
 function midQuote(quote: Quote) {
   const mid = (Number(quote.buy) + Number(quote.sell)) / 2;
@@ -58,7 +58,14 @@ export function calculateProfessional(body: unknown, snapshot: Snapshot): Calcul
   let outputs: CalculatorResult['outputs'];
   if (request.operation === 'mazanehTo18k') outputs = [{ label: 'قیمت مشتق گرم ۱۸ عیار', value: mazanehTo18k(v.melted).market18k, unit: 'تومان / گرم' }];
   else if (request.operation === 'market18kToMazaneh') outputs = [{ label: 'مظنه محاسبه‌شده', value: market18kToMazaneh(v.gram), unit: 'تومان / مثقال' }];
-  else {
+  else if (request.operation === 'silverBubble') {
+    const result = silverBubbleV54({ xagUsd: v.xag, usdIrt: v.usd, silver999Market: v.silver999 });
+    outputs = [
+      { label: 'قیمت نظری نقره ۹۹۹', value: result.silverTheo999, unit: 'تومان / گرم' },
+      { label: 'اختلاف قیمت', value: result.silverGap, unit: 'تومان / گرم' },
+      { label: 'حباب نقره', value: result.silverPremiumPct, unit: 'درصد' },
+    ];
+  } else {
     const market18k = mazanehTo18k(v.melted).market18k;
     const gold = request.operation === 'goldBubble';
     const result = gold ? goldBubble({ market18k, xauUsd: v.xau, usdIrt: v.usd }) : usdGap({ market18k, xauUsd: v.xau, actualUsd: v.usd });

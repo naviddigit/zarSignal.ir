@@ -1,15 +1,18 @@
 import type { Symbol } from '@/lib/market';
-export type CalculatorOperation = 'mazanehTo18k' | 'market18kToMazaneh' | 'goldBubble' | 'usdGap';
+export type CalculatorOperation = 'mazanehTo18k' | 'market18kToMazaneh' | 'goldBubble' | 'usdGap' | 'silverBubble';
 export type CalculatorField = { key: string; label: string; unit: string; symbol: Symbol; currency: string; quoteUnit: string };
 const melted: CalculatorField = { key: 'melted', label: 'مظنه آب‌شده ۷۰۵', unit: 'تومان / مثقال', symbol: 'GOLD_MELTED', currency: 'TMN', quoteUnit: 'مثقال' };
 const gram: CalculatorField = { key: 'gram', label: 'قیمت گرم طلای ۱۸ عیار', unit: 'تومان / گرم', symbol: 'GOLD_18K', currency: 'TMN', quoteUnit: 'گرم' };
 const xau: CalculatorField = { key: 'xau', label: 'اونس جهانی طلا', unit: 'دلار / اونس تروا', symbol: 'XAU_USD', currency: 'USD', quoteUnit: 'اونس تروا' };
+const xag: CalculatorField = { key: 'xag', label: 'اونس جهانی نقره', unit: 'دلار / اونس تروا', symbol: 'XAG_USD', currency: 'USD', quoteUnit: 'اونس تروا' };
 const usd: CalculatorField = { key: 'usd', label: 'نرخ دلار', unit: 'تومان / دلار', symbol: 'USD', currency: 'TMN', quoteUnit: 'دلار' };
+const silver999: CalculatorField = { key: 'silver999', label: 'گرم نقره ۹۹۹', unit: 'تومان / گرم', symbol: 'SILVER_999', currency: 'TMN', quoteUnit: 'گرم' };
 export const calculatorCatalog: Record<CalculatorOperation, { title: string; formulaId: string; version: string; fields: CalculatorField[] }> = {
   mazanehTo18k: { title: 'مظنه به گرم ۱۸ عیار', formulaId: 'MAZANEH_TO_18K', version: '1.1', fields: [melted] },
   market18kToMazaneh: { title: 'گرم ۱۸ عیار به مظنه', formulaId: 'MAZANEH_TO_18K', version: '1.1', fields: [gram] },
   goldBubble: { title: 'ارزش محاسباتی و حباب طلا', formulaId: 'GOLD_BUBBLE', version: '1.0', fields: [melted, xau, usd] },
   usdGap: { title: 'فاصله دلار با دلار ضمنی طلا', formulaId: 'USD_GAP', version: '1.0', fields: [melted, xau, usd] },
+  silverBubble: { title: 'ارزش محاسباتی و حباب نقره ۹۹۹', formulaId: 'SILVER_BUBBLE', version: 'V5.4-SILVER.1', fields: [xag, usd, silver999] },
 };
 export const formulaRegistry = {
   GOLD_BUBBLE: { approved: true, description: 'فرمول حباب طلا تأیید شده است؛ قیمت ۱۸ عیار از تبدیل تأییدشده مظنه به دست می‌آید. خروجی محاسباتی پیشنهاد خرید یا فروش نیست. محدوده خنثی و آستانه معاملاتی هنوز فعال نیستند.' },
@@ -22,4 +25,3 @@ export type CalculatorResult = {
   inputs: { key: string; label: string; value: number; unit: string; provenance: 'LIVE' | 'MANUAL' | 'CONSTANT'; observedAt: string | null; source: string }[];
   constants: { label: string; provenance: 'CONSTANT'; version: string }[];
 };
-
