@@ -330,7 +330,7 @@ export function ProfessionalCalculator({ snapshot }: { snapshot: Snapshot }) {
             </button>
             {error ? <p className="calc-error" role="alert">{error}</p> : null}
             {result ? (
-              <div className="calc-result-panel" aria-live="polite">
+              <div className="calc-result-panel calc-result-panel--desktop" aria-live="polite">
                 <strong>نتیجه</strong>
                 {result.outputs.map(output => (
                   <div className="calc-result-panel__row" key={output.label}>
@@ -349,9 +349,8 @@ export function ProfessionalCalculator({ snapshot }: { snapshot: Snapshot }) {
             <p>این ابزار بعد از تأیید فرمول و منبع منتشر می‌شود.</p>
           </div>
         )}
+        <CalculatorLiveStrip snapshot={market} />
       </div>
-
-      <CalculatorLiveStrip snapshot={market} />
 
       <div className="calc-stage__side">
         <div className={`calc-keypad-wrap${keypadCue ? ' is-keypad-cue' : ''}`}>
