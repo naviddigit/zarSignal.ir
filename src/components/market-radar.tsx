@@ -27,10 +27,9 @@ const meta: Record<Focus, {
   USD_BUBBLE: { label: 'فاصله دلار', short: 'دلار', token: '$', className: 'tone-dollar', tint: 'dollar', analysisHref: '/analysis/usd' },
 };
 
-function formatPercent(value: number, kind: 'bubble' | 'gap' = 'bubble') {
+function formatPercent(value: number) {
   const sign = value > 0 ? '+' : '';
-  const pct = `${sign}${new Intl.NumberFormat('fa-IR', { maximumFractionDigits: 2, minimumFractionDigits: 2 }).format(value)}٪`;
-  return kind === 'gap' ? `فاصله ${pct}` : `حباب ${pct}`;
+  return `${sign}${new Intl.NumberFormat('fa-IR', { maximumFractionDigits: 2, minimumFractionDigits: 2 }).format(value)}٪`;
 }
 
 function formatSilverPrice(value: number, currency: string) {
@@ -179,12 +178,10 @@ export function MarketRadar({
       ? 'locked'
       : 'empty';
 
-  const centerValue = ready
-    ? formatPercent(card!.percent!, focus === 'USD_BUBBLE' ? 'gap' : 'bubble')
-    : '—';
+  const centerValue = ready ? formatPercent(card!.percent!) : '—';
 
   const centerStatus = ready
-    ? (card!.status === 'stale' ? 'داده قدیمی' : 'اختلاف قیمت · سیگنال نیست')
+    ? (card!.status === 'stale' ? 'داده قدیمی · سیگنال خرید/فروش نیست' : 'اختلاف قیمت · سیگنال خرید/فروش نیست')
     : (card?.reason ?? 'در انتظار داده');
 
   return (
