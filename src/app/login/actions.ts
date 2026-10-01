@@ -34,7 +34,7 @@ export async function registerWithEmail(formData: FormData) {
     await db.user.create({ data: { email, name, passwordHash: hashPassword(password) } });
   }
   try {
-    await signIn('credentials', { email, password, redirectTo: next });
+    await signIn('credentials', { email, password, redirectTo: next.includes('?') ? `${next}&signup=1` : `${next}?signup=1` });
   } catch (error) {
     if (error instanceof AuthError) redirect(`/login?error=signin&next=${encodeURIComponent(next)}`);
     throw error;

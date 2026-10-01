@@ -13,6 +13,7 @@ import {
 import { auth, signOut } from '@/auth';
 import { db } from '@/lib/db';
 import { PendingButton } from '@/components/pending-button';
+import { FunnelTrack } from '@/components/funnel-track';
 import { deleteP0TestAccount } from '@/app/login/actions';
 
 export const metadata: Metadata = {
@@ -32,9 +33,9 @@ const statusFa: Record<string, string> = {
 export default async function AccountPage({
   searchParams,
 }: {
-  searchParams: Promise<{ reserved?: string }>;
+  searchParams: Promise<{ reserved?: string; signup?: string }>;
 }) {
-  const { reserved } = await searchParams;
+  const { reserved, signup } = await searchParams;
   const session = await auth().catch(() => null);
   const user = session?.user;
 
@@ -60,6 +61,7 @@ export default async function AccountPage({
 
   return (
     <main id="main" className="shell content-page account-page">
+      {signup === '1' ? <FunnelTrack event="signup_complete" /> : null}
       <span className="eyebrow">پروفایل</span>
       <header className="account-hero">
         <span className="account-hero__avatar" aria-hidden="true"><UserRound size={26} /></span>

@@ -116,7 +116,7 @@ export function ProfessionalCalculator({ snapshot }: { snapshot: Snapshot }) {
   const [activeField, setActiveField] = useState('');
   const request = useRef<AbortController | null>(null);
   useEffect(() => () => request.current?.abort(), []);
-  useEffect(() => { track('calculator_open'); }, []);
+  // calculator_open tracked once from page FunnelTrack
 
   const available = toolsByProduct[product];
   const operation = isOperation(tool) ? tool : null;
@@ -162,11 +162,13 @@ export function ProfessionalCalculator({ snapshot }: { snapshot: Snapshot }) {
   function setMode(key: string, mode: 'LIVE' | 'MANUAL') {
     if (!spec) return;
     invalidate();
+    setActiveField(key);
     setInputs(current => {
       const field = spec.fields.find(item => item.key === key);
       if (!field) return current;
       if (mode === 'LIVE') return { ...current, [key]: liveEntry(field, market) };
-      return { ...current, [key]: { value: current[key]?.value ?? '', provenance: 'MANUAL' } };
+      // Manual: reset to 0; neon ring signals type-here mode.
+      return { ...current, [key]: { value: '0', provenance: 'MANUAL' } };
     });
   }
 
@@ -271,7 +273,7 @@ export function ProfessionalCalculator({ snapshot }: { snapshot: Snapshot }) {
               const input = inputs[field.key] ?? { value: '', provenance: 'MANUAL' as const };
               const liveAvailable = liveEntry(field, market).provenance === 'LIVE';
               return (
-                <div className={`calc-tool-panel__field${input.provenance === 'LIVE' ? ' is-live' : ''}`} key={field.key}>
+                <div className={`calc-tool-panel__field${input.provenance === 'LIVE' ? ' is-live' : ' is-manual'}`} key={field.key}>
                   <div className="calc-tool-panel__head">
                     <span className="calc-tool-panel__label">{field.label}</span>
                     <div className="calc-mode" role="radiogroup" aria-label={`منبع ${field.label}`}>
@@ -283,7 +285,7 @@ export function ProfessionalCalculator({ snapshot }: { snapshot: Snapshot }) {
                       </button>
                     </div>
                   </div>
-                  <div className="calc-tool-panel__control">
+                  <div className={`calc-tool-panel__control${input.provenance === 'MANUAL' ? ' is-manual-neon' : ''}`}>
                     <input
                       className="ds-input"
                       inputMode="none"
@@ -313,6 +315,18 @@ export function ProfessionalCalculator({ snapshot }: { snapshot: Snapshot }) {
               <ArrowUpLeft size={15} />
             </button>
             {error ? <p className="calc-error" role="alert">{error}</p> : null}
+            {result ? (
+              <div className="calc-result-panel" aria-live="polite">
+                <strong>نتیجه</strong>
+                {result.outputs.map(output => (
+                  <div className="calc-result-panel__row" key={output.label}>
+                    <span>{output.label}</span>
+                    <bdi dir="ltr">{number(output.value)} <small>{output.unit}</small></bdi>
+                  </div>
+                ))}
+                <small className="calc-result-panel__ver">{result.formulaId} · {result.version}</small>
+              </div>
+            ) : null}
           </form>
         ) : (
           <div className="calc-tool-panel calc-tool-panel--locked">

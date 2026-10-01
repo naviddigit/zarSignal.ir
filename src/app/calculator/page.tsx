@@ -1,13 +1,21 @@
 import type { Metadata } from 'next';
 import { ProfessionalCalculator } from '@/components/professional-calculator';
+import { FunnelTrack } from '@/components/funnel-track';
 import { getPublicSnapshot } from '@/server/quotes';
 import './calculator.css';
+
 export const dynamic = 'force-dynamic';
-export const metadata: Metadata = { title: 'ماشین‌حساب حرفه‌ای طلا، نقره، سکه و ارز', description: 'تبدیل مظنه، قیمت ۱۸ عیار و محاسبه حباب طلا با ورودی دستی یا زنده و جزئیات منبع و نسخه.', alternates: { canonical: '/calculator' } };
+export const metadata: Metadata = {
+  title: 'ماشین‌حساب حرفه‌ای طلا، نقره، سکه و ارز',
+  description: 'تبدیل مظنه، قیمت ۱۸ عیار و محاسبه حباب طلا با ورودی دستی یا زنده و جزئیات منبع و نسخه.',
+  alternates: { canonical: '/calculator' },
+};
+
 export default async function CalculatorPage() {
   const snapshot = await getPublicSnapshot();
   return (
     <main id="main" className="shell professional-page calc-app-page">
+      <FunnelTrack event="calculator_open" />
       <header className="calc-app-page__intro">
         <span className="eyebrow">ZARSIGNAL CALCULATOR</span>
         <h1>هر محاسبه، با ورودی روشن.</h1>
@@ -17,4 +25,3 @@ export default async function CalculatorPage() {
     </main>
   );
 }
-

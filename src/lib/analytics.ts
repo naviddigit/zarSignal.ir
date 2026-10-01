@@ -20,7 +20,8 @@ export type GrowthEvent =
   | 'analysis_view'
   | 'alert_created'
   | 'chart_marker_open'
-  | 'education_open';
+  | 'education_open'
+  | 'returning_user';
 
 export function track(event: GrowthEvent, props?: Record<string, string | number | boolean | null>) {
   if (typeof window === 'undefined') return;

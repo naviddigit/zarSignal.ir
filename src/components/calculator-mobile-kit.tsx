@@ -157,7 +157,7 @@ export function CalculatorKeypad({ value, onChange }: { value: string; onChange:
   const [error, setError] = useState('');
   function press(key: string) {
     setError('');
-    if (key === 'C') { setLeft(null); setOperator(''); setReplace(false); return onChange(''); }
+    if (key === 'C') { setLeft(null); setOperator(''); setReplace(true); return onChange('0'); }
     if ('÷×−+'.includes(key) || key === '=') {
       try {
         const current = left !== null && operator && !replace ? keypadMath(left, Number(value || 0), operator) : Number(value || 0);
@@ -267,6 +267,22 @@ export function WeightConvertWidget({ amount, onAmountChange }: { amount: string
       </header>
 
       <div className="calc-weight-widget__pair">
+        <div className="calc-weight-box is-out" aria-live="polite">
+          <span className="ds-field__label">نتیجه</span>
+          <strong className="calc-weight-box__result" dir="ltr">{result == null ? '—' : fa(result)}</strong>
+          <Select
+            label="واحد مقصد"
+            className="calc-weight-box__select"
+            value={to}
+            onChange={value => setTo(value as WeightUnit)}
+            options={unitOptions}
+          />
+        </div>
+
+        <button type="button" className="calc-weight-swap" aria-label="جابه‌جایی واحدها" onClick={swap}>
+          <ArrowLeftRight size={15} />
+        </button>
+
         <div className="calc-weight-box is-in">
           <span className="ds-field__label">مقدار</span>
           <div className="calc-weight-box__input-wrap">
@@ -298,22 +314,6 @@ export function WeightConvertWidget({ amount, onAmountChange }: { amount: string
             className="calc-weight-box__select"
             value={from}
             onChange={value => setFrom(value as WeightUnit)}
-            options={unitOptions}
-          />
-        </div>
-
-        <button type="button" className="calc-weight-swap" aria-label="جابه‌جایی واحدها" onClick={swap}>
-          <ArrowLeftRight size={15} />
-        </button>
-
-        <div className="calc-weight-box is-out" aria-live="polite">
-          <span className="ds-field__label">نتیجه</span>
-          <strong className="calc-weight-box__result" dir="ltr">{result == null ? '—' : fa(result)}</strong>
-          <Select
-            label="واحد مقصد"
-            className="calc-weight-box__select"
-            value={to}
-            onChange={value => setTo(value as WeightUnit)}
             options={unitOptions}
           />
         </div>
@@ -354,6 +354,14 @@ export function PurityConvertWidget({ amount, onAmountChange }: { amount: string
         <small>قیمت هم‌وزن بین دو خلوص</small>
       </header>
       <div className="calc-weight-widget__pair">
+        <div className="calc-weight-box is-out" aria-live="polite">
+          <span className="ds-field__label">قیمت مقصد</span>
+          <strong className="calc-weight-box__result" dir="ltr">{result == null ? '—' : fa(result)}</strong>
+          <Select label="عیار مقصد" className="calc-weight-box__select" value={to} onChange={value => setTo(value as Purity)} options={puritySelectOptions} />
+        </div>
+        <button type="button" className="calc-weight-swap" aria-label="جابه‌جایی عیارها" onClick={swap}>
+          <ArrowLeftRight size={15} />
+        </button>
         <div className="calc-weight-box is-in">
           <span className="ds-field__label">قیمت مبدأ</span>
           <div className="calc-weight-box__input-wrap">
@@ -369,14 +377,6 @@ export function PurityConvertWidget({ amount, onAmountChange }: { amount: string
             />
           </div>
           <Select label="عیار مبدأ" className="calc-weight-box__select" value={from} onChange={value => setFrom(value as Purity)} options={puritySelectOptions} />
-        </div>
-        <button type="button" className="calc-weight-swap" aria-label="جابه‌جایی عیارها" onClick={swap}>
-          <ArrowLeftRight size={15} />
-        </button>
-        <div className="calc-weight-box is-out" aria-live="polite">
-          <span className="ds-field__label">قیمت مقصد</span>
-          <strong className="calc-weight-box__result" dir="ltr">{result == null ? '—' : fa(result)}</strong>
-          <Select label="عیار مقصد" className="calc-weight-box__select" value={to} onChange={value => setTo(value as Purity)} options={puritySelectOptions} />
         </div>
       </div>
     </section>

@@ -6,6 +6,7 @@ import { reserveSubscription } from '@/app/login/actions';
 import { getPublishedPlans } from '@/server/plans';
 import { planHistoryDays } from '@/lib/history-access';
 import { PendingButton } from '@/components/pending-button';
+import { FunnelTrack } from '@/components/funnel-track';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,6 +24,8 @@ export default async function Subscribe({ params }: { params: Promise<{ plan: st
 
   return (
     <main id="main" className="shell content-page subscription-review">
+      <FunnelTrack event="plan_select" props={{ plan: plan.slug }} />
+      <FunnelTrack event="checkout_start" props={{ plan: plan.slug, gateway: 'offline' }} />
       <Link href="/pricing" className="subscription-back">
         <ArrowRight size={16} aria-hidden="true" />
         همه پلن‌ها

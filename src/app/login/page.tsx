@@ -2,6 +2,7 @@ import { Activity, Mail } from 'lucide-react';
 import Link from 'next/link';
 import { auth, getAuthCapabilities, signIn, signOut } from '@/auth';
 import { PendingButton } from '@/components/pending-button';
+import { FunnelTrack } from '@/components/funnel-track';
 import { loginWithEmail, registerWithEmail } from '@/app/login/actions';
 
 export const dynamic = 'force-dynamic';
@@ -35,6 +36,7 @@ export default async function LoginPage({
 
   return (
     <main id="main" className="auth-page">
+      {mode === 'register' && !session?.user ? <FunnelTrack event="signup_start" /> : null}
       <section className="auth-card">
         <Link href="/" className="brand">
           <span className="brand-mark"><Activity size={26} /></span>

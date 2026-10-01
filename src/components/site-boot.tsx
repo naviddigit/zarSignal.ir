@@ -2,8 +2,8 @@
 
 import { useEffect } from 'react';
 
-const MIN_MS = 480;
-const MAX_MS = 2200;
+const MIN_MS = 2800;
+const MAX_MS = 5200;
 
 /**
  * Soft boot: keep logo splash until first paint is stable, then fade site in.

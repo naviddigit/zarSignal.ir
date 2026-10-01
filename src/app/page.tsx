@@ -8,18 +8,21 @@ import { MarketRadar } from '@/components/market-radar';
 import { BubbleBoard } from '@/components/bubble-board';
 import { ChartTeaser } from '@/components/chart-teaser';
 import { MarketTeaser } from '@/components/market-teaser';
+import { FunnelTrack } from '@/components/funnel-track';
 import { getPublicSnapshot } from '@/server/quotes';
 import { computeLiveBubbles } from '@/server/live-bubbles';
+import { auth } from '@/auth';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
 export default async function Home() {
-  const [snapshot, content] = await Promise.all([getPublicSnapshot(), getHomeContent()]);
+  const [snapshot, content, session] = await Promise.all([getPublicSnapshot(), getHomeContent(), auth().catch(() => null)]);
   const { texts, sections } = content;
   const bubbles = computeLiveBubbles(snapshot);
   return (
     <main id="main" className="shell home-page">
+      <FunnelTrack event={session?.user ? 'returning_user' : 'landing_view'} />
       <MarketRefresh seconds={snapshot.pollSeconds ?? 60} />
       <div className="topline">
         <span className="topline__watch"><span className="status-dot" /> دیده‌بان هوشمند بازار ایران</span>

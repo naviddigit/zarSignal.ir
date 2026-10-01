@@ -4,6 +4,7 @@ import { Check, ArrowUpLeft, Minus } from 'lucide-react';
 import { getPublishedPlans, type BillingPeriod, type ManagedPlan } from '@/server/plans';
 import { trialPolicy } from '@/server/analysis-trial';
 import { planHistoryDays } from '@/lib/history-access';
+import { FunnelTrack } from '@/components/funnel-track';
 
 export const metadata: Metadata = {
   title: 'پلن‌ها و اشتراک',
@@ -160,6 +161,7 @@ export default async function Pricing() {
 
   return (
     <main id="main" className="shell content-page membership-page pricing-page">
+      <FunnelTrack event="pricing_view" />
       <header className="pricing-hero">
         <span className="eyebrow">پلن‌ها</span>
         <h1>دسترسی مناسب کارتان را انتخاب کنید</h1>
