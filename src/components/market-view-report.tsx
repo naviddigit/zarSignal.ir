@@ -1,10 +1,17 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState, useTransition, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore, useTransition, type ReactNode } from 'react';
 import Link from 'next/link';
 import { Activity, AlertTriangle, ArrowUpLeft, CircleHelp, RefreshCw, ShieldAlert } from 'lucide-react';
 import type { MarketViewDecision, MarketViewReport } from '@/lib/market-view-report';
 import { formatFaPercent, formatTehranStamp } from '@/lib/market-view-report';
+import {
+  activeSectionIndex,
+  flattenNarrativeGraphemes,
+  typingIntervalMs,
+  visibleBodiesAt,
+  type NarrativeSection,
+} from '@/lib/market-view-typing';
 import { freshnessLabel } from '@/lib/bubbles';
 
 function freshnessText(report: MarketViewReport) {
@@ -22,10 +29,17 @@ function decisionTone(kind: MarketViewDecision['kind']) {
   return 'is-pending';
 }
 
+function valuationTone(stance: NonNullable<MarketViewDecision['valuation']>['stance']) {
+  if (stance === 'below') return 'is-below';
+  if (stance === 'above') return 'is-above';
+  if (stance === 'equal') return 'is-equal';
+  return 'is-unknown';
+}
+
 function DecisionIcon({ kind }: { kind: MarketViewDecision['kind'] }) {
-  if (kind === 'insufficient_data') return <CircleHelp size={22} strokeWidth={2.1} aria-hidden />;
-  if (kind === 'buy' || kind === 'sell' || kind === 'hold') return <ShieldAlert size={22} strokeWidth={2.1} aria-hidden />;
-  return <AlertTriangle size={22} strokeWidth={2.1} aria-hidden />;
+  if (kind === 'insufficient_data') return <CircleHelp size={20} strokeWidth={2.1} aria-hidden />;
+  if (kind === 'buy' || kind === 'sell' || kind === 'hold') return <ShieldAlert size={20} strokeWidth={2.1} aria-hidden />;
+  return <AlertTriangle size={20} strokeWidth={2.1} aria-hidden />;
 }
 
 function ValuationChips({ report }: { report: MarketViewReport }) {
@@ -35,7 +49,10 @@ function ValuationChips({ report }: { report: MarketViewReport }) {
       {report.valuationMarks.map(mark => (
         <li key={mark.id} className={`market-view__mark is-${mark.stance}`}>
           <span>{mark.label}</span>
-          <strong>{mark.stanceLabel}</strong>
+          <strong>
+            {mark.stanceLabel}
+            {mark.percentLabel ? <bdi> {mark.percentLabel}</bdi> : null}
+          </strong>
         </li>
       ))}
     </ul>
@@ -45,74 +62,118 @@ function ValuationChips({ report }: { report: MarketViewReport }) {
 function DecisionCard({ decision }: { decision: MarketViewDecision }) {
   return (
     <section className={`market-view__verdict ${decisionTone(decision.kind)}`} aria-label="کارت نتیجه">
-      <div className="market-view__verdict-badge" aria-hidden="true">
-        <DecisionIcon kind={decision.kind} />
-      </div>
-      <div className="market-view__verdict-body">
-        <p className="market-view__verdict-kicker">نتیجه</p>
-        <h2>{decision.title}</h2>
-        <p>{decision.reason}</p>
-        <p className="market-view__verdict-change"><span>شرایط تغییر:</span> {decision.changeConditions}</p>
+      {decision.valuation ? (
+        <div className={`market-view__verdict-pane ${valuationTone(decision.valuation.stance)}`}>
+          <p className="market-view__verdict-kicker">دید ارزشی</p>
+          <div className="market-view__verdict-row">
+            <span className="market-view__verdict-dot" aria-hidden="true" />
+            <div>
+              <h2>{decision.valuation.title}</h2>
+              <p>{decision.valuation.detail}</p>
+            </div>
+          </div>
+        </div>
+      ) : null}
+      <div className="market-view__verdict-pane is-decision">
+        <p className="market-view__verdict-kicker">وضعیت تصمیم</p>
+        <div className="market-view__verdict-row">
+          <div className="market-view__verdict-badge" aria-hidden="true">
+            <DecisionIcon kind={decision.kind} />
+          </div>
+          <div>
+            <h2>{decision.title}</h2>
+            <p>{decision.reason}</p>
+            <p className="market-view__verdict-change"><span>شرایط تغییر:</span> {decision.changeConditions}</p>
+          </div>
+        </div>
       </div>
     </section>
   );
 }
 
-type NarrativeSection = { id: string; title?: string; body: string };
-
 function usePrefersReducedMotion() {
-  const [reduced, setReduced] = useState(false);
-  useEffect(() => {
-    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
-    const sync = () => setReduced(mq.matches);
-    sync();
-    mq.addEventListener('change', sync);
-    return () => mq.removeEventListener('change', sync);
-  }, []);
-  return reduced;
+  return useSyncExternalStore(
+    (onStoreChange) => {
+      const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+      mq.addEventListener('change', onStoreChange);
+      return () => mq.removeEventListener('change', onStoreChange);
+    },
+    () => window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+    () => false,
+  );
 }
 
-/** Progressive section reveal — report display only, not live AI generation. */
-function useNarrativeReveal(reportKey: string, sectionCount: number, reducedMotion: boolean) {
-  const [revealed, setRevealed] = useState(sectionCount);
+/**
+ * Shared grapheme typing across narrative sections.
+ * Starts empty after mount (no full-text flash). Timers cleared on key change / unmount.
+ */
+function useGraphemeTyping(reportKey: string, totalGraphemes: number, reducedMotion: boolean) {
+  const [shown, setShown] = useState(0);
   const [typing, setTyping] = useState(false);
+  const [ready, setReady] = useState(false);
   const timers = useRef<number[]>([]);
+  const raf = useRef<number | null>(null);
+  const shownRef = useRef(0);
+  const keyRef = useRef(reportKey);
 
   const clearTimers = useCallback(() => {
     for (const id of timers.current) window.clearTimeout(id);
     timers.current = [];
+    if (raf.current != null) {
+      window.cancelAnimationFrame(raf.current);
+      raf.current = null;
+    }
   }, []);
 
   const skip = useCallback(() => {
     clearTimers();
-    setRevealed(sectionCount);
+    shownRef.current = totalGraphemes;
+    setShown(totalGraphemes);
     setTyping(false);
-  }, [clearTimers, sectionCount]);
+    setReady(true);
+  }, [clearTimers, totalGraphemes]);
 
   useEffect(() => {
     clearTimers();
-    if (reducedMotion || sectionCount === 0) {
-      setRevealed(sectionCount);
+    keyRef.current = reportKey;
+    shownRef.current = 0;
+    if (reducedMotion || totalGraphemes === 0) {
+      shownRef.current = totalGraphemes;
+      setShown(totalGraphemes);
       setTyping(false);
+      setReady(true);
       return;
     }
-    setRevealed(0);
+    // Hydration-safe: stay empty until this effect — never paint full text then wipe.
+    setShown(0);
     setTyping(true);
-    let step = 0;
-    const tick = () => {
-      step += 1;
-      setRevealed(step);
-      if (step >= sectionCount) {
+    setReady(true);
+    const interval = Math.max(30, typingIntervalMs(totalGraphemes));
+    let last = performance.now();
+    const step = (now: number) => {
+      if (keyRef.current !== reportKey) return;
+      if (now - last < interval) {
+        raf.current = window.requestAnimationFrame(step);
+        return;
+      }
+      last = now;
+      const next = Math.min(totalGraphemes, shownRef.current + 1);
+      shownRef.current = next;
+      setShown(next);
+      if (next >= totalGraphemes) {
         setTyping(false);
         return;
       }
-      timers.current.push(window.setTimeout(tick, 520));
+      raf.current = window.requestAnimationFrame(step);
     };
-    timers.current.push(window.setTimeout(tick, 280));
+    timers.current.push(window.setTimeout(() => {
+      last = performance.now();
+      raf.current = window.requestAnimationFrame(step);
+    }, 400));
     return () => clearTimers();
-  }, [reportKey, sectionCount, reducedMotion, clearTimers]);
+  }, [reportKey, totalGraphemes, reducedMotion, clearTimers]);
 
-  return { revealed, typing, skip };
+  return { shown, typing, ready, skip, totalGraphemes };
 }
 
 function NarrativeBlock({
@@ -123,30 +184,50 @@ function NarrativeBlock({
   reportKey: string;
 }) {
   const reduced = usePrefersReducedMotion();
-  const { revealed, typing, skip } = useNarrativeReveal(reportKey, sections.length, reduced);
+  const { graphemes } = flattenNarrativeGraphemes(sections);
+  const { shown, typing, ready, skip, totalGraphemes } = useGraphemeTyping(reportKey, graphemes.length, reduced);
+  const bodies = visibleBodiesAt(sections, shown);
+  const active = activeSectionIndex(sections, shown);
+  const complete = !typing && ready && shown >= graphemes.length;
 
   return (
-    <div className="market-view__narrative" data-typing={typing ? 'on' : 'off'}>
-      {typing ? (
-        <div className="visually-hidden">
-          {sections.map(section => (
-            <section key={`a11y-${section.id}`}>
-              {section.title ? <h2>{section.title}</h2> : null}
-              <p>{section.body}</p>
-            </section>
-          ))}
-        </div>
-      ) : null}
-      <div aria-hidden={typing || undefined}>
+    <div
+      className="market-view__narrative"
+      data-typing={typing ? 'on' : 'off'}
+      data-ready={ready ? 'yes' : 'no'}
+      data-shown={shown}
+      data-total={totalGraphemes}
+    >
+      {/* Always complete for AT; visual layer is aria-hidden while typing */}
+      <div className="visually-hidden">
+        {sections.map(section => (
+          <section key={`a11y-${section.id}`}>
+            <h2>{section.title}</h2>
+            <p>{section.body}</p>
+          </section>
+        ))}
+      </div>
+      <noscript>
+        {sections.map(section => (
+          <section key={`noscript-${section.id}`} className="market-view__block">
+            <h2>{section.title}</h2>
+            <p>{section.body}</p>
+          </section>
+        ))}
+      </noscript>
+      <div aria-hidden={typing || !complete ? true : undefined}>
         {sections.map((section, index) => {
-          const visible = !typing || index < revealed;
+          const body = bodies[index] ?? '';
+          const started = body.length > 0 || (index === 0 && ready);
+          const isActive = typing && index === active && body.length < section.body.length;
+          if (!started && index > 0) return null;
           return (
-            <section
-              key={section.id}
-              className={`market-view__block market-view__typed ${visible ? 'is-in' : 'is-out'}`}
-            >
-              {section.title ? <h2>{section.title}</h2> : null}
-              <p>{section.body}</p>
+            <section key={section.id} className="market-view__block market-view__typed is-in">
+              <h2>{section.title}</h2>
+              <p>
+                {body}
+                {isActive ? <span className="market-view__caret" aria-hidden="true" /> : null}
+              </p>
             </section>
           );
         })}
@@ -163,6 +244,22 @@ function NarrativeBlock({
   );
 }
 
+function buildNarrative(report: MarketViewReport): NarrativeSection[] {
+  const sections: NarrativeSection[] = [
+    { id: 'view', title: 'دید فعلی', body: report.summaryLines[0] },
+    { id: 'reason', title: 'دلیل', body: report.marketSays },
+  ];
+  if (report.access === 'full' && report.reading) {
+    sections.push({ id: 'meaning', title: 'معنی', body: report.reading });
+  }
+  if (report.access === 'full' && report.conclusion) {
+    sections.push({ id: 'result', title: 'نتیجه', body: report.conclusion });
+  } else if (report.access === 'preview') {
+    sections.push({ id: 'gate', title: 'ادامه', body: report.summaryLines[1] });
+  }
+  return sections;
+}
+
 export function MarketViewReportView({
   initial,
   canRefresh,
@@ -177,7 +274,6 @@ export function MarketViewReportView({
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
-  // Sync from server navigation (new symbol / SSR), not from theme or poll alone.
   useEffect(() => {
     setReport(initial);
     setPendingFingerprint(null);
@@ -199,7 +295,6 @@ export function MarketViewReportView({
         try {
           const next = await applyLatest();
           if (!next) return;
-          // Access upgrade/downgrade must apply immediately.
           if (next.access !== report.access) {
             setReport(next);
             setPendingFingerprint(null);
@@ -229,17 +324,9 @@ export function MarketViewReportView({
     });
   }
 
-  const reportKey = `${report.snapshotFingerprint}:${report.symbol ?? 'all'}:${report.access}:${report.reportId}`;
-  const narrative: NarrativeSection[] = [
-    { id: 'summary', title: 'خلاصهٔ دید فعلی', body: report.summaryLines[0] },
-    { id: 'market', title: 'شواهد چه می‌گویند؟', body: report.marketSays },
-  ];
-  if (report.access === 'full' && report.reading) {
-    narrative.push({ id: 'reading', title: 'برداشت زرسیگنال', body: report.reading });
-  }
-  if (report.access === 'full' && report.conclusion) {
-    narrative.push({ id: 'note', title: 'نکتهٔ جمع‌بندی', body: report.conclusion });
-  }
+  // Fingerprint + symbol + access only — theme/poll/rerender must not restart typing.
+  const reportKey = `${report.snapshotFingerprint}:${report.symbol ?? 'all'}:${report.access}`;
+  const narrative = buildNarrative(report);
 
   return (
     <article className="market-view" aria-label={report.title}>
@@ -268,14 +355,14 @@ export function MarketViewReportView({
         </p>
         {report.currentQuote ? (
           <p className="market-view__meta">
-            قیمت {report.currentQuote.label}: <bdi>{report.currentQuote.price}</bdi> / {report.currentQuote.unit}
+            قیمت تابلو {report.currentQuote.label}: <bdi>{report.currentQuote.price}</bdi> / {report.currentQuote.unit}
           </p>
         ) : null}
       </header>
 
       <div className="market-view__stage">
         <div className="market-view__watermark" aria-hidden="true">
-          <span className="brand-mark"><Activity size={120} /></span>
+          <span className="brand-mark"><Activity size={200} /></span>
           <span>زرسیگنال</span>
         </div>
 
@@ -288,7 +375,7 @@ export function MarketViewReportView({
         ) : (
           <aside className="market-view__gate" aria-label="پیش‌نمایش تحلیل">
             <DecisionCard decision={report.decision} />
-            <p>برداشت کامل و کارت نتیجهٔ تأییدشده با پلن دارای دسترسی تحلیل یا دورهٔ آزمایش باز می‌شود. قیمت و خلاصهٔ شواهد رایگان است.</p>
+            <p>برداشت کامل و وضعیت تصمیم با پلن دارای دسترسی تحلیل یا دورهٔ آزمایش باز می‌شود. قیمت و خلاصهٔ شواهد رایگان است.</p>
             <div className="market-view__gate-actions">
               <Link className="button" href="/pricing">مشاهده پلن‌ها <ArrowUpLeft size={15} /></Link>
               {trialCta}
@@ -298,7 +385,7 @@ export function MarketViewReportView({
       </div>
 
       {report.evidence.length > 0 ? (
-        <details className="market-view__details">
+        <details className="market-view__details is-compact">
           <summary>جدول شواهد و اختلاف با مرجع</summary>
           <div className="market-view__table-wrap">
             <table className="market-view__table" role="table">
@@ -332,8 +419,8 @@ export function MarketViewReportView({
         </details>
       ) : null}
 
-      <details className="market-view__details">
-        <summary>اعتبار داده و محدودیت‌های این تحلیل</summary>
+      <details className="market-view__details is-compact">
+        <summary>اعتبار داده و محدودیت‌ها</summary>
         <ul className="market-view__list">{report.unconfirmed.map(item => <li key={item}>{item}</li>)}</ul>
       </details>
 
@@ -344,7 +431,7 @@ export function MarketViewReportView({
         </section>
       ) : null}
 
-      <details className="market-view__details">
+      <details className="market-view__details is-compact">
         <summary>جزئیات فرمول و نسخه</summary>
         <ul className="market-view__list">
           {report.evidence.map(row => (

@@ -125,15 +125,28 @@ export function marketViewReportFromSnapshot(snapshot: Snapshot, access: MarketV
   const relevantSnapshot = { ...snapshot, quotes: snapshot.quotes.filter(q => relevantSymbols.includes(q.symbol)) };
   const dataFreshness = evidence.length && focusId !== 'coin' ? freshnessOf(evidence, snapshot)
     : quoteValid ? isStale(quote) ? 'stale' : 'ok' : 'unavailable';
-  const prose = composeMarketViewProse(evidence, dataFreshness);
+  const prose = composeMarketViewProse(evidence, dataFreshness, { symbol: symbol ?? null });
   if (asset && !evidence.some(row => row.diffPercent != null)) {
     const hasFormula = focusId === 'gold' || focusId === 'silver' || focusId === 'usd';
-    prose.summaryLines = [quoteValid ? `قیمت ${asset.name}: ${formatPrice(quote.sell, quote.currency)} / ${asset.unit}.` : `قیمت معتبر ${asset.name} فعلاً در دسترس نیست.`,
-      hasFormula ? 'برای محاسبهٔ اختلاف با مرجع، بعضی ورودی‌های لازم در دسترس نیستند.' : 'برای این نماد هنوز مرجع ارزش‌گذاری مستقل و قواعد تصمیم تأییدشده در محصول موجود نیست.'];
-    prose.marketSays = asset.category === 'gold' || asset.category === 'silver'
-      ? 'قیمت این نماد ورودی بررسی بازار است؛ افزایش یا کاهش قیمت به‌تنهایی کافی نیست تا آن را ارزان یا گران بدانیم.'
-      : 'این نرخ را باید با مرجع مستقل و هزینهٔ واقعی تبدیل مقایسه کرد؛ فاصلهٔ دلار ضمنی طلا جای این مرجع را نمی‌گیرد.';
-    if (!hasFormula) prose.unconfirmed = ['مرجع ارزش‌گذاری و قواعد تصمیم این نماد تأیید نشده‌اند.', ...(dataFreshness === 'stale' ? ['قیمت نمایش‌داده‌شده قدیمی است.'] : [])];
+    const shortName = asset.short;
+    prose.summaryLines = [
+      quoteValid ? `قیمت ${shortName} الان ${formatPrice(quote.sell, quote.currency)} / ${asset.unit} است.` : `قیمت معتبر ${shortName} فعلاً در دسترس نیست.`,
+      hasFormula ? 'برای محاسبهٔ اختلاف با مرجع، بعضی ورودی‌های لازم نیستند.' : 'برای این نماد هنوز مرجع ارزش‌گذاری مستقل و قواعد تصمیم تأییدشده موجود نیست.',
+    ];
+    prose.marketSays = quoteValid
+      ? `قیمت تابلو ${formatPrice(quote.sell, quote.currency)} / ${asset.unit} است؛ بدون مرجع محاسباتی، اختلاف درصدی ساخته نمی‌شود.`
+      : 'بدون قیمت معتبر و مرجع، دلیل عددی ارائه نمی‌شود.';
+    prose.reading = null;
+    prose.conclusion = prose.decision.reason;
+    if (!hasFormula) {
+      prose.unconfirmed = [
+        'مرجع ارزش‌گذاری و قواعد تصمیم این نماد تأیید نشده‌اند.',
+        ...(dataFreshness === 'stale' ? ['قیمت نمایش‌داده‌شده قدیمی است.'] : []),
+      ];
+    }
+    if (symbol === 'GOLD_18K') {
+      prose.unconfirmed.unshift('قیمت تابلوی گرم ۱۸ عیار با درصد حباب مشتق از مظنه یکی نیست؛ مبنای درصد در جزئیات فرمول آمده است.');
+    }
   }
   const inputTimes = relevantSnapshot.quotes.map(q => q.observedAt);
   if (new Set(inputTimes).size > 1) prose.unconfirmed.unshift('زمان مشاهدهٔ ورودی‌ها یکسان نیست؛ مقایسهٔ حاضر را Snapshot دقیقاً هم‌زمان در نظر نگیرید.');
@@ -190,8 +203,9 @@ export function marketViewReportFromSnapshot(snapshot: Snapshot, access: MarketV
           kind: 'needs_confirmation',
           tradeAction: null,
           title: 'پیش‌نمایش تحلیل',
-          reason: 'برداشت کامل و کارت نتیجه پشت دسترسی تحلیل است؛ قیمت و خلاصهٔ شواهد همین‌جا رایگان‌اند.',
+          reason: 'برداشت کامل و وضعیت تصمیم پشت دسترسی تحلیل است؛ قیمت و خلاصهٔ شواهد همین‌جا رایگان‌اند.',
           changeConditions: 'با پلن مجاز یا دورهٔ آزمایش فعال، نتیجهٔ کامل همین‌جا باز می‌شود.',
+          valuation: prose.decision.valuation,
         },
     // Public preview may show valuation chips from evidence already visible — not private prose.
     valuationMarks: prose.valuationMarks,

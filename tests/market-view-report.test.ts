@@ -5,6 +5,15 @@ import {
   composeMarketViewProse,
   type MarketViewEvidenceRow,
 } from '../src/lib/market-view-report';
+import {
+  activeSectionIndex,
+  flattenNarrativeGraphemes,
+  isGraphemePrefix,
+  segmentGraphemes,
+  typingCharsPerSecond,
+  visibleBodiesAt,
+  type NarrativeSection,
+} from '../src/lib/market-view-typing';
 
 function row(partial: Partial<MarketViewEvidenceRow> & Pick<MarketViewEvidenceRow, 'id' | 'marketLabel'>): MarketViewEvidenceRow {
   return {
@@ -29,52 +38,35 @@ test('composeMarketViewProse refuses fake conclusion without usable rows', () =>
   assert.equal(prose.reading, null);
   assert.equal(prose.decision.kind, 'insufficient_data');
   assert.equal(prose.decision.tradeAction, null);
-  assert.match(prose.summaryLines[0], /در دسترس نیست|داده/);
+  assert.match(prose.summaryLines[0], /دیده نمی‌شود|در دسترس نیست|اختلاف/);
 });
 
-test('composeMarketViewProse describes gold below reference without trade advice', () => {
+test('narrative layers stay distinct: view reason meaning result', () => {
   const prose = composeMarketViewProse([
-    row({ id: 'gold', marketLabel: 'طلا', status: 'ok', diffPercent: -2.4, marketPriceLabel: '1', referenceLabel: '2' }),
-    row({ id: 'usd', marketLabel: 'دلار', status: 'ok', diffPercent: 0.05, marketPriceLabel: '1', referenceLabel: '2' }),
-    row({ id: 'silver', marketLabel: 'نقره', status: 'ok', diffPercent: 0.4, marketPriceLabel: '1', referenceLabel: '2' }),
-    row({ id: 'coin', marketLabel: 'سکه', status: 'blocked', statusReason: 'SPEC' }),
+    row({ id: 'gold', marketLabel: 'طلا · گرم ۱۸ عیار (مشتق از مظنه)', status: 'ok', diffPercent: -2.4, marketPriceLabel: '۲۵٬۰۰۰٬۰۰۰ تومان / گرم', referenceLabel: '۲۵٬۶۰۰٬۰۰۰ تومان / گرم' }),
+    row({ id: 'usd', marketLabel: 'دلار آزاد بازار', status: 'ok', diffPercent: 0.05, marketPriceLabel: '۲۵۰٬۰۰۰ تومان / دلار', referenceLabel: '۲۴۹٬۰۰۰ تومان / دلار' }),
+    row({ id: 'silver', marketLabel: 'نقره ۹۹۹', status: 'ok', diffPercent: 0.4, marketPriceLabel: '۵۰۰٬۰۰۰ تومان / گرم', referenceLabel: '۴۹۸٬۰۰۰ تومان / گرم' }),
   ], 'ok');
-  assert.match(prose.summaryLines[0], /پایین‌تر|طلا/);
+  assert.match(prose.summaryLines[0], /طلای ۱۸ عیار|پایین‌تر/);
+  assert.doesNotMatch(prose.summaryLines[0], /مشتق از مظنه/);
+  assert.match(prose.marketSays, /تومان|مرجع|اختلاف/);
+  assert.doesNotMatch(prose.marketSays, /اونس جهانی و دلار بازار می‌گذاریم/);
   assert.ok(prose.reading);
-  assert.match(prose.reading!, /مجوز خرید یا فروش نیست/);
-  assert.doesNotMatch(prose.reading!, /بخرید|بفروشید|پیشنهاد خرید|پیشنهاد فروش/);
+  assert.match(prose.reading!, /نسبت|مجوز خرید یا فروش نیست/);
   assert.ok(prose.conclusion);
-  assert.doesNotMatch(prose.conclusion!, /بخرید|بفروشید/);
+  assert.match(prose.conclusion!, /تأیید نشده|HOLD نیست|خنثی نیست/);
+  assert.doesNotMatch(prose.conclusion!, /۲٫۴۰٪/);
+  assert.doesNotMatch(prose.reading! + prose.conclusion!, /در موتور محصول موجود نیست/);
   assert.equal(prose.decision.kind, 'needs_confirmation');
   assert.equal(prose.decision.tradeAction, null);
-  assert.match(prose.decision.title, /نیاز به تأیید/);
+  assert.ok(prose.decision.valuation);
+  assert.match(prose.decision.valuation!.detail, /٪/);
 });
 
-test('no invented neutral band and no unusable row in narrative', () => {
-  const prose = composeMarketViewProse([
-    row({ id: 'gold', marketLabel: 'طلا', status: 'ok', diffPercent: -0.01 }),
-    row({ id: 'silver', marketLabel: 'نقره', status: 'blocked', diffPercent: 90 }),
-  ], 'ok');
-  assert.match(prose.summaryLines[0], /پایین‌تر/);
-  assert.doesNotMatch(prose.summaryLines[0], /نقره|نزدیک|خنثی/);
-  assert.ok(prose.reading);
-});
-
-test('gold implied dollar is not counted as an independent valuation', () => {
-  const prose = composeMarketViewProse([
-    row({ id: 'gold', marketLabel: 'طلا', status: 'ok', diffPercent: -1 }),
-    row({ id: 'usd', marketLabel: 'دلار', status: 'ok', diffPercent: 1.01 }),
-    row({ id: 'silver', marketLabel: 'نقره', status: 'ok', diffPercent: 0.1 }),
-  ], 'ok');
-  assert.match(prose.reading!, /تأیید مستقل/);
-  assert.match(prose.conclusion!, /^طلا/);
-  assert.doesNotMatch(prose.conclusion!, /نسبت قیمت طلا به نقره/);
-});
-
-test('gold silver parity describes the supplied example without inventing executable swap', () => {
+test('gold silver parity stays in meaning without inventing executable swap', () => {
   const evidence = [
-    row({ id: 'gold', marketLabel: 'طلا', status: 'ok', diffPercent: -0.72 }),
-    row({ id: 'silver', marketLabel: 'نقره', status: 'ok', diffPercent: 0.42 }),
+    row({ id: 'gold', marketLabel: 'طلا', status: 'ok', diffPercent: -0.72, marketPriceLabel: '1', referenceLabel: '2' }),
+    row({ id: 'silver', marketLabel: 'نقره', status: 'ok', diffPercent: 0.42, marketPriceLabel: '1', referenceLabel: '2' }),
   ];
   const prose = composeMarketViewProse(evidence, 'ok');
   assert.match(prose.reading!, /۱٫۱۴٪ پایین‌تر/);
@@ -82,11 +74,20 @@ test('gold silver parity describes the supplied example without inventing execut
   assert.match(prose.reading!, /بازده قابل اجرای تبدیل نیست/);
   assert.doesNotMatch(prose.conclusion!, /تبدیل طلا به نقره/);
   const reversed = composeMarketViewProse(evidence.map(r => ({ ...r, diffPercent: r.id === 'gold' ? 0.42 : -0.72 })), 'ok');
-  assert.match(reversed.reading!, /نقره نسبت به طلا اضافه‌قیمت کمتری/);
+  assert.match(reversed.reading!, /نقره اضافه‌قیمت کمتری/);
   const stale = composeMarketViewProse(evidence.map(r => ({ ...r, status: 'stale' as const })), 'stale');
-  assert.doesNotMatch(stale.reading!, /نسبت قیمت طلا به نقره/);
-  const missing = composeMarketViewProse([evidence[0]], 'ok');
-  assert.doesNotMatch(missing.reading!, /نسبت قیمت طلا به نقره/);
+  assert.doesNotMatch(stale.reading!, /نسبت طلا به نقره/);
+  assert.match(stale.decision.reason, /قدیمی/);
+});
+
+test('focused symbol uses short names and does not fill with other markets', () => {
+  const prose = composeMarketViewProse([
+    row({ id: 'gold', marketLabel: 'طلا · گرم ۱۸ عیار (مشتق از مظنه)', status: 'ok', diffPercent: -1.1, marketPriceLabel: '۲۵٬۷۰۰٬۰۰۰ تومان / گرم', referenceLabel: '۲۶٬۰۰۰٬۰۰۰ تومان / گرم' }),
+  ], 'ok', { symbol: 'GOLD_18K' });
+  assert.match(prose.summaryLines[0], /طلای ۱۸ عیار/);
+  assert.doesNotMatch(prose.summaryLines[0], /نقره|دلار آزاد/);
+  assert.match(prose.marketSays, /مشتق از مظنه|تابلوی گرم ۱۸/);
+  assert.doesNotMatch(prose.reading!, /نسبت طلا به نقره/);
 });
 
 test('decision card never invents BUY/SELL/HOLD from bubble gaps', () => {
@@ -95,12 +96,68 @@ test('decision card never invents BUY/SELL/HOLD from bubble gaps', () => {
   ], 'ok', null);
   assert.equal(pending.kind, 'needs_confirmation');
   assert.equal(pending.tradeAction, null);
+  assert.match(pending.reason, /روند و نرخ قابل اجرای معامله/);
+  assert.doesNotMatch(pending.reason, /در موتور محصول موجود نیست/);
+  assert.doesNotMatch(pending.changeConditions, /می‌تواند به خرید، فروش یا نگهداری تبدیل شود/);
+});
+
+test('BUY/SELL/HOLD only from explicit engineTrade fixture', () => {
   const buy = buildMarketViewDecision([], 'ok', 'buy');
   assert.equal(buy.kind, 'buy');
   assert.equal(buy.tradeAction, 'buy');
+  assert.match(buy.title, /خرید/);
+  const sell = buildMarketViewDecision([], 'ok', 'sell');
+  assert.equal(sell.kind, 'sell');
+  assert.equal(sell.tradeAction, 'sell');
+  const hold = buildMarketViewDecision([
+    row({ id: 'gold', marketLabel: 'طلا', status: 'ok', diffPercent: -1 }),
+  ], 'ok', 'hold');
+  assert.equal(hold.kind, 'hold');
+  assert.equal(hold.tradeAction, 'hold');
+  assert.ok(hold.valuation);
   const empty = buildMarketViewDecision([], 'unavailable', null);
   assert.equal(empty.kind, 'insufficient_data');
   assert.match(empty.title, /داده کافی نیست/);
+});
+
+test('grapheme typing mid-progress shows a correct prefix of one paragraph', () => {
+  const sections: NarrativeSection[] = [
+    { id: 'view', title: 'دید فعلی', body: 'طلای ۱۸ عیار الان ۱٫۱۴٪ پایین‌تر از مرجع است.' },
+    { id: 'reason', title: 'دلیل', body: 'قیمت بازار ۲۵٬۷۰۵٬۲۵۰ تومان / گرم و مرجع ۲۶٬۰۰۰٬۰۰۰ تومان / گرم است.' },
+    { id: 'meaning', title: 'معنی', body: 'این اختلاف رابطهٔ قیمت داخلی با اونس و دلار را نشان می‌دهد.' },
+  ];
+  const { graphemes } = flattenNarrativeGraphemes(sections);
+  assert.ok(graphemes.length > 40);
+  const mid = Math.floor(graphemes.length * 0.35);
+  const bodies = visibleBodiesAt(sections, mid);
+  assert.ok(bodies[0]!.length > 0);
+  assert.ok(bodies[0]!.length < sections[0]!.body.length || bodies[1]!.length > 0);
+  assert.equal(isGraphemePrefix(sections[0]!.body, bodies[0]!), true);
+  assert.equal(isGraphemePrefix(sections[1]!.body, bodies[1]!), true);
+  assert.equal(bodies[2], '');
+  const active = activeSectionIndex(sections, mid);
+  assert.ok(active === 0 || active === 1);
+  const joinedVisible = bodies.join('');
+  const joinedFull = sections.map(s => s.body).join('');
+  assert.equal(isGraphemePrefix(joinedFull, joinedVisible), true);
+  assert.notEqual(joinedVisible, joinedFull);
+  // Later sections stay empty until earlier ones finish.
+  const onlyFirst = visibleBodiesAt(sections, segmentGraphemes(sections[0]!.body).length);
+  assert.equal(onlyFirst[0], sections[0]!.body);
+  assert.equal(onlyFirst[1], '');
+  assert.equal(onlyFirst[2], '');
+  assert.ok(typingCharsPerSecond(graphemes.length) >= 40);
+  assert.ok(typingCharsPerSecond(graphemes.length) <= 160);
+});
+
+test('skip-equivalent full shown equals complete bodies', () => {
+  const sections: NarrativeSection[] = [
+    { id: 'a', title: 'الف', body: 'یک' },
+    { id: 'b', title: 'ب', body: 'دو سه' },
+  ];
+  const { graphemes } = flattenNarrativeGraphemes(sections);
+  const full = visibleBodiesAt(sections, graphemes.length);
+  assert.deepEqual(full, ['یک', 'دو سه']);
 });
 
 import { marketViewReportFromSnapshot } from '../src/server/market-view-report';
@@ -120,25 +177,28 @@ test('same snapshot supports overall and focused reports, preview redacts full p
   const overall = marketViewReportFromSnapshot(snapshot, 'full');
   assert.equal(overall.evidence.length, 4);
   assert.equal(overall.decision.kind, 'needs_confirmation');
+  assert.equal(overall.decision.tradeAction, null);
+  assert.ok(overall.decision.valuation);
   assert.ok(overall.valuationMarks.length);
   const silver = marketViewReportFromSnapshot(snapshot, 'full', 'SILVER_999');
   assert.deepEqual(silver.evidence.map(row => row.id), ['silver']);
   assert.match(silver.title, /نقره/);
   assert.ok(silver.reading);
   assert.ok(silver.evidence[0].impliedUsdLabel);
+  assert.doesNotMatch(silver.reading!, /نسبت طلا به نقره/);
   const preview = marketViewReportFromSnapshot(snapshot, 'preview', 'SILVER_999');
   assert.equal(preview.reading, null);
   assert.equal(preview.conclusion, null);
   assert.equal(preview.decision.tradeAction, null);
   assert.match(preview.decision.title, /پیش‌نمایش/);
-  assert.doesNotMatch(JSON.stringify(preview), /برداشت زرسیگنال|نسبت قیمت طلا به نقره/);
+  assert.doesNotMatch(JSON.stringify(preview), /نسبت طلا به نقره|بازده قابل اجرای تبدیل/);
 });
 
 test('international ounce never masquerades as the local silver valuation', () => {
   const report = marketViewReportFromSnapshot(liveSnapshot(), 'full', 'XAG_USD');
   assert.equal(report.evidence.length, 0);
   assert.equal(report.currentQuote?.unit, 'اونس تروا');
-  assert.equal(report.conclusion, null);
+  assert.equal(report.conclusion, report.decision.reason);
   assert.equal(report.decision.kind, 'insufficient_data');
 });
 
