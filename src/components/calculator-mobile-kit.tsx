@@ -10,6 +10,7 @@ import { formatNumericInput, sanitizeNumericInput } from '@/lib/numeric-input';
 import { isStale, type Snapshot, type Symbol } from '@/lib/market';
 import { mazanehTo18k } from '@/lib/mazaneh-to-18k';
 import { Select } from '@/components/ui/select';
+import { OverlaySheet } from '@/components/ui/overlay-sheet';
 import { HScrollRail } from '@/components/ui/h-scroll-rail';
 import { keypadMath } from '@/lib/keypad-math';
 import { sparkPriceTone, useMarketSparks } from '@/components/use-market-sparks';
@@ -244,6 +245,7 @@ export function CalculatorPopularRow({
 export function WeightConvertWidget({ amount, onAmountChange }: { amount: string; onAmountChange: (next: string) => void }) {
   const [from, setFrom] = useState<WeightUnit>('mesghal');
   const [to, setTo] = useState<WeightUnit>('gram');
+  const [sheetOpen, setSheetOpen] = useState(false);
 
   const result = useMemo(() => {
     const n = Number(amount);
@@ -319,13 +321,43 @@ export function WeightConvertWidget({ amount, onAmountChange }: { amount: string
         </div>
       </div>
 
+      <div className="calc-weight-widget__mobile-units">
+        <Select label="واحد مبدأ" className="calc-weight-box__select" value={from} onChange={value => setFrom(value as WeightUnit)} options={unitOptions} />
+        <button type="button" className="calc-weight-swap is-mobile" aria-label="جابه‌جایی واحدها" onClick={swap}>
+          <ArrowLeftRight size={15} />
+        </button>
+        <Select label="واحد مقصد" className="calc-weight-box__select" value={to} onChange={value => setTo(value as WeightUnit)} options={unitOptions} />
+      </div>
+
+      <button
+        type="button"
+        className="button calc-tool-panel__go calc-weight-widget__show-result"
+        disabled={result == null}
+        onClick={() => setSheetOpen(true)}
+      >
+        مشاهده نتیجه
+      </button>
+
       <p className="calc-weight-widget__factor">
         <Info size={12} aria-hidden="true" />
         <span>
           1 {weightUnits[from].label} = {fa(factor, 4)} {weightUnits[to].label}
-          {result != null ? ` | ${fa(Number(amount), 2)} ${weightUnits[from].label} = ${fa(result)} ${weightUnits[to].label}` : null}
         </span>
       </p>
+
+      <OverlaySheet open={sheetOpen && result != null} title="نتیجه تبدیل وزن" onClose={() => setSheetOpen(false)}>
+        {result != null ? (
+          <div className="ds-overlay__result" aria-live="polite">
+            <div className="ds-overlay__result-row">
+              <span>{fa(Number(amount), 2)} {weightUnits[from].label}</span>
+              <strong dir="ltr">
+                <bdi>{fa(result)}</bdi>
+                <small>{weightUnits[to].label}</small>
+              </strong>
+            </div>
+          </div>
+        ) : null}
+      </OverlaySheet>
     </section>
   );
 }
@@ -334,6 +366,7 @@ export function WeightConvertWidget({ amount, onAmountChange }: { amount: string
 export function PurityConvertWidget({ amount, onAmountChange }: { amount: string; onAmountChange: (next: string) => void }) {
   const [from, setFrom] = useState<Purity>('18k');
   const [to, setTo] = useState<Purity>('17k');
+  const [sheetOpen, setSheetOpen] = useState(false);
 
   const result = useMemo(() => {
     const n = Number(amount);
@@ -379,6 +412,36 @@ export function PurityConvertWidget({ amount, onAmountChange }: { amount: string
           <Select label="عیار مبدأ" className="calc-weight-box__select" value={from} onChange={value => setFrom(value as Purity)} options={puritySelectOptions} />
         </div>
       </div>
+
+      <div className="calc-weight-widget__mobile-units">
+        <Select label="عیار مبدأ" className="calc-weight-box__select" value={from} onChange={value => setFrom(value as Purity)} options={puritySelectOptions} />
+        <button type="button" className="calc-weight-swap is-mobile" aria-label="جابه‌جایی عیارها" onClick={swap}>
+          <ArrowLeftRight size={15} />
+        </button>
+        <Select label="عیار مقصد" className="calc-weight-box__select" value={to} onChange={value => setTo(value as Purity)} options={puritySelectOptions} />
+      </div>
+
+      <button
+        type="button"
+        className="button calc-tool-panel__go calc-weight-widget__show-result"
+        disabled={result == null}
+        onClick={() => setSheetOpen(true)}
+      >
+        مشاهده نتیجه
+      </button>
+
+      <OverlaySheet open={sheetOpen && result != null} title="نتیجه تبدیل عیار" onClose={() => setSheetOpen(false)}>
+        {result != null ? (
+          <div className="ds-overlay__result" aria-live="polite">
+            <div className="ds-overlay__result-row">
+              <span>{purityOptions[from].label} → {purityOptions[to].label}</span>
+              <strong dir="ltr">
+                <bdi>{fa(result)}</bdi>
+              </strong>
+            </div>
+          </div>
+        ) : null}
+      </OverlaySheet>
     </section>
   );
 }
