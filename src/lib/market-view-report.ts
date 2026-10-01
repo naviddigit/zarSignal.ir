@@ -113,7 +113,14 @@ export function composeMarketViewProse(evidence: MarketViewEvidenceRow[], freshn
     : 'این اختلاف، رابطهٔ قیمت بازار با مرجع را نشان می‌دهد؛ جهت حرکت بعدی را مشخص نمی‌کند.';
   const implied = usable.filter(row => row.impliedUsdLabel).map(row =>
     `قیمت ${row.marketLabel} عملاً دلار ${row.impliedUsdLabel} را منعکس می‌کند.`);
+  // Descriptive parity only. Executable SwapEdge requires actual bid/ask and costs.
+  const parityGap = gold?.status === 'ok' && silver?.status === 'ok'
+    && gold.diffPercent! > -100 && silver.diffPercent! > -100
+    ? ((1 + gold.diffPercent! / 100) / (1 + silver.diffPercent! / 100) - 1) * 100 : null;
+  const parityReading = parityGap == null ? ''
+    : `نسبت قیمت طلا به نقره در بازار داخلی ${formatFaMoney(Math.abs(parityGap), 2)}٪ ${parityGap < 0 ? 'پایین‌تر از' : parityGap > 0 ? 'بالاتر از' : 'برابر با'} نسبت محاسباتی جهانی است. ${parityGap < 0 ? 'در این مقایسه، طلا نسبت به نقره اضافه‌قیمت کمتری دارد؛ تبدیل طلا به نقره مزیت ارزشی نشان نمی‌دهد.' : parityGap > 0 ? 'در این مقایسه، نقره نسبت به طلا اضافه‌قیمت کمتری دارد.' : 'مزیت ارزشی بین این دو دیده نمی‌شود.'} این عدد قبل از هزینه و اختلاف نرخ خرید و فروش است؛ بازده قابل اجرای تبدیل نیست.`;
   const reading = [comparison, ...implied,
+    parityReading,
     usable.some(row => row.id === 'usd') ? 'فاصلهٔ دلار بازار با دلار ضمنی طلا بازتاب همان رابطهٔ طلا، اونس و دلار است؛ تأیید مستقل یا مرجع دلار از درهم محسوب نمی‌شود.' : '',
     'اختلاف با مرجع به‌تنهایی مجوز خرید یا فروش نیست؛ هزینهٔ معامله و تغییر اونس یا دلار می‌تواند این فاصله را تغییر دهد.'
   ].filter(Boolean).join(' ');
@@ -121,6 +128,6 @@ export function composeMarketViewProse(evidence: MarketViewEvidenceRow[], freshn
     summaryLines: [`${usable.map(describe).join('؛ ')}.`, comparison],
     marketSays: 'قیمت داخلی فلزات را کنار اونس جهانی و دلار بازار می‌گذاریم تا مشخص شود چه مقدار از قیمت با این دو عامل توضیح داده می‌شود و چه اختلافی باقی می‌ماند.',
     reading, unconfirmed,
-    conclusion: `${describe(dominant)}. ${dominant.diffPercent! < 0 ? 'این یک تخفیف نسبت به مرجع محاسباتی است، نه تضمین ارزندگی یا سود.' : dominant.diffPercent! > 0 ? 'این یک اضافه‌قیمت نسبت به مرجع محاسباتی است، نه نشانهٔ قطعی افت قیمت.' : 'برابری با مرجع، جهت حرکت بعدی را تعیین نمی‌کند.'} با تغییر قیمت داخلی، دلار یا اونس، نتیجهٔ مقایسه تغییر می‌کند. برای نتیجه‌گیری دربارهٔ ورود یا خروج، تأیید روند و نرخ واقعی معامله هنوز لازم است.`,
+    conclusion: `${describe(dominant)}. ${parityReading} ${dominant.diffPercent! < 0 ? 'این یک تخفیف نسبت به مرجع محاسباتی است، نه تضمین ارزندگی یا سود.' : dominant.diffPercent! > 0 ? 'این یک اضافه‌قیمت نسبت به مرجع محاسباتی است، نه نشانهٔ قطعی افت قیمت.' : 'برابری با مرجع، جهت حرکت بعدی را تعیین نمی‌کند.'} تصمیم معاملاتی هنوز قابل تأیید نیست: روند، نرخ واقعی خرید و فروش و هزینهٔ معامله باید بررسی شوند.`,
   };
 }

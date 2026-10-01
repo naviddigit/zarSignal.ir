@@ -98,6 +98,13 @@ export function MarketViewReportView({
       </section>
       {report.currentQuote && <p className="market-view__meta">قیمت {report.currentQuote.label}: <bdi>{report.currentQuote.price}</bdi> / {report.currentQuote.unit}</p>}
 
+      {report.access === 'full' && report.conclusion ? (
+        <section className="market-view__block" aria-label="نتیجهٔ تحلیل">
+          <h2>نتیجهٔ تحلیل · آیا تصمیم قابل تأیید است؟</h2>
+          <p>{report.conclusion}</p>
+        </section>
+      ) : null}
+
       <section className="market-view__block">
         <h2>بازار چه می‌گوید؟</h2>
         <p>{report.marketSays}</p>
@@ -142,13 +149,6 @@ export function MarketViewReportView({
         <section className="market-view__block">
           <h2>برداشت زرسیگنال</h2>
           <p>{report.reading}</p>
-        </section>
-      ) : null}
-
-      {report.access === 'full' && report.conclusion ? (
-        <section className="market-view__block">
-          <h2>جمع‌بندی</h2>
-          <p>{report.conclusion}</p>
         </section>
       ) : null}
 

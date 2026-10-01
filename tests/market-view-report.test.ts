@@ -62,6 +62,23 @@ test('gold implied dollar is not counted as an independent valuation', () => {
   assert.match(prose.conclusion!, /^طلا/);
 });
 
+test('gold silver parity describes the supplied example without inventing executable swap', () => {
+  const evidence = [
+    row({ id: 'gold', marketLabel: 'طلا', status: 'ok', diffPercent: -0.72 }),
+    row({ id: 'silver', marketLabel: 'نقره', status: 'ok', diffPercent: 0.42 }),
+  ];
+  const prose = composeMarketViewProse(evidence, 'ok');
+  assert.match(prose.reading!, /۱٫۱۴٪ پایین‌تر/);
+  assert.match(prose.conclusion!, /تبدیل طلا به نقره مزیت ارزشی نشان نمی‌دهد/);
+  assert.match(prose.reading!, /بازده قابل اجرای تبدیل نیست/);
+  const reversed = composeMarketViewProse(evidence.map(r => ({ ...r, diffPercent: r.id === 'gold' ? 0.42 : -0.72 })), 'ok');
+  assert.match(reversed.reading!, /نقره نسبت به طلا اضافه‌قیمت کمتری/);
+  const stale = composeMarketViewProse(evidence.map(r => ({ ...r, status: 'stale' as const })), 'stale');
+  assert.doesNotMatch(stale.reading!, /نسبت قیمت طلا به نقره/);
+  const missing = composeMarketViewProse([evidence[0]], 'ok');
+  assert.doesNotMatch(missing.reading!, /نسبت قیمت طلا به نقره/);
+});
+
 
 import { marketViewReportFromSnapshot } from '../src/server/market-view-report';
 import { instruments, type Snapshot } from '../src/lib/market';
