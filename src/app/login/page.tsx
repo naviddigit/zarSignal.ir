@@ -1,4 +1,4 @@
-import { Activity, Mail, Smartphone } from 'lucide-react';
+import { Activity, Mail } from 'lucide-react';
 import Link from 'next/link';
 import { auth, getAuthCapabilities, signIn, signOut } from '@/auth';
 import { PendingButton } from '@/components/pending-button';
@@ -16,6 +16,7 @@ const errors: Record<string, string> = {
   exists: 'این ایمیل قبلاً ثبت شده؛ وارد شوید.',
   credentials: 'ایمیل یا رمز عبور نادرست است.',
   signin: 'ورود پس از ثبت‌نام ناموفق بود؛ دوباره تلاش کنید.',
+  config: 'ورود ایمیلی موقتاً در دسترس نیست. کمی بعد دوباره تلاش کنید.',
 };
 
 export default async function LoginPage({
@@ -29,6 +30,8 @@ export default async function LoginPage({
   const session = await auth().catch(() => null);
   const authCapabilities = await getAuthCapabilities();
   const errorText = params.error ? errors[params.error] ?? 'ورود ناموفق بود.' : null;
+  // Email/password is the production path. Never hide it behind Google/SMS placeholders.
+  const emailReady = authCapabilities.email;
 
   return (
     <main id="main" className="auth-page">
@@ -50,13 +53,13 @@ export default async function LoginPage({
         ) : (
           <>
             <span className="eyebrow gold-text">حساب کاربری زرسیگنال</span>
-            <h1>{mode === 'register' ? 'ثبت‌نام با ایمیل' : 'ورود امن'}</h1>
-            <p>برای مدیریت اشتراک و تاریخچه وارد شوید. پرداخت آنلاین هنوز فعال نیست.</p>
+            <h1>{mode === 'register' ? 'ثبت‌نام با ایمیل' : 'ورود با ایمیل'}</h1>
+            <p>مسیر اصلی ورود همین فرم است. پرداخت آنلاین هنوز فعال نیست.</p>
             {errorText ? <p className="calc-error" role="alert">{errorText}</p> : null}
 
             <div className="auth-methods">
-              {authCapabilities.email ? (
-                <form className="phone-login" action={mode === 'register' ? registerWithEmail : loginWithEmail}>
+              {emailReady ? (
+                <form className="email-login" action={mode === 'register' ? registerWithEmail : loginWithEmail}>
                   <input type="hidden" name="next" value={returnTo} />
                   {mode === 'register' ? (
                     <>
@@ -68,7 +71,7 @@ export default async function LoginPage({
                   ) : null}
                   <label htmlFor="email">ایمیل</label>
                   <div className="phone-field">
-                    <Mail size={18} />
+                    <Mail size={18} aria-hidden="true" />
                     <input id="email" name="email" type="email" autoComplete="email" required placeholder="you@example.com" />
                   </div>
                   <label htmlFor="password">رمز عبور</label>
@@ -87,40 +90,32 @@ export default async function LoginPage({
                   </small>
                 </form>
               ) : (
-                <div className="auth-unavailable">
+                <div className="auth-unavailable" role="alert">
                   <Mail size={18} />
                   <div>
-                    <strong>ورود با ایمیل</strong>
-                    <small>AUTH_SECRET در محیط اجرا تنظیم نشده است.</small>
+                    <strong>ورود با ایمیل موقتاً قطع است</strong>
+                    <small>پیکربندی سرور ناقص است؛ تیم فنی در حال رفع است.</small>
                   </div>
                 </div>
               )}
-
-              <div className="auth-divider"><span>یا</span></div>
 
               {authCapabilities.google ? (
-                <form action={async () => { 'use server'; await signIn('google', { redirectTo: returnTo }); }}>
-                  <PendingButton className="google-button" pendingText="در حال اتصال…">
-                    <b>G</b> ادامه با گوگل
-                  </PendingButton>
-                </form>
-              ) : (
-                <div className="auth-unavailable">
-                  <Mail size={18} />
-                  <div>
-                    <strong>ورود با گوگل</strong>
-                    <small>شناسه Google هنوز تنظیم نشده؛ از ایمیل استفاده کنید.</small>
-                  </div>
-                </div>
-              )}
+                <>
+                  <div className="auth-divider"><span>یا</span></div>
+                  <form action={async () => { 'use server'; await signIn('google', { redirectTo: returnTo }); }}>
+                    <PendingButton className="google-button" pendingText="در حال اتصال…">
+                      <b>G</b> ادامه با گوگل
+                    </PendingButton>
+                  </form>
+                </>
+              ) : null}
 
-              <div className="auth-unavailable">
-                <Smartphone size={18} />
-                <div>
-                  <strong>ورود با پیامک</strong>
-                  <small>OTP هنوز فعال نیست.</small>
-                </div>
-              </div>
+              {/* Disabled providers stay out of the primary path — one quiet note only. */}
+              {!authCapabilities.google || !authCapabilities.phone ? (
+                <p className="auth-alt-note">
+                  گوگل و پیامک هنوز فعال نیستند؛ فعلاً فقط ایمیل.
+                </p>
+              ) : null}
             </div>
             <small>با ورود، قوانین استفاده و حریم خصوصی زرسیگنال را می‌پذیرید.</small>
           </>

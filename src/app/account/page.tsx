@@ -14,6 +14,7 @@ import {
 import { auth, signOut } from '@/auth';
 import { db } from '@/lib/db';
 import { PendingButton } from '@/components/pending-button';
+import { deleteP0TestAccount } from '@/app/login/actions';
 
 export const metadata: Metadata = {
   title: 'حساب من',
@@ -131,6 +132,12 @@ export default async function AccountPage({
           <LogOut size={16} /> خروج از حساب
         </PendingButton>
       </form>
+
+      {user.email && /^zs\.p0\.auth\./i.test(user.email) ? (
+        <form className="account-logout" action={deleteP0TestAccount}>
+          <PendingButton pendingText="در حال پاک‌سازی…">حذف حساب آزمایشی P0</PendingButton>
+        </form>
+      ) : null}
     </main>
   );
 }

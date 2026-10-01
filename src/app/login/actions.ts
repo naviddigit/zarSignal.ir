@@ -88,3 +88,26 @@ export async function reserveSubscription(formData: FormData) {
   }
   redirect(`/account?reserved=${encodeURIComponent(plan.slug)}`);
 }
+
+/** Self-delete for disposable P0 auth test accounts only. */
+export async function deleteP0TestAccount() {
+  const { auth, signOut } = await import('@/auth');
+  const session = await auth();
+  const email = session?.user?.email?.toLowerCase() ?? '';
+  if (!session?.user?.id || !/^zs\.p0\.auth\./i.test(email)) {
+    redirect('/account');
+  }
+  const userId = session.user.id;
+  await db.subscription.deleteMany({ where: { userId } });
+  await db.analysisAcknowledgement.deleteMany({ where: { userId } }).catch(() => undefined);
+  await db.account.deleteMany({ where: { userId } }).catch(() => undefined);
+  await db.session.deleteMany({ where: { userId } }).catch(() => undefined);
+  await db.apiKey.deleteMany({ where: { userId } }).catch(() => undefined);
+  await db.payment.deleteMany({ where: { userId } }).catch(() => undefined);
+  await db.user.delete({ where: { id: userId } });
+  try {
+    await signOut({ redirectTo: '/login?cleaned=1' });
+  } catch {
+    redirect('/login?cleaned=1');
+  }
+}
