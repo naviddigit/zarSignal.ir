@@ -145,9 +145,13 @@
 }
 .calc-tool-panel__field.is-live .ds-input{border-color:color-mix(in srgb,var(--success) 40%,var(--border-subtle))}
 .calc-tool-panel__field.is-manual .ds-input{border-color:color-mix(in srgb,var(--accent) 35%,var(--border-subtle))}
-/* Keypad cue: parent box unchanged; light runs in a 1px ring overlay (3 laps) */
+/* Keypad cue: keep section box size fixed — light replaces the 1px border slot (3 laps) */
 @property --cue-angle{syntax:'<angle>';inherits:false;initial-value:0deg}
-.calc-keypad-wrap{position:relative}
+.calc-keypad-wrap{position:relative;overflow:hidden}
+.calc-keypad-wrap.is-keypad-cue{
+  /* width stays 1px so layout does not grow; color clears for the ring */
+  border-color:transparent;
+}
 .calc-keypad-wrap.is-keypad-cue::after{
   content:'';
   position:absolute;
@@ -169,7 +173,8 @@
   100%{--cue-angle:1080deg}
 }
 @media(prefers-reduced-motion:reduce){
-  .calc-keypad-wrap.is-keypad-cue::after{animation:none;opacity:.5;background:var(--accent)}
+  .calc-keypad-wrap.is-keypad-cue{border-color:color-mix(in srgb,var(--accent) 55%,var(--border-subtle))}
+  .calc-keypad-wrap.is-keypad-cue::after{animation:none;opacity:0}
 }
 .calc-result-panel{padding:12px 14px;border:1px solid color-mix(in srgb,var(--accent) 35%,var(--border-subtle));border-radius:14px;background:color-mix(in srgb,var(--accent) 8%,var(--surface-card));display:grid;gap:8px}
 .calc-result-panel>strong{font-size:12px;color:var(--accent)}
