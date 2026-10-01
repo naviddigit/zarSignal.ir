@@ -45,10 +45,12 @@ export default async function LoginPage({
           <>
             <h1>خوش آمدید</h1>
             <p>{session.user.email ?? session.user.name}</p>
-            <Link className="button" href={returnTo}>ادامه</Link>
-            <form action={async () => { 'use server'; await signOut({ redirectTo: '/' }); }}>
-              <PendingButton pendingText="در حال خروج…">خروج از حساب</PendingButton>
-            </form>
+            <div className="auth-session-actions">
+              <Link className="button" href={returnTo}>ادامه به حساب</Link>
+              <form action={async () => { 'use server'; await signOut({ redirectTo: '/' }); }}>
+                <PendingButton pendingText="در حال خروج…">خروج از حساب</PendingButton>
+              </form>
+            </div>
           </>
         ) : (
           <>

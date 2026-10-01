@@ -36,7 +36,16 @@ export function MarketChart({ points, label, unit, candles = false, percent = fa
     setSelected(nearest);
   }
   return <div className={`market-chart ${percent ? 'is-percent' : ''}`}>
-    <div className="chart-caption"><strong>{label}</strong><span>{unit} · {candles ? 'کندل روزانه' : 'مقادیر ثبت‌شده'}</span></div>
+    <div className="chart-caption">
+      <strong>{label}</strong>
+      <span>{unit} · {candles ? 'کندل روزانه' : 'مقادیر ثبت‌شده'}</span>
+    </div>
+    {(showPrice || showBubble) ? (
+      <div className="chart-legend" aria-hidden="true">
+        {showPrice ? <span className="chart-legend__item is-price"><i />قیمت · محور چپ</span> : null}
+        {showBubble && bubbleValues.length >= 3 ? <span className="chart-legend__item is-bubble"><i />حباب / فاصله · محور راست ٪</span> : null}
+      </div>
+    ) : null}
     <div className="chart-scroll" dir="ltr">
       <svg viewBox={`0 0 ${width} ${height}`} role="img" tabIndex={0} aria-label={`${label}؛ محور قیمت و تاریخ؛ با کلیدهای جهت جابه‌جا شوید`}
         onPointerMove={event => pick(event.clientX, event.currentTarget.getBoundingClientRect())}
@@ -49,7 +58,15 @@ export function MarketChart({ points, label, unit, candles = false, percent = fa
         {[0, 1, 2, 3, 4].map(i => {
           const value = domain.min + (domain.max - domain.min) * i / 4;
           const bubbleValue = bubbleDomain.min + (bubbleDomain.max - bubbleDomain.min) * i / 4;
-          return <g key={i} className="chart-grid"><line x1={left} x2={width - right} y1={y(value)} y2={y(value)}/>{showPrice && <text x={left - 12} y={y(value) + 4} textAnchor="end">{number(value)}{percent ? '٪' : ''}</text>}{showBubble && bubbleValues.length >= 3 && <text className="bubble-axis" x={width - right + 12} y={y(value) + 4} textAnchor="start">{number(bubbleValue)}٪</text>}</g>;
+          return (
+            <g key={i} className="chart-grid">
+              <line x1={left} x2={width - right} y1={y(value)} y2={y(value)} />
+              {showPrice && <text className="price-axis" x={left - 12} y={y(value) + 4} textAnchor="end">{number(value)}{percent ? '٪' : ''}</text>}
+              {showBubble && bubbleValues.length >= 3 && (
+                <text className="bubble-axis" x={width - right + 12} y={bubbleY(bubbleValue) + 4} textAnchor="start">{number(bubbleValue)}٪</text>
+              )}
+            </g>
+          );
         })}
         {dates.map(index => <g className="chart-grid" key={index}>
           <line x1={x(points[index].t)} x2={x(points[index].t)} y1={top} y2={height - bottom}/>

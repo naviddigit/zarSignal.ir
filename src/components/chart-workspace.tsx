@@ -20,6 +20,7 @@ export function ChartWorkspace({ symbol, compact = false }: { symbol: string; co
   const [state, setState] = useState<'loading' | 'ready' | 'error' | 'locked'>('loading');
   const [price, setPrice] = useState(true), [bubble, setBubble] = useState(true);
   const [retry, setRetry] = useState(0);
+  const [lockedRanges, setLockedRanges] = useState<Set<HistoryRange>>(() => new Set(['7d', '30d', '90d']));
   const previousLineRange = useRef<HistoryRange | null>(null);
   useEffect(() => {
     const controller = new AbortController();
@@ -37,8 +38,24 @@ export function ChartWorkspace({ symbol, compact = false }: { symbol: string; co
       if (controller.signal.aborted) return;
       setPoints(range === '24h' && formula ? snapshotChartPoints(bubbles.points ?? [], symbol) : mergeDailyHistory(history.bars ?? [], bubbles.points ?? []));
       setState('ready');
+      if (range !== '24h') {
+        setLockedRanges(current => {
+          if (!current.has(range)) return current;
+          const next = new Set(current);
+          next.delete(range);
+          return next;
+        });
+      }
     }
-    void load().catch(error => { if (!controller.signal.aborted) setState(error.message === 'http_403' ? 'locked' : 'error'); });
+    void load().catch(error => {
+      if (controller.signal.aborted) return;
+      if (error.message === 'http_403') {
+        setState('locked');
+        setLockedRanges(current => new Set(current).add(range));
+        return;
+      }
+      setState('error');
+    });
     return () => controller.abort();
   }, [symbol, formula, range, retry]);
   const enough = enoughHistory(points);
@@ -70,7 +87,7 @@ export function ChartWorkspace({ symbol, compact = false }: { symbol: string; co
                 }}
               >
                 <span>{r === '24h' ? '۲۴ ساعت' : `${new Intl.NumberFormat('fa-IR').format(historyRanges[r] / 24)} روز`}</span>
-                {r !== '24h' ? <LockKeyhole size={12} aria-hidden="true" /> : null}
+                {r !== '24h' && lockedRanges.has(r) ? <LockKeyhole size={12} aria-hidden="true" /> : null}
               </button>
             ))}
           </div>
@@ -113,8 +130,21 @@ export function ChartWorkspace({ symbol, compact = false }: { symbol: string; co
       </div>
 
       <div className="chart-series-controls">
-        <Checkbox label="قیمت · محور چپ" checked={price} onCheckedChange={setPrice} />
-        <Checkbox label="حباب / فاصله · محور راست ٪" checked={Boolean(formula) && bubble} disabled={!formula} onCheckedChange={setBubble} />
+        <Checkbox
+          className="is-price-series"
+          label="قیمت · محور چپ"
+          description="خط طلایی"
+          checked={price}
+          onCheckedChange={setPrice}
+        />
+        <Checkbox
+          className="is-bubble-series"
+          label="حباب / فاصله · محور راست ٪"
+          description="خط فیروزه‌ای"
+          checked={Boolean(formula) && bubble}
+          disabled={!formula}
+          onCheckedChange={setBubble}
+        />
         <span>{range === '24h' ? 'مشاهدات ثبت‌شده در ۲۴ ساعت اخیر' : 'کندل روزانه + محاسبه از قیمت‌های پایانی همان روز'}</span>
       </div>
       {state === 'loading' ? <div className="chart-empty" role="status">در حال دریافت نمودار…</div>
