@@ -1,13 +1,15 @@
+import { useEffect, useState } from 'react';
 import { View, Pressable, Text, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, layout } from '../theme';
+import { getDemoUser } from '../session';
 
 const icons: Record<string, keyof typeof Ionicons.glyphMap> = {
   index: 'home-outline',
   markets: 'storefront-outline',
   calculator: 'calculator-outline',
   capillary: 'analytics-outline',
-  more: 'grid-outline',
+  more: 'diamond-outline',
 };
 
 const iconsActive: Record<string, keyof typeof Ionicons.glyphMap> = {
@@ -15,7 +17,7 @@ const iconsActive: Record<string, keyof typeof Ionicons.glyphMap> = {
   markets: 'storefront',
   calculator: 'calculator',
   capillary: 'analytics',
-  more: 'grid',
+  more: 'diamond',
 };
 
 export function SiteTabBar(props: {
@@ -24,12 +26,19 @@ export function SiteTabBar(props: {
   navigation: { emit: (event: never) => { defaultPrevented: boolean }; navigate: (name: string, params?: object) => void };
 }) {
   const { state, descriptors, navigation } = props;
+  const [signedIn, setSignedIn] = useState(false);
+
+  useEffect(() => {
+    void getDemoUser().then(user => setSignedIn(Boolean(user)));
+  }, [state.index]);
+
   return (
     <View style={[styles.wrap, { pointerEvents: 'box-none' }]}>
       <View style={styles.inner}>
         {state.routes.map((route, index) => {
           const { options } = descriptors[route.key];
-          const label = typeof options.title === 'string' ? options.title : route.name;
+          const rawLabel = typeof options.title === 'string' ? options.title : route.name;
+          const label = route.name === 'more' ? (signedIn ? 'پروفایل' : 'اشتراک') : rawLabel;
           const focused = state.index === index;
           const onPress = () => {
             const event = navigation.emit({
@@ -39,7 +48,11 @@ export function SiteTabBar(props: {
             } as never);
             if (!focused && !event.defaultPrevented) navigation.navigate(route.name, route.params);
           };
-          const icon = focused ? iconsActive[route.name] ?? 'ellipse' : icons[route.name] ?? 'ellipse-outline';
+          const icon = route.name === 'more'
+            ? (focused ? (signedIn ? 'person' : 'diamond') : (signedIn ? 'person-outline' : 'diamond-outline'))
+            : focused
+              ? iconsActive[route.name] ?? 'ellipse'
+              : icons[route.name] ?? 'ellipse-outline';
           return (
             <Pressable
               key={route.key}

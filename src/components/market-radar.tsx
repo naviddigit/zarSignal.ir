@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import type { LiveBubbleCard } from '@/lib/bubbles';
 import { isStale, type Quote } from '@/lib/market';
 
@@ -32,10 +32,37 @@ function formatPercent(value: number) {
   return `${sign}${new Intl.NumberFormat('fa-IR', { maximumFractionDigits: 2, minimumFractionDigits: 2 }).format(value)}٪`;
 }
 
-function formatMoney(value: number, currency: string) {
-  return new Intl.NumberFormat('en-US', {
+function formatSilverPrice(value: number, currency: string) {
+  return new Intl.NumberFormat('fa-IR', {
     maximumFractionDigits: currency === 'USD' ? 2 : 0,
   }).format(value);
+}
+
+function ringFromPercent(percent: number | null | undefined) {
+  if (percent == null || !Number.isFinite(percent)) {
+    return {
+      className: 'is-empty',
+      style: {
+        strokeDasharray: 100,
+        strokeDashoffset: 100,
+        stroke: 'color-mix(in srgb, var(--text-muted) 45%, transparent)',
+        filter: 'none',
+      } as CSSProperties,
+    };
+  }
+  const magnitude = Math.min(1, Math.abs(percent) / 10);
+  const fill = Math.min(100, (Math.abs(percent) / 12) * 100);
+  const tone = percent >= 0 ? 'var(--success)' : 'var(--danger)';
+  const mix = Math.round(40 + magnitude * 60);
+  return {
+    className: percent >= 0 ? 'is-up' : 'is-down',
+    style: {
+      strokeDasharray: 100,
+      strokeDashoffset: 100 - fill,
+      stroke: `color-mix(in srgb, ${tone} ${mix}%, color-mix(in srgb, var(--text-muted) 35%, transparent))`,
+      filter: `drop-shadow(0 0 ${6 + magnitude * 12}px color-mix(in srgb, ${tone} ${Math.round(25 + magnitude * 50)}%, transparent))`,
+    } as CSSProperties,
+  };
 }
 
 function placePlanet(el: HTMLElement, angle: number, radius: number) {
@@ -46,6 +73,8 @@ function placePlanet(el: HTMLElement, angle: number, radius: number) {
 
 function midQuote(quote?: Quote | null) {
   if (!quote) return null;
+  const sell = Number(quote.sell);
+  if (Number.isFinite(sell) && sell > 0) return sell;
   const mid = (Number(quote.buy) + Number(quote.sell)) / 2;
   return Number.isFinite(mid) && mid > 0 ? mid : null;
 }
@@ -134,12 +163,14 @@ export function MarketRadar({
   const ready = !locked && card && (card.status === 'ok' || card.status === 'stale') && card.percent != null;
 
   const silverQuote = useMemo(
-    () => quotes.find(item => item.symbol === 'SILVER_999') ?? quotes.find(item => item.symbol === 'XAG_USD') ?? null,
+    () => quotes.find(item => item.symbol === 'SILVER_999') ?? null,
     [quotes],
   );
-  const silverMid = midQuote(silverQuote);
-  const silverReady = focus === 'SILVER_BUBBLE' && silverMid != null;
+  const silverPrice = midQuote(silverQuote);
+  const silverReady = focus === 'SILVER_BUBBLE' && silverPrice != null;
   const silverStale = silverQuote ? isStale(silverQuote) : true;
+  const bubblePercent = ready ? card!.percent! : null;
+  const ring = ringFromPercent(bubblePercent);
 
   const direction = ready
     ? (card!.percent! >= 0 ? 'up' : 'down')
@@ -152,13 +183,13 @@ export function MarketRadar({
   const centerValue = ready
     ? formatPercent(card!.percent!)
     : silverReady
-      ? formatMoney(silverMid!, silverQuote!.currency)
+      ? formatSilverPrice(silverPrice!, silverQuote!.currency)
       : '—';
 
   const centerStatus = ready
     ? (card!.status === 'stale' ? 'داده قدیمی' : 'اختلاف قیمت · سیگنال نیست')
     : silverReady
-      ? (silverStale ? 'قیمت نقره قدیمی · حباب هنوز تأیید نشده' : 'قیمت نقره ۹۹۹ · حباب هنوز تأیید نشده')
+      ? (silverStale ? 'قیمت زنده قدیمی · حباب تأیید نشده' : 'قیمت زنده هر گرم · حباب تأیید نشده')
       : locked
         ? 'مدل نقره هنوز فعال نیست'
         : (card?.reason ?? 'در انتظار داده');
@@ -192,19 +223,19 @@ export function MarketRadar({
           r="78"
           fill="none"
           pathLength="100"
-          className={`radar-pro__ring-value is-${direction}`}
-          style={{ strokeDasharray: 100, strokeDashoffset: ready ? 100 - Math.min(100, Math.abs(card!.percent!) / 12 * 100) : silverReady ? 42 : 100 }}
+          className={`radar-pro__ring-value ${ring.className}`}
+          style={ring.style}
         />
       </svg>
 
       <div className="radar-pro__center" aria-live={automatic ? 'off' : 'polite'} key={focus}>
         <div className="radar-pro__center-beat">
           <span className="radar-pro__eyebrow">
-            {locked && !silverReady ? `${info.short} · به‌زودی` : silverReady ? 'نقره ۹۹۹' : info.label}
+            {locked && !silverReady ? `${info.short} · به‌زودی` : silverReady ? 'نقره ۹۹۹ · قیمت' : info.label}
           </span>
           <strong dir="ltr" className={`radar-pro__value is-${direction}${silverReady && !ready ? ' is-price' : ''}`}>
             {centerValue}
-            {silverReady && !ready ? <small>{silverQuote!.currency === 'USD' ? 'دلار' : 'تومان'}</small> : null}
+            {silverReady && !ready ? <small>{silverQuote!.currency === 'USD' ? 'دلار / اونس' : 'تومان / گرم'}</small> : null}
           </strong>
           <span className="radar-pro__status">{centerStatus}</span>
           <Link className="radar-analysis-link" href={info.analysisHref}>

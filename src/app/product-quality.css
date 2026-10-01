@@ -144,20 +144,9 @@
     overflow:hidden;
   }
   .pricing-compare tbody th{
-    position:sticky;
-    right:0;
-    z-index:1;
-    background:var(--surface-card);
-    box-shadow:-8px 0 12px color-mix(in srgb,var(--shadow) 35%,transparent);
     max-width:42vw;
     white-space:normal;
     line-height:1.45;
-  }
-  .pricing-compare thead th:first-child{
-    position:sticky;
-    right:0;
-    z-index:2;
-    background:var(--surface-soft);
   }
   .pricing-cell-yes,.pricing-cell-no{width:16px;height:16px;display:block;margin-inline:auto}
   .pricing-swipe-hint{display:block}

@@ -148,7 +148,10 @@ function Cell({ value }: { value: string | boolean }) {
 }
 
 export default async function Pricing() {
-  const [plans, trial] = await Promise.all([getPublishedPlans(), trialPolicy()]);
+  const [plans, trial] = await Promise.all([
+    getPublishedPlans().catch(() => [] as ManagedPlan[]),
+    trialPolicy().catch(() => ({ enabled: false, hours: 24, available: false })),
+  ]);
   const tiers = buildTiers(plans);
   const trialDays = trial.enabled && trial.available
     ? (trial.hours % 24 === 0 ? trial.hours / 24 : trial.hours)
@@ -168,9 +171,9 @@ export default async function Pricing() {
 
       <section className="pricing-grid" aria-label="مقایسه پلن‌ها">
         {tiers.map(tier => {
-          const features = (tier.plan?.features.filter(f => !f.startsWith('history:'))?.length
-            ? tier.plan!.features.filter(f => !f.startsWith('history:'))
-            : tier.fallbackFeatures);
+          const raw = tier.plan?.features ?? [];
+          const planFeatures = raw.filter((f): f is string => typeof f === 'string' && !f.startsWith('history:'));
+          const features = planFeatures.length ? planFeatures : tier.fallbackFeatures;
           return (
             <article key={tier.kind} className={`pricing-card${tier.popular ? ' is-popular' : ''}${tier.kind === 'api' ? ' is-api' : ''}`}>
               {tier.popular ? <span className="pricing-badge">پرکاربرد</span> : null}

@@ -2,4 +2,8 @@
 .expo/
 .env
 dist/
+web-build/
+*.log
+*.zip
+.DS_Store
 

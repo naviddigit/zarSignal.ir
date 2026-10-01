@@ -5,3 +5,5 @@ web-build/
 *.log
 .env
 .git/
+*.zip
+.DS_Store

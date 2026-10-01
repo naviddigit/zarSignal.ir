@@ -27,16 +27,24 @@ export default function MoreScreen() {
     });
   }, [pathname]);
 
+  const title = user ? 'پروفایل' : 'اشتراک';
+
   return (
     <AppShell>
       <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
-        <Text style={styles.title}>بیشتر</Text>
-        <Text style={styles.body}>رایگان: قیمت و ماشین‌حساب. پولی: فقط تاریخچه بلندتر — نه سیگنال معامله.</Text>
+        <Text style={styles.title}>{title}</Text>
+        <Text style={styles.body}>
+          {user
+            ? 'حساب، اشتراک، تاریخچه و میانبرهای اپ اینجاست.'
+            : 'رایگان: قیمت و ماشین‌حساب. پولی: فقط تاریخچه بلندتر — نه سیگنال معامله.'}
+        </Text>
 
-        <View style={styles.freeBox}>
-          <Text style={styles.freeTitle}>شروع بدون پرداخت</Text>
-          <Text style={styles.note}>۱) قیمت‌ها → ۲) ماشین‌حساب → ۳) اگر لازم شد تاریخچه/اشتراک</Text>
-        </View>
+        {!user ? (
+          <View style={styles.freeBox}>
+            <Text style={styles.freeTitle}>شروع بدون پرداخت</Text>
+            <Text style={styles.note}>۱) قیمت‌ها → ۲) ماشین‌حساب → ۳) اگر لازم شد تاریخچه/اشتراک</Text>
+          </View>
+        ) : null}
 
         <View style={styles.profile}>
           <View style={styles.avatar}>

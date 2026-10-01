@@ -15,7 +15,7 @@ export default function TabsLayout() {
       <Tabs.Screen name="markets" options={{ title: 'قیمت‌ها' }} />
       <Tabs.Screen name="calculator" options={{ title: 'ماشین حساب' }} />
       <Tabs.Screen name="capillary" options={{ title: 'تحلیل' }} />
-      <Tabs.Screen name="more" options={{ title: 'بیشتر' }} />
+      <Tabs.Screen name="more" options={{ title: 'اشتراک' }} />
     </Tabs>
   );
 }

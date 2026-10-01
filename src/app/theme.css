@@ -142,6 +142,26 @@ html[data-theme='light'] .calculator-screen>span,html[data-theme='light'] .calcu
 .edu-rules li{padding:12px 14px;border-radius:12px;background:var(--surface-soft);font-size:13px;line-height:1.85;color:var(--text-secondary)}
 .edu-foot{margin:18px 0 0;padding:12px 14px;border-radius:12px;background:color-mix(in srgb,var(--accent) 8%,var(--surface-soft));color:var(--text-secondary);font-size:12px;line-height:1.8}
 
+/* Account / profile hub (mobile tab when signed in) */
+.account-page{padding-block:24px 96px;max-width:720px}
+.account-page>h1{font-size:clamp(24px,4vw,34px);margin:8px 0 10px}
+.account-page>.lead{margin:0 0 18px;color:var(--text-secondary);line-height:1.85}
+.account-page>.button{display:inline-flex;margin-bottom:14px}
+.account-page>.text-link{display:inline-flex}
+.account-hero{display:flex;align-items:center;gap:14px;margin:12px 0 18px;padding:16px;border:1px solid var(--border-subtle);border-radius:16px;background:var(--surface-card)}
+.account-hero__avatar{width:52px;height:52px;display:grid;place-items:center;border-radius:14px;background:color-mix(in srgb,var(--accent) 14%,var(--surface-soft));color:var(--accent);flex:none}
+.account-hero h1{margin:0;font-size:20px}
+.account-hero p{margin:4px 0 0;color:var(--text-secondary);font-size:13px}
+.account-grid{display:grid;gap:10px;margin-bottom:18px}
+.account-card{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:12px;min-height:64px;padding:14px;border:1px solid var(--border-subtle);border-radius:14px;background:var(--surface-card);color:var(--text-primary);text-decoration:none}
+.account-card>svg:first-child{color:var(--accent)}
+.account-card>svg:last-child{color:var(--text-muted)}
+.account-card span{display:grid;gap:2px;min-width:0}
+.account-card strong{font-size:14px}
+.account-card small{font-size:11px;color:var(--text-muted)}
+.account-card:hover{border-color:color-mix(in srgb,var(--accent) 40%,var(--border-subtle));background:color-mix(in srgb,var(--accent) 5%,var(--surface-card))}
+.account-logout .button,.account-logout button{width:100%;min-height:46px;display:inline-flex;align-items:center;justify-content:center;gap:8px;background:transparent;border:1px solid color-mix(in srgb,var(--danger) 45%,var(--border-subtle));color:var(--danger)}
+
 /* The administration area owns its complete viewport and navigation shell. */
 .admin-shell + .footer{display:none}
 
@@ -293,15 +313,16 @@ html.ds-scroll-locked body{
 .radar-pro__ring{position:absolute;top:50%;left:50%;width:250px;height:250px;transform:translate(-50%,-50%) rotate(-90deg);pointer-events:none;z-index:1}
 .radar-pro__ring-track{fill:none;stroke:color-mix(in srgb,var(--text-muted) 25%,transparent);stroke-width:1}
 .radar-pro__ring-value{fill:none;stroke:var(--accent);stroke-width:1.5;stroke-linecap:round;transition:stroke-dashoffset .85s cubic-bezier(.2,.8,.2,1),stroke .45s ease}
-.radar-pro__ring-value.is-up{stroke:var(--success)}.radar-pro__ring-value.is-down{stroke:var(--danger)}.radar-pro__ring-value.is-locked,.radar-pro__ring-value.is-empty{stroke:color-mix(in srgb,var(--text-muted) 55%,transparent);filter:none;animation:none}
+.radar-pro__ring-value.is-up{stroke:var(--success)}.radar-pro__ring-value.is-down{stroke:var(--danger)}.radar-pro__ring-value.is-locked,.radar-pro__ring-value.is-empty,.radar-pro__ring-value.is-neutral{stroke:color-mix(in srgb,var(--text-muted) 55%,transparent);filter:none;animation:none}
+.radar-pro__ring-value{transition:stroke .35s ease,filter .35s ease,stroke-dashoffset .45s ease}
 .radar-pro__center{position:absolute;inset:0;display:grid;place-content:center;justify-items:center;gap:6px;text-align:center;z-index:2;padding:24px;animation:radar-center-in .6s cubic-bezier(.2,.8,.2,1)}
 .radar-pro__center-beat{display:grid;justify-items:center;gap:8px}
 .radar-pro__eyebrow{font-size:12px;color:var(--accent);letter-spacing:0;transition:color .4s}
 .radar-pro__value{font-size:clamp(40px,5vw,54px);line-height:1;font-weight:900;font-variant-numeric:tabular-nums;color:var(--text-primary);transition:color .4s}
 .radar-pro__value.is-up{color:var(--success)}.radar-pro__value.is-down{color:var(--danger)}.radar-pro__value.is-locked{color:var(--text-muted);font-size:42px}
 .radar-pro__value.is-neutral,.radar-pro__value.is-price{color:var(--text-primary)}
-.radar-pro__value.is-price{font-size:clamp(28px,4vw,40px);display:flex;flex-direction:column;align-items:center;gap:2px;line-height:1.15}
-.radar-pro__value.is-price small{font:700 11px Vazirmatn;color:var(--text-muted)}
+.radar-pro__value.is-price{font-size:clamp(22px,3.6vw,34px);display:flex;flex-direction:column;align-items:center;gap:2px;line-height:1.15;max-width:100%}
+.radar-pro__value.is-price small{font:700 10px Vazirmatn;color:var(--text-muted);letter-spacing:0}
 .radar-pro__ring-value.is-neutral{stroke:color-mix(in srgb,var(--text-secondary) 70%,transparent);filter:none}
 .radar-pro__status{max-width:210px;font-size:11px;line-height:1.7;color:var(--text-secondary)}
 .radar-pro__pips{display:flex;gap:6px;margin-top:4px}.radar-pro__pips i{width:7px;height:7px;border-radius:50%;background:color-mix(in srgb,var(--text-muted) 45%,transparent);transition:background .35s,box-shadow .35s,transform .35s}.radar-pro__pips i.is-on{background:var(--accent);transform:scale(1.25);box-shadow:0 0 12px color-mix(in srgb,var(--accent) 60%,transparent)}
