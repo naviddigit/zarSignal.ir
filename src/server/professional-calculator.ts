@@ -57,7 +57,7 @@ export function calculateProfessional(body: unknown, snapshot: Snapshot): Calcul
   const v = Object.fromEntries(inputs.map(i => [i.key, i.value]));
   let outputs: CalculatorResult['outputs'];
   if (request.operation === 'mazanehTo18k') outputs = [{ label: 'قیمت مشتق گرم ۱۸ عیار', value: mazanehTo18k(v.melted).market18k, unit: 'تومان / گرم' }];
-  else if (request.operation === 'market18kToMazaneh') outputs = [{ label: 'مظنه محاسبه‌شده', value: market18kToMazaneh(v.gram), unit: 'تومان / مثقال' }];
+  else if (request.operation === 'market18kToMazaneh') outputs = [{ label: 'مظنه محاسبه‌شده', value: market18kToMazaneh(v.gram), unit: 'تومان / مثقال (مثقال فیزیکی)' }];
   else if (request.operation === 'silverBubble') {
     const result = silverBubbleV54({ xagUsd: v.xag, usdIrt: v.usd, silver999Market: v.silver999 });
     outputs = [
