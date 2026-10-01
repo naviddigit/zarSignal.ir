@@ -7,11 +7,12 @@ import {
 } from 'lucide-react';
 import { convertWeight, convertPurityPrice, weightUnits, purityOptions, type WeightUnit, type Purity } from '@/lib/calculator-conversions';
 import { formatNumericInput, sanitizeNumericInput } from '@/lib/numeric-input';
-import { isStale, type Snapshot } from '@/lib/market';
+import { isStale, type Snapshot, type Symbol } from '@/lib/market';
 import { mazanehTo18k } from '@/lib/mazaneh-to-18k';
 import { Select } from '@/components/ui/select';
 import { HScrollRail } from '@/components/ui/h-scroll-rail';
 import { keypadMath } from '@/lib/keypad-math';
+import { sparkPriceTone, useMarketSparks } from '@/components/use-market-sparks';
 
 const unitOptions = Object.entries(weightUnits).map(([value, unit]) => ({ value, label: unit.label }));
 const puritySelectOptions = Object.entries(purityOptions).map(([value, unit]) => ({ value, label: unit.label }));
@@ -95,7 +96,7 @@ export function CalculatorProductTiles({
   );
 }
 
-/** Live prices as compact market cards. */
+/** Live prices as compact market cards — ۱۸ عیار همیشه از مظنه ÷ ۴٫۳۳۱۸. */
 export function CalculatorLiveStrip({ snapshot }: { snapshot: Snapshot }) {
   const cells = [
     { symbol: 'XAU_USD' as const, label: 'اونس طلا', unit: 'دلار' },
@@ -105,6 +106,8 @@ export function CalculatorLiveStrip({ snapshot }: { snapshot: Snapshot }) {
     { symbol: 'SILVER_999' as const, label: 'نقره ۹۹۹', unit: 'تومان' },
     { symbol: 'SEKE_CASH' as const, label: 'سکه نقدی', unit: 'تومان' },
   ];
+  const symbols = cells.map(c => c.symbol) as Symbol[];
+  const sparks = useMarketSparks(symbols);
   const latest = snapshot.quotes.map(q => q.fetchedAt).sort().at(-1);
   return (
     <section className="calc-live-strip" aria-label="قیمت‌های بازار">
@@ -119,19 +122,26 @@ export function CalculatorLiveStrip({ snapshot }: { snapshot: Snapshot }) {
         {cells.map(cell => {
           const quote = snapshot.quotes.find(item => item.symbol === cell.symbol);
           const melted = snapshot.quotes.find(item => item.symbol === 'GOLD_MELTED');
-          const derived18k = !quote && cell.symbol === 'GOLD_18K' && melted
-            ? mazanehTo18k(Number(melted.sell) || Number(melted.buy)).market18k
+          const meltedMid = melted ? (Number(melted.sell) || Number(melted.buy)) : NaN;
+          const derived18k = cell.symbol === 'GOLD_18K' && Number.isFinite(meltedMid) && meltedMid > 0
+            ? mazanehTo18k(meltedMid).market18k
             : null;
-          const stale = quote ? isStale(quote) : melted && derived18k != null ? isStale(melted) : true;
-          const display = quote
-            ? money(quote.sell, quote.currency)
-            : derived18k != null
-              ? money(Math.round(derived18k), 'TMN')
+          const useDerived = cell.symbol === 'GOLD_18K' && derived18k != null;
+          const stale = useDerived && melted
+            ? isStale(melted)
+            : quote
+              ? isStale(quote)
+              : true;
+          const display = useDerived
+            ? money(Math.round(derived18k!), 'TMN')
+            : quote
+              ? money(quote.sell, quote.currency)
               : '—';
+          const tone = sparkPriceTone(sparks[cell.symbol]);
           return (
-            <article key={cell.symbol} className={stale || display === '—' ? 'is-stale' : ''}>
-              <small>{cell.label} · {cell.unit}</small>
-              <bdi>{display}</bdi>
+            <article key={cell.symbol} className={`${stale || display === '—' ? 'is-stale' : ''}${tone ? ` is-${tone}` : ''}`}>
+              <small>{cell.label} · {cell.unit}{useDerived ? ' · ÷۴٫۳۳۱۸' : ''}</small>
+              <bdi className={tone ? `is-${tone}` : undefined}>{display}</bdi>
             </article>
           );
         })}

@@ -21,7 +21,7 @@ export function computeLiveBubbles(snapshot: Snapshot): LiveBubbleCard[] {
     status: 'blocked',
     percent: null,
     theoretical: null,
-    reason: 'مدل محاسباتی نقره هنوز تأیید نشده است',
+    reason: 'مدل حباب نقره تأیید نشده؛ عدد حباب نداریم. ثابت‌ها را از مدیر (چت‌بات) بگیرید.',
   };
 
   if (snapshot.mode !== 'live' || snapshot.status === 'unavailable' || snapshot.status === 'demo') {

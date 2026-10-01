@@ -220,8 +220,32 @@ export default async function Pricing() {
       <section className="pricing-compare" aria-label="جدول مقایسه امکانات">
         <header>
           <h2>مقایسه امکانات</h2>
-          <p>برای دیدن همه پلن‌ها جدول را به چپ و راست بکشید.</p>
+          <p className="pricing-compare__hint-desktop">برای دیدن همه پلن‌ها جدول را به چپ و راست بکشید.</p>
+          <p className="pricing-compare__hint-mobile">تیک هر پلن زیر همان ویژگی دیده می‌شود.</p>
         </header>
+
+        <div className="pricing-compare-mobile" aria-label="مقایسه موبایل">
+          <div className="pricing-compare-mobile__legend" aria-hidden="true">
+            {tiers.map(tier => (
+              <span key={tier.kind}>{tier.title.replace(/^پلن\s*/, '')}</span>
+            ))}
+          </div>
+          <ul>
+            {compareRows.map(row => (
+              <li key={row.label}>
+                <strong>{row.label}</strong>
+                <div className="pricing-compare-mobile__cells">
+                  {tiers.map(tier => (
+                    <span key={tier.kind} className="pricing-compare-mobile__cell">
+                      <Cell value={row.values[tier.kind]} />
+                    </span>
+                  ))}
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+
         <div className="pricing-compare__scroll">
           <table>
             <thead>

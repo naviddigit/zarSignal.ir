@@ -167,29 +167,24 @@ export function MarketRadar({
     [quotes],
   );
   const silverPrice = midQuote(silverQuote);
-  const silverReady = focus === 'SILVER_BUBBLE' && silverPrice != null;
+  const silverFocus = focus === 'SILVER_BUBBLE';
   const silverStale = silverQuote ? isStale(silverQuote) : true;
   const bubblePercent = ready ? card!.percent! : null;
   const ring = ringFromPercent(bubblePercent);
 
+  // Silver bubble is not approved — never show market price as if it were bubble %.
   const direction = ready
     ? (card!.percent! >= 0 ? 'up' : 'down')
-    : silverReady
-      ? 'neutral'
-      : locked
-        ? 'locked'
-        : 'empty';
+    : locked || silverFocus
+      ? 'locked'
+      : 'empty';
 
-  const centerValue = ready
-    ? formatPercent(card!.percent!)
-    : silverReady
-      ? formatSilverPrice(silverPrice!, silverQuote!.currency)
-      : '—';
+  const centerValue = ready ? formatPercent(card!.percent!) : '—';
 
   const centerStatus = ready
     ? (card!.status === 'stale' ? 'داده قدیمی' : 'اختلاف قیمت · سیگنال نیست')
-    : silverReady
-      ? (silverStale ? 'قیمت زنده قدیمی · حباب تأیید نشده' : 'قیمت زنده هر گرم · حباب تأیید نشده')
+    : silverFocus
+      ? 'مدل حباب نقره تأیید نشده؛ عدد حباب نداریم. ثابت‌ها را از مدیر (چت‌بات) بگیرید تا اضافه کنیم.'
       : locked
         ? 'مدل نقره هنوز فعال نیست'
         : (card?.reason ?? 'در انتظار داده');
@@ -231,12 +226,19 @@ export function MarketRadar({
       <div className="radar-pro__center" aria-live={automatic ? 'off' : 'polite'} key={focus}>
         <div className="radar-pro__center-beat">
           <span className="radar-pro__eyebrow">
-            {locked && !silverReady ? `${info.short} · به‌زودی` : silverReady ? 'نقره ۹۹۹ · قیمت' : info.label}
+            {silverFocus ? 'حباب نقره · غیرفعال' : locked ? `${info.short} · به‌زودی` : info.label}
           </span>
-          <strong dir="ltr" className={`radar-pro__value is-${direction}${silverReady && !ready ? ' is-price' : ''}`}>
+          <strong dir="ltr" className={`radar-pro__value is-${direction}`}>
             {centerValue}
-            {silverReady && !ready ? <small>{silverQuote!.currency === 'USD' ? 'دلار / اونس' : 'تومان / گرم'}</small> : null}
           </strong>
+          {silverFocus && silverPrice != null ? (
+            <span className="radar-pro__market-note" dir="ltr">
+              قیمت بازار: {formatSilverPrice(silverPrice, silverQuote!.currency)}
+              {' '}
+              {silverQuote!.currency === 'USD' ? 'دلار/اونس' : 'تومان/گرم'}
+              {silverStale ? ' · قدیمی' : ''}
+            </span>
+          ) : null}
           <span className="radar-pro__status">{centerStatus}</span>
           <Link className="radar-analysis-link" href={info.analysisHref}>
             تحلیل پیشرفته ←
@@ -260,7 +262,7 @@ export function MarketRadar({
               type="button"
               className={`radar-pro__token radar-pro__planet radar-pro__planet--${index} ${meta[key].className}${focus === key ? ' is-active' : ''}${itemLocked ? ' is-locked' : ''}`}
               aria-pressed={focus === key}
-              aria-label={`${meta[key].short}${itemLocked ? ' · قیمت زنده' : ''}`}
+              aria-label={`${meta[key].short}${itemLocked ? ' · مدل غیرفعال' : ''}`}
               onClick={() => {
                 setFocus(key);
                 setAutomatic(false);

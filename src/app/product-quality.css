@@ -42,6 +42,7 @@
 .pricing-compare>header{margin-bottom:14px;text-align:center}
 .pricing-compare h2{margin:0 0 6px;font-size:22px}
 .pricing-compare p{margin:0;font-size:13px;color:var(--text-secondary)}
+.pricing-compare__hint-mobile{display:none}
 .pricing-compare__scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--border-subtle);border-radius:16px;background:var(--surface-card)}
 .pricing-compare table{width:100%;min-width:640px;border-collapse:collapse}
 .pricing-compare th,.pricing-compare td{padding:14px 12px;border-bottom:1px solid var(--border-subtle);text-align:center;font-size:13px}
@@ -50,13 +51,57 @@
 .pricing-compare tr:last-child th,.pricing-compare tr:last-child td{border-bottom:0}
 .pricing-cell-yes{color:var(--success);display:inline-block;vertical-align:middle}
 .pricing-cell-no{color:var(--text-muted);opacity:.55;display:inline-block;vertical-align:middle}
+.pricing-compare-mobile{display:none}
 .pricing-footnotes{max-width:720px;margin:0 auto;padding-top:8px;text-align:center}
 .pricing-footnotes p{margin:0 0 8px;font-size:12px;line-height:1.8;color:var(--text-secondary)}
 .pricing-footnotes a{font:700 13px Vazirmatn;color:var(--accent)}
 
 .pricing-swipe-hint{display:none}
 
-.subscription-review{max-width:680px}.subscription-review dl{display:grid;gap:12px}.subscription-review dl>div{display:flex;justify-content:space-between;gap:16px}.subscription-review dd{margin:0;font-weight:700}.subscription-payment-status{padding:16px;border:1px solid var(--border-subtle);background:var(--surface-soft);border-radius:12px;margin:20px 0}.subscription-review .text-link{display:inline-flex;margin:14px 0}.subscription-review p{font-size:14px;line-height:1.9}
+.subscription-review{max-width:680px;padding-bottom:24px}
+.subscription-review__head{margin:8px 0 16px}
+.subscription-review__head h1{margin:0 0 6px;font-size:clamp(24px,5vw,34px);line-height:1.4}
+.subscription-review__head p{margin:0;font-size:13px;color:var(--text-secondary);line-height:1.7}
+.subscription-review__card{display:grid;gap:16px;padding:20px 18px}
+.subscription-review__card h2{margin:0;font-size:16px}
+.subscription-review dl{display:grid;gap:12px;margin:0}
+.subscription-review dl>div{display:flex;justify-content:space-between;gap:16px;padding:10px 12px;border-radius:12px;background:var(--surface-soft)}
+.subscription-review dt{color:var(--text-secondary);font-size:13px}
+.subscription-review dd{margin:0;font-weight:700;font-size:14px;text-align:left}
+.subscription-review__features{margin:0;padding:0;list-style:none;display:grid;gap:10px}
+.subscription-review__features li{display:grid;grid-template-columns:18px minmax(0,1fr);gap:8px;align-items:start;font-size:13px;line-height:1.7;color:var(--text-secondary)}
+.subscription-review__features li svg{margin-top:3px;color:var(--success)}
+.subscription-payment-status{padding:14px 16px;border:1px solid color-mix(in srgb,var(--accent) 25%,var(--border-subtle));background:color-mix(in srgb,var(--accent) 8%,var(--surface-soft));border-radius:12px;margin:0}
+.subscription-payment-status strong{display:block;font-size:13px;margin-bottom:6px}
+.subscription-payment-status p{margin:0;font-size:12px;line-height:1.8;color:var(--text-secondary)}
+.subscription-review .button{width:100%;justify-content:center;min-height:46px}
+.subscription-back{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  min-height:40px;
+  padding:8px 14px;
+  border:1px solid var(--border-subtle);
+  border-radius:999px;
+  background:var(--surface-soft);
+  color:var(--text-primary);
+  font:700 13px Vazirmatn;
+  width:fit-content;
+  margin:4px 0 8px;
+  text-decoration:none;
+}
+.subscription-back svg{flex-shrink:0}
+.subscription-back--soft{
+  background:transparent;
+  border:0;
+  margin:4px auto 0;
+  justify-self:center;
+  color:var(--accent);
+  min-height:36px;
+  padding:6px 8px;
+  font-weight:700;
+}
+.subscription-review p{font-size:14px;line-height:1.9}
 @media(max-width:1100px){.pricing-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:900px){.hero{gap:8px;min-height:0;padding:18px 0 28px}.content-editor-fields{grid-template-columns:1fr}}
 @media(max-width:760px){
@@ -128,28 +173,58 @@
   .pricing-compare h2{font-size:18px;text-align:right}
   .pricing-compare>header{text-align:right;margin-bottom:10px}
   .pricing-compare>header p{font-size:12px}
-  .pricing-compare__scroll{
-    overflow-x:auto;
-    -webkit-overflow-scrolling:touch;
-    overscroll-behavior-x:contain;
-    scroll-snap-type:x proximity;
+  .pricing-compare__hint-desktop{display:none}
+  .pricing-compare__hint-mobile{display:block}
+  .pricing-compare__scroll{display:none}
+  .pricing-compare-mobile{
+    display:block;
+    border:1px solid var(--border-subtle);
     border-radius:14px;
-    padding-bottom:2px;
-  }
-  .pricing-compare table{min-width:520px;width:max-content}
-  .pricing-compare th,.pricing-compare td{
-    padding:10px 8px;
-    font-size:11px;
-    vertical-align:middle;
+    background:var(--surface-card);
     overflow:hidden;
   }
-  .pricing-compare tbody th{
-    max-width:42vw;
-    white-space:normal;
-    line-height:1.45;
+  .pricing-compare-mobile__legend{
+    display:grid;
+    grid-template-columns:repeat(4,minmax(0,1fr));
+    gap:4px;
+    padding:10px 8px 8px;
+    background:var(--surface-soft);
+    border-bottom:1px solid var(--border-subtle);
+    font:700 10px Vazirmatn;
+    color:var(--text-secondary);
+    text-align:center;
   }
-  .pricing-cell-yes,.pricing-cell-no{width:16px;height:16px;display:block;margin-inline:auto}
+  .pricing-compare-mobile ul{margin:0;padding:0;list-style:none}
+  .pricing-compare-mobile li{
+    display:grid;
+    gap:8px;
+    padding:12px 10px;
+    border-bottom:1px solid var(--border-subtle);
+  }
+  .pricing-compare-mobile li:last-child{border-bottom:0}
+  .pricing-compare-mobile li>strong{
+    font-size:12px;
+    line-height:1.5;
+    color:var(--text-primary);
+    text-align:right;
+  }
+  .pricing-compare-mobile__cells{
+    display:grid;
+    grid-template-columns:repeat(4,minmax(0,1fr));
+    gap:4px;
+    align-items:center;
+  }
+  .pricing-compare-mobile__cell{
+    display:grid;
+    place-items:center;
+    min-height:28px;
+  }
+  .pricing-compare-mobile .pricing-cell-yes,
+  .pricing-compare-mobile .pricing-cell-no{width:18px;height:18px;margin:0}
   .pricing-swipe-hint{display:block}
+  .subscription-review{padding-inline:0}
+  .subscription-review__card{padding:16px 14px;border-radius:16px}
+  .subscription-back{min-height:44px;padding:10px 16px;font-size:13px}
   .mobile-tab-bar{bottom:0;padding:0 8px calc(6px + env(safe-area-inset-bottom));background:linear-gradient(transparent,var(--surface-page) 35%)}.mobile-tab-bar__inner{min-height:62px;padding:4px;border-radius:20px}.mobile-tab-bar__item{min-height:50px;padding:5px 2px;gap:3px}.mobile-tab-bar__icon{height:24px}.mobile-tab-bar__item span:last-child{font-size:10px}
 }
 

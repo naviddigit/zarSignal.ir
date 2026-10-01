@@ -6,7 +6,7 @@ import { formatPrice, type Quote, type Symbol as MarketSymbol } from '@/lib/mark
 import { RelativeTime } from '@/components/relative-time';
 import { AssetMark } from '@/components/asset-mark';
 import { Sparkline } from '@/components/sparkline';
-import type { SparkSeries } from '@/components/use-market-sparks';
+import { sparkPriceTone, type SparkSeries } from '@/components/use-market-sparks';
 
 export function formatBubblePercent(value: number) {
   const sign = value > 0 ? '+' : '';
@@ -54,6 +54,7 @@ function FavoriteStar({ name, on, onToggle }: { name: string; on?: boolean; onTo
 /** Box: content + compact spark in last (left) column. */
 export function PriceCard({ item, href }: { item: PriceCardModel; href: string }) {
   const spark = resolveSpark(item);
+  const tone = sparkPriceTone(item.spark);
   const hasFav = Boolean(item.onToggleFavorite);
   return (
     <article className={`price-card${item.updated ? ' quote-updated' : ''}${hasFav ? ' has-fav' : ''}`}>
@@ -67,7 +68,7 @@ export function PriceCard({ item, href }: { item: PriceCardModel; href: string }
             </span>
           </header>
           <div className="price-card__price">
-            <bdi>{item.quote ? formatPrice(item.quote.sell, item.quote.currency) : '—'}</bdi>
+            <bdi className={tone ? `is-${tone}` : undefined}>{item.quote ? formatPrice(item.quote.sell, item.quote.currency) : '—'}</bdi>
           </div>
           <footer className="price-card__foot">
             <span className="price-card__bubble-slot">
@@ -94,6 +95,7 @@ export function PriceCard({ item, href }: { item: PriceCardModel; href: string }
 /** Columns: asset | price | change+time | spark | star — all in-flow. */
 export function PriceListRow({ item, href }: { item: PriceCardModel; href: string }) {
   const spark = resolveSpark(item);
+  const tone = sparkPriceTone(item.spark);
   const hasFav = Boolean(item.onToggleFavorite);
   return (
     <article className={`price-list-row${item.updated ? ' quote-updated' : ''}${hasFav ? ' has-fav' : ''}`}>
@@ -107,7 +109,7 @@ export function PriceListRow({ item, href }: { item: PriceCardModel; href: strin
         </span>
 
         <span className="price-list-row__price">
-          <bdi>{item.quote ? formatPrice(item.quote.sell, item.quote.currency) : '—'}</bdi>
+          <bdi className={tone ? `is-${tone}` : undefined}>{item.quote ? formatPrice(item.quote.sell, item.quote.currency) : '—'}</bdi>
         </span>
 
         <span className="price-list-row__meta">

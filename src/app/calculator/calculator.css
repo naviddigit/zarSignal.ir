@@ -170,6 +170,8 @@
 .calc-live-strip__grid article{flex:0 0 auto;width:118px;display:grid;gap:6px;padding:12px;border-radius:10px;background:var(--surface-soft);min-width:0;overflow:hidden}
 .calc-live-strip__grid small{font-size:11px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .calc-live-strip__grid bdi{display:block;font-size:13px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1.35;color:var(--text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.calc-live-strip__grid bdi.is-up{color:var(--success)}
+.calc-live-strip__grid bdi.is-down{color:var(--danger)}
 .calc-live-strip__grid article.is-stale{opacity:.7}
 
 /* Shared horizontal rail with arrows */

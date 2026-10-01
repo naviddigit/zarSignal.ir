@@ -10,11 +10,8 @@ function midQuote(quote: Quote) {
 
 function resolveLiveValue(field: (typeof calculatorCatalog)[CalculatorOperation]['fields'][number], snapshot: Snapshot) {
   if (snapshot.mode !== 'live') return null;
-  const quote = snapshot.quotes.find(q => q.symbol === field.symbol);
-  if (quote && !isStale(quote) && quote.currency === field.currency && quote.unit === field.quoteUnit) {
-    const mid = midQuote(quote);
-    if (mid != null) return { value: mid, observedAt: quote.observedAt, source: 'زرسیگنال · میانگین دو سمت یا قیمت دیده‌بان' };
-  }
+
+  // ۱۸ عیار برای حباب/تبدیل همیشه از مظنه زنده ÷ ۴٫۳۳۱۸ — نه قیمت جداگانهٔ دیده‌بان.
   if (field.symbol === 'GOLD_18K') {
     const melted = snapshot.quotes.find(q => q.symbol === 'GOLD_MELTED');
     if (melted && !isStale(melted) && melted.currency === 'TMN') {
@@ -24,11 +21,17 @@ function resolveLiveValue(field: (typeof calculatorCatalog)[CalculatorOperation]
           return {
             value: mazanehTo18k(mid).market18k,
             observedAt: melted.observedAt,
-            source: 'زرسیگنال · مشتق از مظنه با ÷ ۴٫۳۳۱۸',
+            source: 'زرسیگنال · مشتق از مظنه زنده با ÷ ۴٫۳۳۱۸',
           };
         } catch { /* fall through */ }
       }
     }
+  }
+
+  const quote = snapshot.quotes.find(q => q.symbol === field.symbol);
+  if (quote && !isStale(quote) && quote.currency === field.currency && quote.unit === field.quoteUnit) {
+    const mid = midQuote(quote);
+    if (mid != null) return { value: mid, observedAt: quote.observedAt, source: 'زرسیگنال · میانگین دو سمت یا قیمت دیده‌بان' };
   }
   return null;
 }

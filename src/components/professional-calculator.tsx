@@ -32,6 +32,8 @@ const toolsByProduct: Record<Product, Tool[]> = {
   fx: ['usdGap'],
   more: ['weight', 'purity'],
 };
+/** Default open tool — تبدیل وزن کاربردی‌ترین ورودی عمومی است. */
+const DEFAULT_TOOL: Tool = 'weight';
 const lockedProducts: Product[] = [];
 const popularByProduct: Record<Product, PopularPick[]> = {
   gold: [
@@ -58,7 +60,6 @@ const popularByProduct: Record<Product, PopularPick[]> = {
   ],
   fx: [
     { id: 'usdGap', label: 'فاصله دلار', Icon: popularIcons.usdGap },
-    { id: 'weight', label: 'تبدیل وزن', Icon: popularIcons.weight },
     { id: 'fxConvert', label: 'مبدل ارز', Icon: popularIcons.usdGap, locked: true },
   ],
   more: [
@@ -78,17 +79,10 @@ function midQuote(quote: Quote) {
   return Number.isFinite(mid) && mid > 0 ? mid : null;
 }
 
-/** Resolve a live calculator field from market quotes, including derived ۱۸ عیار from مظنه. */
+/** Resolve a live calculator field from market quotes. ۱۸ عیار همیشه از مظنه ÷ ۴٫۳۳۱۸. */
 function liveEntry(field: (typeof calculatorCatalog)[CalculatorOperation]['fields'][number], snapshot: Snapshot): Entry {
   if (snapshot.mode !== 'live') return { value: '', provenance: 'MANUAL' };
 
-  const quote = snapshot.quotes.find(q => q.symbol === field.symbol);
-  if (quote && !isStale(quote) && quote.currency === field.currency && quote.unit === field.quoteUnit) {
-    const mid = midQuote(quote);
-    if (mid != null) return { value: String(mid), provenance: 'LIVE', observedAt: quote.observedAt };
-  }
-
-  // Strip already shows derived ۱۸ عیار when GOLD_18K is missing — calculator must match.
   if (field.symbol === 'GOLD_18K') {
     const melted = snapshot.quotes.find(q => q.symbol === 'GOLD_MELTED');
     if (melted && !isStale(melted) && melted.currency === 'TMN') {
@@ -102,6 +96,12 @@ function liveEntry(field: (typeof calculatorCatalog)[CalculatorOperation]['field
     }
   }
 
+  const quote = snapshot.quotes.find(q => q.symbol === field.symbol);
+  if (quote && !isStale(quote) && quote.currency === field.currency && quote.unit === field.quoteUnit) {
+    const mid = midQuote(quote);
+    if (mid != null) return { value: String(mid), provenance: 'LIVE', observedAt: quote.observedAt };
+  }
+
   return { value: '', provenance: 'MANUAL' };
 }
 
@@ -111,7 +111,7 @@ function prefill(operation: CalculatorOperation, snapshot: Snapshot): Record<str
 
 export function ProfessionalCalculator({ snapshot }: { snapshot: Snapshot }) {
   const [product, setProduct] = useState<Product>('gold');
-  const [tool, setTool] = useState<Tool>('mazanehTo18k');
+  const [tool, setTool] = useState<Tool>(DEFAULT_TOOL);
   const [weightAmount, setWeightAmount] = useState('3.5');
   const [purityAmount, setPurityAmount] = useState('');
   const [market, setMarket] = useState(snapshot);
@@ -120,7 +120,7 @@ export function ProfessionalCalculator({ snapshot }: { snapshot: Snapshot }) {
   const [resultOpen, setResultOpen] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState('');
-  const [activeField, setActiveField] = useState(() => calculatorCatalog.mazanehTo18k.fields[0].key);
+  const [activeField, setActiveField] = useState('');
   const request = useRef<AbortController | null>(null);
   useEffect(() => () => request.current?.abort(), []);
 

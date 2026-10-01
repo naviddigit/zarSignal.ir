@@ -8,6 +8,18 @@ import type { Symbol } from '@/lib/market';
 
 export type SparkSeries = { price: number[]; bubble?: number[] };
 
+/** 24h price direction from spark series (first → last). */
+export function sparkPriceTone(spark?: SparkSeries | null): 'up' | 'down' | null {
+  const values = spark?.price;
+  if (!values || values.length < 2) return null;
+  const first = values[0];
+  const last = values[values.length - 1];
+  if (!Number.isFinite(first) || !Number.isFinite(last) || first <= 0) return null;
+  if (last > first) return 'up';
+  if (last < first) return 'down';
+  return null;
+}
+
 /**
  * Loads compact 24h spark data for visible symbols.
  * Gold/USD reuse bubble history; other symbols use daily close history when available.
