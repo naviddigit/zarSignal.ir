@@ -82,11 +82,13 @@ const statements = [
     ON "SymbolHistoryBar"("source", "symbol", "resolution", "openTime")`,
   `CREATE INDEX IF NOT EXISTS "SymbolHistoryBar_symbol_resolution_openTime_idx"
     ON "SymbolHistoryBar"("symbol", "resolution", "openTime")`,
+  `ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "passwordHash" TEXT`,
 ] as const;
 
 const migrationMarkers = [
   '20260921170000_bubble_history_snapshots',
   '20260921190000_symbol_history_bars',
+  '20261001180000_user_password_hash',
 ] as const;
 
 async function markMigration(name: string) {

@@ -12,6 +12,7 @@ import {
   UserRound,
 } from 'lucide-react';
 import { auth, signOut } from '@/auth';
+import { db } from '@/lib/db';
 import { PendingButton } from '@/components/pending-button';
 
 export const metadata: Metadata = {
@@ -30,11 +31,23 @@ const shortcuts = [
   { href: '/mobile', label: 'نصب اپ', hint: 'اندروید و iOS', Icon: Smartphone },
 ] as const;
 
-export default async function AccountPage() {
+const statusFa: Record<string, string> = {
+  PENDING: 'در انتظار پرداخت',
+  ACTIVE: 'فعال',
+  CANCELED: 'لغو شده',
+  EXPIRED: 'منقضی',
+};
+
+export default async function AccountPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ reserved?: string }>;
+}) {
+  const { reserved } = await searchParams;
   const session = await auth().catch(() => null);
   const user = session?.user;
 
-  if (!user) {
+  if (!user?.id) {
     return (
       <main id="main" className="shell content-page account-page">
         <span className="eyebrow">حساب کاربری</span>
@@ -46,6 +59,12 @@ export default async function AccountPage() {
     );
   }
 
+  const subscriptions = await db.subscription.findMany({
+    where: { userId: user.id },
+    orderBy: { startsAt: 'desc' },
+    take: 20,
+  }).catch(() => []);
+
   return (
     <main id="main" className="shell content-page account-page">
       <span className="eyebrow">پروفایل</span>
@@ -56,6 +75,34 @@ export default async function AccountPage() {
           <p>{user.email || 'حساب فعال'}</p>
         </div>
       </header>
+
+      {reserved ? (
+        <p className="lead" role="status">
+          پلن «{reserved}» برای حساب شما ثبت شد (وضعیت: در انتظار پرداخت). درگاه هنوز فعال نیست.
+        </p>
+      ) : null}
+
+      <section className="account-subs" aria-label="اشتراک‌ها">
+        <h2>اشتراک‌های من</h2>
+        {subscriptions.length ? (
+          <ul className="account-subs__list">
+            {subscriptions.map(item => (
+              <li key={item.id}>
+                <strong>{item.product}</strong>
+                <span>{statusFa[item.status] ?? item.status}</span>
+                <small>
+                  تا {new Intl.DateTimeFormat('fa-IR', { dateStyle: 'medium', timeZone: 'Asia/Tehran' }).format(item.expiresAt)}
+                </small>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p>
+            هنوز اشتراکی ثبت نشده.{' '}
+            <Link className="text-link" href="/pricing">انتخاب پلن ←</Link>
+          </p>
+        )}
+      </section>
 
       <section className="account-grid" aria-label="میانبرهای حساب">
         {shortcuts.map(item => {

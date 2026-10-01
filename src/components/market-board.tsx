@@ -28,10 +28,17 @@ function bubbleValue(symbol: Symbol, bubbles: LiveBubbleCard[]) {
   return analysis.percent;
 }
 
+function bubbleStatus(symbol: Symbol, bubbles: LiveBubbleCard[]): 'ok' | 'stale' | undefined {
+  const analysis = analysisFor(symbol, bubbles);
+  if (!analysis || analysis.percent == null || (analysis.status !== 'ok' && analysis.status !== 'stale')) return undefined;
+  return analysis.status;
+}
+
 function analysisLabel(symbol: Symbol, bubbles: LiveBubbleCard[]) {
   const analysis = analysisFor(symbol, bubbles);
   if (!analysis) return null;
   if (analysis.status === 'unavailable' && analysis.percent == null) return 'داده ناکافی';
+  if (analysis.status === 'stale' && analysis.percent == null) return 'قدیمی';
   if (analysis.percent == null) return 'در انتظار داده';
   return null;
 }
@@ -160,6 +167,7 @@ export function MarketBoard({ initial, bubbles = [] }: { initial: Snapshot; bubb
                   category: asset.category,
                   quote,
                   bubble: bubbleValue(asset.symbol, bubbles),
+                  bubbleStatus: bubbleStatus(asset.symbol, bubbles),
                   bubbleKind: bubbleKindFor(asset.symbol),
                   analysisLabel: analysisLabel(asset.symbol, bubbles),
                   spark: sparks[asset.symbol],
@@ -187,6 +195,7 @@ export function MarketBoard({ initial, bubbles = [] }: { initial: Snapshot; bubb
                   category: asset.category,
                   quote,
                   bubble: bubbleValue(asset.symbol, bubbles),
+                  bubbleStatus: bubbleStatus(asset.symbol, bubbles),
                   bubbleKind: bubbleKindFor(asset.symbol),
                   analysisLabel: analysisLabel(asset.symbol, bubbles),
                   spark: sparks[asset.symbol],

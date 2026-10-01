@@ -22,12 +22,30 @@ export type PriceCardModel = {
   quote?: Quote;
   bubble: number | null;
   bubbleKind?: 'bubble' | 'gap';
+  /** Derived metric freshness — stale must never look like live. */
+  bubbleStatus?: 'ok' | 'stale';
   analysisLabel?: string | null;
   updated?: boolean;
   favorite?: boolean;
   onToggleFavorite?: () => void;
   spark?: SparkSeries;
 };
+
+function BubbleBadge({ item }: { item: PriceCardModel }) {
+  if (item.bubble != null) {
+    const stale = item.bubbleStatus === 'stale';
+    return (
+      <span className={`price-card__bubble ${item.bubble >= 0 ? 'is-up' : 'is-down'}${stale ? ' is-stale' : ''}`}>
+        {formatBubblePercent(item.bubble, item.bubbleKind)}
+        {stale ? ' · قدیمی' : ''}
+      </span>
+    );
+  }
+  if (item.analysisLabel) {
+    return <span className="price-card__bubble is-muted">{item.analysisLabel}</span>;
+  }
+  return null;
+}
 
 function resolveSpark(item: PriceCardModel) {
   if (item.spark?.price && item.spark.price.length >= 2) return { values: item.spark.price, tone: 'price' as const };
@@ -74,9 +92,7 @@ export function PriceCard({ item, href }: { item: PriceCardModel; href: string }
           </div>
           <footer className="price-card__foot">
             <span className="price-card__bubble-slot">
-              {item.bubble != null ? (
-                <span className={`price-card__bubble ${item.bubble >= 0 ? 'is-up' : 'is-down'}`}>{formatBubblePercent(item.bubble, item.bubbleKind)}</span>
-              ) : null}
+              <BubbleBadge item={item} />
             </span>
             {item.quote ? <RelativeTime value={item.quote.observedAt} /> : <span className="price-card__time-slot" aria-hidden="true" />}
           </footer>
@@ -116,9 +132,7 @@ export function PriceListRow({ item, href }: { item: PriceCardModel; href: strin
 
         <span className="price-list-row__meta">
           <span className="price-card__bubble-slot">
-            {item.bubble != null ? (
-              <span className={`price-card__bubble ${item.bubble >= 0 ? 'is-up' : 'is-down'}`}>{formatBubblePercent(item.bubble, item.bubbleKind)}</span>
-            ) : null}
+            <BubbleBadge item={item} />
           </span>
           {item.quote ? <small><RelativeTime value={item.quote.observedAt} /></small> : <small className="is-empty" aria-hidden="true" />}
         </span>

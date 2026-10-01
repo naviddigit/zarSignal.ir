@@ -317,8 +317,8 @@ export function ProfessionalCalculator({ snapshot }: { snapshot: Snapshot }) {
         ) : (
           <div className="calc-tool-panel calc-tool-panel--locked">
             <LockKeyhole size={22} />
-            <strong>به‌زودی</strong>
-            <p>این بخش بعد از تأیید فرمول فعال می‌شود.</p>
+            <strong>هنوز فعال نیست</strong>
+            <p>این ابزار بعد از تأیید فرمول و منبع منتشر می‌شود.</p>
           </div>
         )}
       </div>

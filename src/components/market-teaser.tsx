@@ -14,28 +14,33 @@ function bubbleKindFor(symbol: string): 'bubble' | 'gap' {
   return symbol === 'USD' ? 'gap' : 'bubble';
 }
 
-function bubbleFor(symbol: string, bubbles: LiveBubbleCard[]) {
+function bubbleCard(symbol: string, bubbles: LiveBubbleCard[]) {
   const key =
     symbol === 'GOLD_MELTED' || symbol === 'GOLD_18K' ? 'GOLD_BUBBLE'
       : symbol === 'USD' ? 'USD_BUBBLE'
         : symbol === 'SILVER_999' || symbol === 'XAG_USD' ? 'SILVER_BUBBLE'
           : null;
   if (!key) return null;
-  const card = bubbles.find(item => item.key === key);
+  return bubbles.find(item => item.key === key) ?? null;
+}
+
+function bubbleFor(symbol: string, bubbles: LiveBubbleCard[]) {
+  const card = bubbleCard(symbol, bubbles);
   if (!card || card.percent == null || (card.status !== 'ok' && card.status !== 'stale')) return null;
   return card.percent;
 }
 
+function bubbleStatusFor(symbol: string, bubbles: LiveBubbleCard[]): 'ok' | 'stale' | undefined {
+  const card = bubbleCard(symbol, bubbles);
+  if (!card || card.percent == null || (card.status !== 'ok' && card.status !== 'stale')) return undefined;
+  return card.status;
+}
+
 function analysisLabel(symbol: string, bubbles: LiveBubbleCard[]) {
-  const key =
-    symbol === 'GOLD_MELTED' || symbol === 'GOLD_18K' ? 'GOLD_BUBBLE'
-      : symbol === 'USD' ? 'USD_BUBBLE'
-        : symbol === 'SILVER_999' || symbol === 'XAG_USD' ? 'SILVER_BUBBLE'
-          : null;
-  if (!key) return null;
-  const card = bubbles.find(item => item.key === key);
+  const card = bubbleCard(symbol, bubbles);
   if (!card) return null;
   if (card.status === 'unavailable' && card.percent == null) return 'داده ناکافی';
+  if (card.status === 'stale' && card.percent == null) return 'قدیمی';
   if (card.percent == null) return 'در انتظار داده';
   return null;
 }
@@ -54,6 +59,7 @@ export function MarketTeaser({ snapshot, bubbles }: { snapshot: Snapshot; bubble
         asset,
         quote,
         bubble: bubbleFor(symbol, bubbles),
+        bubbleStatus: bubbleStatusFor(symbol, bubbles),
         analysisLabel: analysisLabel(symbol, bubbles),
         spark: sparks[symbol],
       };
@@ -62,6 +68,7 @@ export function MarketTeaser({ snapshot, bubbles }: { snapshot: Snapshot; bubble
       asset: (typeof instruments)[number];
       quote: Snapshot['quotes'][number] | undefined;
       bubble: number | null;
+      bubbleStatus: 'ok' | 'stale' | undefined;
       analysisLabel: string | null;
       spark: SparkSeries | undefined;
     }[];
@@ -82,7 +89,7 @@ export function MarketTeaser({ snapshot, bubbles }: { snapshot: Snapshot; bubble
 
       {layout === 'cards' ? (
         <div className="price-card-grid price-card-grid--teaser">
-          {rows.map(({ asset, quote, bubble, analysisLabel: label, spark }) => (
+          {rows.map(({ asset, quote, bubble, bubbleStatus, analysisLabel: label, spark }) => (
             <PriceCard
               key={asset.symbol}
               href={`/markets/${asset.symbol.toLowerCase()}`}
@@ -93,6 +100,7 @@ export function MarketTeaser({ snapshot, bubbles }: { snapshot: Snapshot; bubble
                 category: asset.category,
                 quote,
                 bubble,
+                bubbleStatus,
                 bubbleKind: bubbleKindFor(asset.symbol),
                 analysisLabel: label,
                 spark,
@@ -102,7 +110,7 @@ export function MarketTeaser({ snapshot, bubbles }: { snapshot: Snapshot; bubble
         </div>
       ) : (
         <div className="price-list-board">
-          {rows.map(({ asset, quote, bubble, analysisLabel: label, spark }) => (
+          {rows.map(({ asset, quote, bubble, bubbleStatus, analysisLabel: label, spark }) => (
             <PriceListRow
               key={asset.symbol}
               href={`/markets/${asset.symbol.toLowerCase()}`}
@@ -113,6 +121,7 @@ export function MarketTeaser({ snapshot, bubbles }: { snapshot: Snapshot; bubble
                 category: asset.category,
                 quote,
                 bubble,
+                bubbleStatus,
                 bubbleKind: bubbleKindFor(asset.symbol),
                 analysisLabel: label,
                 spark,

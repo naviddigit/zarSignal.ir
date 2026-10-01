@@ -1,8 +1,11 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ArrowRight, Check } from 'lucide-react';
+import { auth } from '@/auth';
+import { reserveSubscription } from '@/app/login/actions';
 import { getPublishedPlans } from '@/server/plans';
 import { planHistoryDays } from '@/lib/history-access';
+import { PendingButton } from '@/components/pending-button';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,11 +13,13 @@ export default async function Subscribe({ params }: { params: Promise<{ plan: st
   const { plan: slug } = await params;
   const plan = (await getPublishedPlans()).find(item => item.slug === slug);
   if (!plan) notFound();
+  const session = await auth().catch(() => null);
   const price = plan.pricingVersions[0];
   const isApi = /api/i.test(plan.slug) || /api/i.test(plan.title);
   const days = planHistoryDays(plan.features);
   const daily = plan.apiLimits?.daily;
   const features = plan.features.filter(f => !f.startsWith('history:'));
+  const loginNext = `/subscribe/${encodeURIComponent(plan.slug)}`;
 
   return (
     <main id="main" className="shell content-page subscription-review">
@@ -58,9 +63,23 @@ export default async function Subscribe({ params }: { params: Promise<{ plan: st
         ) : null}
         <div className="subscription-payment-status" role="status">
           <strong>فروش آنلاین هنوز آغاز نشده است</strong>
-          <p>درگاه پرداخت در حال آماده‌سازی است؛ فعلاً مبلغی کم نمی‌شود. می‌توانید امکانات رایگان را همین حالا ببینید.</p>
+          <p>درگاه پرداخت در حال آماده‌سازی است؛ فعلاً مبلغی کم نمی‌شود. با ورود می‌توانید پلن را به حساب خود وصل کنید.</p>
         </div>
-        <Link className="button" href={isApi ? '/developers' : '/markets'}>
+
+        {session?.user?.id ? (
+          <form action={reserveSubscription}>
+            <input type="hidden" name="plan" value={plan.slug} />
+            <PendingButton className="button" pendingText="در حال ثبت…">
+              ثبت پلن روی حساب من
+            </PendingButton>
+          </form>
+        ) : (
+          <Link className="button" href={`/login?next=${encodeURIComponent(loginNext)}`}>
+            ورود و اتصال پلن به حساب
+          </Link>
+        )}
+
+        <Link className="button" href={isApi ? '/developers' : '/markets'} style={{ marginTop: 8 }}>
           {isApi ? 'مشاهده مستندات API' : 'ادامه با امکانات رایگان'}
         </Link>
         <Link className="subscription-back subscription-back--soft" href="/pricing">

@@ -201,6 +201,14 @@ html[data-theme='light'] .calculator-screen>span,html[data-theme='light'] .calcu
 .account-card small{font-size:11px;color:var(--text-muted)}
 .account-card:hover{border-color:color-mix(in srgb,var(--accent) 40%,var(--border-subtle));background:color-mix(in srgb,var(--accent) 5%,var(--surface-card))}
 .account-logout .button,.account-logout button{width:100%;min-height:46px;display:inline-flex;align-items:center;justify-content:center;gap:8px;background:transparent;border:1px solid color-mix(in srgb,var(--danger) 45%,var(--border-subtle));color:var(--danger)}
+.account-subs{margin:0 0 18px;padding:16px;border:1px solid var(--border-subtle);border-radius:16px;background:var(--surface-card)}
+.account-subs h2{margin:0 0 12px;font-size:16px}
+.account-subs__list{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.account-subs__list li{display:grid;grid-template-columns:1fr auto;gap:4px 12px;padding:10px 0;border-top:1px solid var(--border-subtle)}
+.account-subs__list li:first-child{border-top:0;padding-top:0}
+.account-subs__list strong{font-size:14px}
+.account-subs__list span{font-size:12px;color:var(--accent);justify-self:end}
+.account-subs__list small{grid-column:1/-1;color:var(--text-muted);font-size:11px}
 
 /* The administration area owns its complete viewport and navigation shell. */
 .admin-shell + .footer{display:none}
@@ -611,6 +619,8 @@ html.ds-scroll-locked body{
 .price-card__bubble{padding:3px 8px;border-radius:999px;font-size:10px;font-weight:800;border:1px solid var(--border-subtle);white-space:nowrap;letter-spacing:-.2px}
 .price-card__bubble.is-up{color:var(--success);border-color:color-mix(in srgb,var(--success) 35%,var(--border-subtle));background:color-mix(in srgb,var(--success) 8%,transparent)}
 .price-card__bubble.is-down{color:var(--danger);border-color:color-mix(in srgb,var(--danger) 35%,var(--border-subtle));background:color-mix(in srgb,var(--danger) 8%,transparent)}
+.price-card__bubble.is-stale{color:var(--accent)!important;border-color:color-mix(in srgb,var(--accent) 40%,var(--border-subtle))!important;background:color-mix(in srgb,var(--accent) 10%,transparent)!important}
+.price-card__bubble.is-muted{color:var(--text-muted);border-color:var(--border-subtle);background:var(--surface-soft);font-weight:600}
 
 .price-fav{display:inline-grid;place-items:center;width:36px;height:36px;padding:0;border:1px solid var(--border-subtle);border-radius:11px;background:var(--surface-soft);color:var(--text-muted);cursor:pointer;flex-shrink:0;transition:color .15s,border-color .15s,background-color .15s}
 .price-fav:hover{color:var(--accent);border-color:color-mix(in srgb,var(--accent) 40%,var(--border-subtle))}
