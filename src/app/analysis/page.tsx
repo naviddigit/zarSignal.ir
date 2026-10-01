@@ -55,17 +55,20 @@ export default async function MarketAnalysisPage({ searchParams }: { searchParam
             ورود / شروع آزمایش <ArrowUpLeft size={15} />
           </Link>
         ) : null}
+        pageExtras={(
+          <>
+            {(!fullAccess || entitlement?.statusLabel === 'آزمایشی') && (
+              <AnalysisTrialAccess trial={trial} error={query.trial} />
+            )}
+            <div className="home-quick-tools">
+              <Link href="/markets">نرخ‌های تابلو</Link>
+              <Link href="/calculator">ماشین‌حساب</Link>
+              <Link href="/analysis/gold_melted">تحلیل تک‌بازار · طلا</Link>
+              {!fullAccess ? <Link href="/pricing">دسترسی تحلیل کامل <ArrowUpLeft size={14} /></Link> : null}
+            </div>
+          </>
+        )}
       />
-      {(!fullAccess || entitlement?.statusLabel === 'آزمایشی') && (
-        <AnalysisTrialAccess trial={trial} error={query.trial} />
-      )}
-
-      <div className="home-quick-tools">
-        <Link href="/markets">نرخ‌های تابلو</Link>
-        <Link href="/calculator">ماشین‌حساب</Link>
-        <Link href="/analysis/gold_melted">تحلیل تک‌بازار · طلا</Link>
-        {!fullAccess ? <Link href="/pricing">دسترسی تحلیل کامل <ArrowUpLeft size={14} /></Link> : null}
-      </div>
     </main>
   );
 }

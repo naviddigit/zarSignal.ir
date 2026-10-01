@@ -62,19 +62,23 @@ export default async function AnalysisPage({ params, searchParams }: {
             ورود / شروع آزمایش <ArrowUpLeft size={15} />
           </Link>
         ) : null}
+        pageExtras={(
+          <>
+            {(!fullAccess || entitlement?.statusLabel === 'آزمایشی') && (
+              <AnalysisTrialAccess trial={trial} symbol={symbol} error={query.trial} />
+            )}
+            <details className="market-view__details is-compact">
+              <summary>بررسی نمودار و تاریخچهٔ {asset.short}</summary>
+              <ChartWorkspace symbol={asset.symbol} />
+            </details>
+            <div className="home-quick-tools">
+              <Link href="/calculator">محاسبهٔ معامله</Link>
+              <Link href={`/markets/${symbol}`}>قیمت و مشخصات {asset.short}</Link>
+              <Link href="/methodology">روش محاسبه</Link>
+            </div>
+          </>
+        )}
       />
-      {(!fullAccess || entitlement?.statusLabel === 'آزمایشی') && (
-        <AnalysisTrialAccess trial={trial} symbol={symbol} error={query.trial} />
-      )}
-      <details className="market-view__details">
-        <summary>بررسی نمودار و تاریخچهٔ {asset.short}</summary>
-        <ChartWorkspace symbol={asset.symbol} />
-      </details>
-      <div className="home-quick-tools">
-        <Link href="/calculator">محاسبهٔ معامله</Link>
-        <Link href={`/markets/${symbol}`}>قیمت و مشخصات {asset.short}</Link>
-        <Link href="/methodology">روش محاسبه</Link>
-      </div>
     </main>
   );
 }

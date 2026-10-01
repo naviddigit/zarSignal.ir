@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore, useTransition, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, useTransition, type ReactNode } from 'react';
 import Link from 'next/link';
 import { Activity, AlertTriangle, ArrowUpLeft, CircleHelp, RefreshCw, ShieldAlert } from 'lucide-react';
 import type { MarketViewDecision, MarketViewReport } from '@/lib/market-view-report';
@@ -12,6 +12,10 @@ import {
   visibleBodiesAt,
   type NarrativeSection,
 } from '@/lib/market-view-typing';
+import {
+  AFTERMATH_STEP_GAP_MS,
+  visibleAftermathCount,
+} from '@/lib/analysis-reveal';
 import { freshnessLabel } from '@/lib/bubbles';
 
 function freshnessText(report: MarketViewReport) {
@@ -107,7 +111,12 @@ function usePrefersReducedMotion() {
  * Shared grapheme typing across narrative sections.
  * Starts empty after mount (no full-text flash). Timers cleared on key change / unmount.
  */
-function useGraphemeTyping(reportKey: string, totalGraphemes: number, reducedMotion: boolean) {
+function useGraphemeTyping(
+  reportKey: string,
+  totalGraphemes: number,
+  reducedMotion: boolean,
+  onComplete: () => void,
+) {
   const [shown, setShown] = useState(0);
   const [typing, setTyping] = useState(false);
   const [ready, setReady] = useState(false);
@@ -115,6 +124,9 @@ function useGraphemeTyping(reportKey: string, totalGraphemes: number, reducedMot
   const raf = useRef<number | null>(null);
   const shownRef = useRef(0);
   const keyRef = useRef(reportKey);
+  const completedRef = useRef(false);
+  const onCompleteRef = useRef(onComplete);
+  onCompleteRef.current = onComplete;
 
   const clearTimers = useCallback(() => {
     for (const id of timers.current) window.clearTimeout(id);
@@ -125,26 +137,36 @@ function useGraphemeTyping(reportKey: string, totalGraphemes: number, reducedMot
     }
   }, []);
 
-  const skip = useCallback(() => {
+  const finish = useCallback(() => {
     clearTimers();
     shownRef.current = totalGraphemes;
     setShown(totalGraphemes);
     setTyping(false);
     setReady(true);
+    if (!completedRef.current) {
+      completedRef.current = true;
+      onCompleteRef.current();
+    }
   }, [clearTimers, totalGraphemes]);
+
+  const skip = useCallback(() => {
+    finish();
+  }, [finish]);
 
   useEffect(() => {
     clearTimers();
     keyRef.current = reportKey;
     shownRef.current = 0;
+    completedRef.current = false;
     if (reducedMotion || totalGraphemes === 0) {
       shownRef.current = totalGraphemes;
       setShown(totalGraphemes);
       setTyping(false);
       setReady(true);
+      completedRef.current = true;
+      onCompleteRef.current();
       return;
     }
-    // Hydration-safe: stay empty until this effect — never paint full text then wipe.
     setShown(0);
     setTyping(true);
     setReady(true);
@@ -162,6 +184,10 @@ function useGraphemeTyping(reportKey: string, totalGraphemes: number, reducedMot
       setShown(next);
       if (next >= totalGraphemes) {
         setTyping(false);
+        if (!completedRef.current) {
+          completedRef.current = true;
+          onCompleteRef.current();
+        }
         return;
       }
       raf.current = window.requestAnimationFrame(step);
@@ -178,17 +204,22 @@ function useGraphemeTyping(reportKey: string, totalGraphemes: number, reducedMot
 
 function NarrativeBlock({
   sections,
-  reportKey,
+  shown,
+  typing,
+  ready,
+  totalGraphemes,
+  skip,
 }: {
   sections: NarrativeSection[];
-  reportKey: string;
+  shown: number;
+  typing: boolean;
+  ready: boolean;
+  totalGraphemes: number;
+  skip: () => void;
 }) {
-  const reduced = usePrefersReducedMotion();
-  const { graphemes } = flattenNarrativeGraphemes(sections);
-  const { shown, typing, ready, skip, totalGraphemes } = useGraphemeTyping(reportKey, graphemes.length, reduced);
   const bodies = visibleBodiesAt(sections, shown);
   const active = activeSectionIndex(sections, shown);
-  const complete = !typing && ready && shown >= graphemes.length;
+  const complete = !typing && ready && shown >= totalGraphemes;
 
   return (
     <div
@@ -198,7 +229,6 @@ function NarrativeBlock({
       data-shown={shown}
       data-total={totalGraphemes}
     >
-      {/* Always complete for AT; visual layer is aria-hidden while typing */}
       <div className="visually-hidden">
         {sections.map(section => (
           <section key={`a11y-${section.id}`}>
@@ -244,6 +274,18 @@ function NarrativeBlock({
   );
 }
 
+function RevealItem({
+  show,
+  children,
+}: {
+  show: boolean;
+  children: ReactNode;
+}) {
+  // No layout reservation while hidden; mount only when revealed (not focusable before).
+  if (!show) return null;
+  return <div className="market-view__reveal is-in">{children}</div>;
+}
+
 function buildNarrative(report: MarketViewReport): NarrativeSection[] {
   const sections: NarrativeSection[] = [
     { id: 'view', title: 'دید فعلی', body: report.summaryLines[0] },
@@ -264,20 +306,201 @@ export function MarketViewReportView({
   initial,
   canRefresh,
   trialCta,
+  pageExtras,
 }: {
   initial: MarketViewReport;
   canRefresh: boolean;
   trialCta?: ReactNode;
+  /** Trial panel, chart, quick links — same reveal source of truth as in-report details. */
+  pageExtras?: ReactNode;
 }) {
   const [report, setReport] = useState(initial);
   const [pendingFingerprint, setPendingFingerprint] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const reduced = usePrefersReducedMotion();
+
+  // Fingerprint + symbol + access only — theme/poll/rerender must not restart typing.
+  const reportKey = `${report.snapshotFingerprint}:${report.symbol ?? 'all'}:${report.access}`;
+  const narrative = useMemo(() => buildNarrative(report), [report]);
+  const { graphemes } = useMemo(() => flattenNarrativeGraphemes(narrative), [narrative]);
+
+  const [typingComplete, setTypingComplete] = useState(false);
+  const [skipped, setSkipped] = useState(false);
+  const [aftermathStep, setAftermathStep] = useState(0);
+  const aftermathTimers = useRef<number[]>([]);
+
+  const clearAftermath = useCallback(() => {
+    for (const id of aftermathTimers.current) window.clearTimeout(id);
+    aftermathTimers.current = [];
+  }, []);
 
   useEffect(() => {
     setReport(initial);
     setPendingFingerprint(null);
   }, [initial]);
+
+  // Reset shared reveal when reportKey changes (new snapshot / symbol / access).
+  useEffect(() => {
+    clearAftermath();
+    setTypingComplete(false);
+    setSkipped(false);
+    setAftermathStep(0);
+  }, [reportKey, clearAftermath]);
+
+  const onTypingComplete = useCallback(() => {
+    setTypingComplete(true);
+  }, []);
+
+  const { shown, typing, ready, skip: skipTyping, totalGraphemes } = useGraphemeTyping(
+    reportKey,
+    graphemes.length,
+    reduced,
+    onTypingComplete,
+  );
+
+  const skipAll = useCallback(() => {
+    setSkipped(true);
+    setTypingComplete(true);
+    skipTyping();
+  }, [skipTyping]);
+
+  const aftermathItems = useMemo(() => {
+    const items: { id: string; node: ReactNode }[] = [];
+    items.push({
+      id: 'outcome',
+      node: (
+        <>
+          <ValuationChips report={report} />
+          {report.access === 'full' ? (
+            <DecisionCard decision={report.decision} />
+          ) : (
+            <aside className="market-view__gate" aria-label="پیش‌نمایش تحلیل">
+              <DecisionCard decision={report.decision} />
+              <p>برداشت کامل و وضعیت تصمیم با پلن دارای دسترسی تحلیل یا دورهٔ آزمایش باز می‌شود. قیمت و خلاصهٔ شواهد رایگان است.</p>
+              <div className="market-view__gate-actions">
+                <Link className="button" href="/pricing">مشاهده پلن‌ها <ArrowUpLeft size={15} /></Link>
+                {trialCta}
+              </div>
+            </aside>
+          )}
+        </>
+      ),
+    });
+    if (report.evidence.length > 0) {
+      items.push({
+        id: 'evidence',
+        node: (
+          <details className="market-view__details is-compact">
+            <summary>جدول شواهد و اختلاف با مرجع</summary>
+            <div className="market-view__table-wrap">
+              <table className="market-view__table" role="table">
+                <thead>
+                  <tr>
+                    <th scope="col">بازار</th>
+                    <th scope="col">قیمت بازار</th>
+                    <th scope="col">مرجع محاسباتی</th>
+                    <th scope="col">اختلاف</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {report.evidence.map(row => (
+                    <tr key={row.id} className={row.status !== 'ok' ? 'is-muted' : undefined}>
+                      <th scope="row"><strong>{row.marketLabel}</strong></th>
+                      <td data-label="قیمت بازار">{row.marketPriceLabel ?? 'در دسترس نیست'}</td>
+                      <td data-label="مرجع محاسباتی">{row.referenceLabel ?? 'در دسترس نیست'}</td>
+                      <td data-label="اختلاف">
+                        {row.diffPercent != null
+                          ? <bdi>{formatFaPercent(row.diffPercent)}٪</bdi>
+                          : 'در دسترس نیست'}
+                        {row.status !== 'ok' ? (
+                          <small>{freshnessLabel(row.status === 'blocked' ? 'blocked' : row.status === 'stale' ? 'stale' : 'unavailable')}</small>
+                        ) : null}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </details>
+        ),
+      });
+    }
+    items.push({
+      id: 'limits',
+      node: (
+        <details className="market-view__details is-compact">
+          <summary>اعتبار داده و محدودیت‌ها</summary>
+          <ul className="market-view__list">{report.unconfirmed.map(item => <li key={item}>{item}</li>)}</ul>
+        </details>
+      ),
+    });
+    if (report.changeFromPrior) {
+      items.push({
+        id: 'prior',
+        node: (
+          <section className="market-view__block">
+            <h2>از گزارش قبل چه تغییری کرده؟</h2>
+            <p>{report.changeFromPrior}</p>
+          </section>
+        ),
+      });
+    }
+    items.push({
+      id: 'formula',
+      node: (
+        <details className="market-view__details is-compact">
+          <summary>جزئیات فرمول و نسخه</summary>
+          <ul className="market-view__list">
+            {report.evidence.map(row => (
+              <li key={row.id}>{row.marketLabel}: {row.referenceBasis}. {row.unitNote}</li>
+            ))}
+            {report.details.formulaNotes.map(note => <li key={note}>{note}</li>)}
+          </ul>
+          <p className="market-view__disclaimer">{report.details.disclaimer}</p>
+          <p className="market-view__meta">شناسه گزارش: <bdi dir="ltr">{report.reportId}</bdi></p>
+        </details>
+      ),
+    });
+    if (pageExtras) {
+      items.push({ id: 'page-extras', node: <div className="market-view__page-extras">{pageExtras}</div> });
+    }
+    return items;
+  }, [report, trialCta, pageExtras]);
+
+  const visibleCount = visibleAftermathCount({
+    typingComplete,
+    step: aftermathStep,
+    total: aftermathItems.length,
+    reducedMotion: reduced,
+    skipped,
+  });
+
+  // Drive aftermath steps from shared typingComplete — not DOM/timeout estimates of text length.
+  useEffect(() => {
+    clearAftermath();
+    if (!typingComplete) {
+      setAftermathStep(0);
+      return;
+    }
+    if (reduced || skipped) {
+      setAftermathStep(aftermathItems.length);
+      return;
+    }
+    setAftermathStep(1);
+    let step = 1;
+    const tick = () => {
+      step += 1;
+      setAftermathStep(step);
+      if (step < aftermathItems.length) {
+        aftermathTimers.current.push(window.setTimeout(tick, AFTERMATH_STEP_GAP_MS));
+      }
+    };
+    if (aftermathItems.length > 1) {
+      aftermathTimers.current.push(window.setTimeout(tick, AFTERMATH_STEP_GAP_MS));
+    }
+    return () => clearAftermath();
+  }, [typingComplete, reduced, skipped, aftermathItems.length, clearAftermath, reportKey]);
 
   const applyLatest = useCallback(async () => {
     const url = initial.symbol
@@ -324,12 +547,15 @@ export function MarketViewReportView({
     });
   }
 
-  // Fingerprint + symbol + access only — theme/poll/rerender must not restart typing.
-  const reportKey = `${report.snapshotFingerprint}:${report.symbol ?? 'all'}:${report.access}`;
-  const narrative = buildNarrative(report);
+  const phase = !typingComplete ? 'typing' : visibleCount >= aftermathItems.length ? 'done' : 'aftermath';
 
   return (
-    <article className="market-view" aria-label={report.title}>
+    <article
+      className="market-view"
+      aria-label={report.title}
+      data-reveal-phase={phase}
+      data-aftermath-visible={visibleCount}
+    >
       {pendingFingerprint ? (
         <div className="market-view__fresh-banner" role="status">
           <span>تحلیل تازه آماده است</span>
@@ -360,92 +586,41 @@ export function MarketViewReportView({
         ) : null}
       </header>
 
-      <div className="market-view__stage">
-        <div className="market-view__watermark" aria-hidden="true">
-          <span className="brand-mark"><Activity size={200} /></span>
-          <span>زرسیگنال</span>
+      <div className="market-view__reading">
+        <div className="market-view__watermark-slot" aria-hidden="true">
+          <div className="market-view__watermark">
+            <span className="brand-mark"><Activity size={200} /></span>
+            <span>زرسیگنال</span>
+          </div>
         </div>
-
-        <NarrativeBlock sections={narrative} reportKey={reportKey} />
-
-        <ValuationChips report={report} />
-
-        {report.access === 'full' ? (
-          <DecisionCard decision={report.decision} />
-        ) : (
-          <aside className="market-view__gate" aria-label="پیش‌نمایش تحلیل">
-            <DecisionCard decision={report.decision} />
-            <p>برداشت کامل و وضعیت تصمیم با پلن دارای دسترسی تحلیل یا دورهٔ آزمایش باز می‌شود. قیمت و خلاصهٔ شواهد رایگان است.</p>
-            <div className="market-view__gate-actions">
-              <Link className="button" href="/pricing">مشاهده پلن‌ها <ArrowUpLeft size={15} /></Link>
-              {trialCta}
-            </div>
-          </aside>
-        )}
+        <NarrativeBlock
+          sections={narrative}
+          shown={shown}
+          typing={typing}
+          ready={ready}
+          totalGraphemes={totalGraphemes}
+          skip={skipAll}
+        />
       </div>
 
-      {report.evidence.length > 0 ? (
-        <details className="market-view__details is-compact">
-          <summary>جدول شواهد و اختلاف با مرجع</summary>
-          <div className="market-view__table-wrap">
-            <table className="market-view__table" role="table">
-              <thead>
-                <tr>
-                  <th scope="col">بازار</th>
-                  <th scope="col">قیمت بازار</th>
-                  <th scope="col">مرجع محاسباتی</th>
-                  <th scope="col">اختلاف</th>
-                </tr>
-              </thead>
-              <tbody>
-                {report.evidence.map(row => (
-                  <tr key={row.id} className={row.status !== 'ok' ? 'is-muted' : undefined}>
-                    <th scope="row"><strong>{row.marketLabel}</strong></th>
-                    <td data-label="قیمت بازار">{row.marketPriceLabel ?? 'در دسترس نیست'}</td>
-                    <td data-label="مرجع محاسباتی">{row.referenceLabel ?? 'در دسترس نیست'}</td>
-                    <td data-label="اختلاف">
-                      {row.diffPercent != null
-                        ? <bdi>{formatFaPercent(row.diffPercent)}٪</bdi>
-                        : 'در دسترس نیست'}
-                      {row.status !== 'ok' ? (
-                        <small>{freshnessLabel(row.status === 'blocked' ? 'blocked' : row.status === 'stale' ? 'stale' : 'unavailable')}</small>
-                      ) : null}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </details>
-      ) : null}
+      <div className="market-view__aftermath" data-visible-count={visibleCount}>
+        {aftermathItems.map((item, index) => (
+          <RevealItem key={item.id} show={index < visibleCount}>
+            {item.node}
+          </RevealItem>
+        ))}
+      </div>
 
-      <details className="market-view__details is-compact">
-        <summary>اعتبار داده و محدودیت‌ها</summary>
-        <ul className="market-view__list">{report.unconfirmed.map(item => <li key={item}>{item}</li>)}</ul>
-      </details>
-
-      {report.changeFromPrior ? (
-        <section className="market-view__block">
-          <h2>از گزارش قبل چه تغییری کرده؟</h2>
-          <p>{report.changeFromPrior}</p>
-        </section>
-      ) : null}
-
-      <details className="market-view__details is-compact">
-        <summary>جزئیات فرمول و نسخه</summary>
-        <ul className="market-view__list">
-          {report.evidence.map(row => (
-            <li key={row.id}>{row.marketLabel}: {row.referenceBasis}. {row.unitNote}</li>
-          ))}
-          {report.details.formulaNotes.map(note => <li key={note}>{note}</li>)}
-        </ul>
-        <p className="market-view__disclaimer">{report.details.disclaimer}</p>
-        <p className="market-view__meta">شناسه گزارش: <bdi dir="ltr">{report.reportId}</bdi></p>
-      </details>
+      {/* noscript: full aftermath without waiting for typing */}
+      <noscript>
+        <ValuationChips report={report} />
+        {report.access === 'full' ? <DecisionCard decision={report.decision} /> : null}
+        {pageExtras}
+      </noscript>
 
       {error ? <p role="alert" className="market-view__meta">{error}</p> : null}
 
-      {canRefresh ? (
+      {canRefresh && visibleCount > 0 ? (
         <button type="button" className="market-view__reload text-link" onClick={showFresh} disabled={pending}>
           <RefreshCw size={14} /> بررسی دادهٔ تازه
         </button>
