@@ -283,7 +283,7 @@ body:has(.calc-app-page)>.footer{display:none!important}
  .calc-stage__main{min-height:0;overflow:auto;overscroll-behavior:contain;scrollbar-width:thin;display:grid;gap:8px;align-content:start}
  .calc-weight-widget{padding:10px;border-radius:14px;box-sizing:border-box;display:flex;flex-direction:column}.calc-weight-widget__head{margin-bottom:6px}.calc-weight-widget__head strong{font-size:14px}.calc-weight-widget__head small{font-size:10px;margin-top:0}
  .calc-weight-widget__pair{grid-template-columns:minmax(0,1fr);grid-template-areas:"in";gap:8px}.calc-weight-box{padding:6px;gap:4px}.calc-weight-box>.ds-field__label{font-size:11px}
- .calc-weight-box.is-out,.calc-weight-swap{display:none!important}
+ .calc-weight-box.is-out,.calc-weight-swap:not(.is-mobile){display:none!important}
  .calc-weight-box__input{min-height:38px!important;height:38px!important;font-size:22px!important;padding:4px 28px 4px 8px!important}
  .calc-weight-box__clear{width:16px;height:16px;right:5px}
  .calc-weight-box__select .ds-field__label{display:none}.calc-weight-box__select .ds-select__trigger{min-height:34px;padding:3px 8px;font-size:12px}
