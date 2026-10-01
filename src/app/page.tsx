@@ -37,7 +37,7 @@ export default async function Home() {
           <p>{texts.description}</p>
           <div className="hero-actions">
             <Link href="/markets" className="button">{texts.primary} <ArrowUpLeft size={18} /></Link>
-            <Link href="/analysis/gold_melted" className="text-link">{texts.secondary} <ChevronLeft size={16} /></Link>
+            <Link href="/analysis" className="text-link">{texts.secondary} <ChevronLeft size={16} /></Link>
           </div>
           <div className="decision-strip hero-screen-down" aria-label="سه پاسخ اصلی زر‌سیگنال">
             <span><Gauge size={15} /><b>الان چه خبر است؟</b><small>نبض بازار</small></span>

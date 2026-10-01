@@ -26,6 +26,6 @@ export async function saveTrialPolicy(form: FormData) {
       create: { key: trialSettingKey, category: 'access', label: 'دسترسی آزمایشی تحلیل', enabled: yes(form, 'trialEnabled'), publicValue: String(hours) },
       update: { enabled: yes(form, 'trialEnabled'), publicValue: String(hours) } });
   } catch { redirect('/admin/plans?error=trial-storage'); }
-  revalidatePath('/admin/plans'); revalidatePath('/analysis', 'layout');
+  revalidatePath('/admin/plans'); revalidatePath('/analysis', 'layout'); revalidatePath('/account'); revalidatePath('/pricing');
   redirect('/admin/plans?saved=trial');
 }

@@ -71,7 +71,12 @@ export default async function AssetPage({ params }: Props) {
       <article className="panel asset-explainer"><ShieldCheck size={22}/><span className="eyebrow">EXPLAINABLE ANALYSIS</span><h2>تحلیل بدون عدد ساختگی</h2><p>{formula?.description ?? 'برای این دارایی فعلاً قیمت مشاهده‌شده نمایش داده می‌شود؛ ابزار تحلیلی پس از تأیید مدل فعال خواهد شد.'}</p><span className="pending-analysis">{formula?.approved ? 'مدل تأییدشده · بدون توصیه معامله' : 'در حال تکمیل داده/فرمول'}</span></article>
     </section>
 
-    <section className="asset-actions panel"><div><Calculator size={22}/><div><h2>محاسبه با ورودی خودتان</h2><p>ابزارهای تأییدشده را با قیمت بازار یا ورودی دستی استفاده کنید.</p></div></div><Link className="button" href="/calculator">ماشین‌حساب حرفه‌ای <ArrowUpLeft size={16}/></Link><Link className="text-link" href="/risk-management">ابزارهای مدیریت ریسک</Link></section>
+    <section className="asset-actions panel">
+      <div><Calculator size={22}/><div><h2>محاسبه با ورودی خودتان</h2><p>ابزارهای تأییدشده را با قیمت بازار یا ورودی دستی استفاده کنید.</p></div></div>
+      <Link className="button" href="/calculator">ماشین‌حساب حرفه‌ای <ArrowUpLeft size={16}/></Link>
+      <Link className="button membership-secondary" href="/analysis">دید زرسیگنال به بازار <ArrowUpLeft size={16}/></Link>
+      <Link className="text-link" href={`/analysis/${symbol}`}>تحلیل این بازار</Link>
+    </section>
 
     <section className="asset-faq"><div className="section-heading"><div><span className="eyebrow">COMMON QUESTIONS</span><h2>درباره {asset.name}</h2></div></div><FaqAccordion items={faq}/></section>
     {related.length > 0 && <section className="related-markets"><div className="section-heading"><div><span className="eyebrow">RELATED MARKETS</span><h2>بازارهای مرتبط</h2></div><Link href="/#markets">همه بازارها <ArrowUpLeft size={15}/></Link></div><div>{related.map(item => <Link className="panel" href={`/markets/${item.symbol.toLowerCase()}`} key={item.symbol}><AssetMark symbol={item.symbol} category={item.category}/><span><strong>{item.name}</strong><small>{item.unit}</small></span><ArrowUpLeft size={17}/></Link>)}</div></section>}

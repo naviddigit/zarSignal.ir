@@ -8,7 +8,7 @@ test('restored radar links to analysis and keypad works across calculator fields
   await expect(async () => { await dollar.click(); await expect(dollar).toHaveAttribute('aria-pressed', 'true'); }).toPass();
   await page.locator('.radar-analysis-link').click();
   await expect(page).toHaveURL(/\/analysis\/usd$/, { timeout: 15000 });
-  await expect(page.locator('.analysis-summary, .reliability-warning')).toBeVisible({ timeout: 15000 });
+  await expect(page.locator('.market-view, .reliability-warning')).toBeVisible({ timeout: 15000 });
   await page.goto('/calculator');
   const keypad = page.locator('.calc-keypad');
   await keypad.getByRole('button', { name: 'پاک‌کردن همه', exact: true }).click();

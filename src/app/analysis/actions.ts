@@ -7,9 +7,9 @@ import { trialPolicy, trialProduct } from '@/server/analysis-trial';
 import { instruments } from '@/lib/market';
 
 export async function startAnalysisTrial(form: FormData) {
-  const symbol = String(form.get('symbol'));
-  if (!instruments.some(asset => asset.symbol.toLowerCase() === symbol)) return;
-  const path = `/analysis/${symbol}`;
+  const symbol = String(form.get('symbol') ?? '');
+  if (symbol && !instruments.some(asset => asset.symbol.toLowerCase() === symbol)) return;
+  const path = symbol ? `/analysis/${symbol}` : '/analysis';
   const session = await auth();
   if (!session?.user?.email) redirect('/login?next=' + encodeURIComponent(path));
   const policy = await trialPolicy();
@@ -27,7 +27,8 @@ export async function startAnalysisTrial(form: FormData) {
         expiresAt: new Date(startsAt.getTime() + policy.hours * 3600000) } });
     });
   } catch { redirect(path + '?trial=unavailable'); }
-  revalidatePath(path);
+  revalidatePath('/analysis', 'layout');
+  revalidatePath('/account');
   redirect(path);
 }
 

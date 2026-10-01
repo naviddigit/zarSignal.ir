@@ -9,8 +9,7 @@ import {
   upgradePreview,
   type AccessLevel,
 } from '@/lib/capabilities';
-import { trialProduct } from '@/server/analysis-trial';
-import { getPublishedPlans } from '@/server/plans';
+import { trialPolicy, trialProduct } from '@/server/analysis-trial';
 import { withDeadline } from '@/lib/with-deadline';
 
 export type AccountEntitlement = {
@@ -31,17 +30,20 @@ export async function resolveAccountEntitlement(userId: string): Promise<Account
       orderBy: { startsAt: 'desc' },
       take: 30,
     }), 4000).catch(() => []),
-    getPublishedPlans().catch(() => []),
+    withDeadline(db.plan.findMany({
+      where: { active: true, webAvailable: true },
+      select: { slug: true, title: true, features: true },
+    }), 4000).catch(() => []),
   ]);
 
   const commercialActive = subscriptions.find(s =>
-    !isInternalProduct(s.product) && validHistorySubscription(s, now),
+    !isInternalProduct(s.product) && validHistorySubscription(s, now) && plans.some(p => p.slug === s.product),
   );
   const commercialPending = subscriptions.find(s =>
     !isInternalProduct(s.product) && s.status === 'PENDING',
   );
   const trialActive = subscriptions.find(s =>
-    (s.product === trialProduct || isInternalProduct(s.product))
+    s.product === trialProduct
     && validHistorySubscription(s, now),
   );
 
@@ -61,11 +63,11 @@ export async function resolveAccountEntitlement(userId: string): Promise<Account
     };
   }
 
-  if (trialActive) {
+  if (trialActive && (await trialPolicy()).enabled) {
     const level: AccessLevel = 'HOME';
     return {
       level,
-      planLabel: 'آزمایش تاریخچه',
+      planLabel: 'دسترسی آزمایشی',
       statusLabel: 'آزمایشی',
       expiresAt: trialActive.expiresAt,
       historyDays: 30,

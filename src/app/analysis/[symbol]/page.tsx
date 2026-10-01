@@ -1,25 +1,24 @@
+import Link from 'next/link';
+import { notFound } from 'next/navigation';
+import { auth } from '@/auth';
+import { instruments } from '@/lib/market';
+import { hasCapability } from '@/lib/capabilities';
 import { getWarningPolicy, analysisUserId, acknowledgedRequest } from '@/server/time-reliability';
 import { timeReliability } from '@/lib/time-reliability';
 import { AnalysisReliabilityWarning } from '@/components/analysis-reliability-warning';
-import Link from 'next/link';
 import { analysisTrial } from '@/server/analysis-trial';
-import { TrialCountdown } from '@/components/trial-countdown';
-import { startAnalysisTrial } from '../actions';
-import { PendingButton } from '@/components/pending-button';
-import { notFound } from 'next/navigation';
-import { instruments, formatPrice } from '@/lib/market';
-import { getPublicSnapshot } from '@/server/quotes';
-import { computeLiveBubbles } from '@/server/live-bubbles';
-import { freshnessLabel } from '@/lib/bubbles';
-import { RelativeTime } from '@/components/relative-time';
+import { resolveAccountEntitlement } from '@/server/account-entitlement';
+import { buildMarketViewReport } from '@/server/market-view-report';
+import { MarketViewReportView } from '@/components/market-view-report';
+import { AnalysisTrialAccess } from '@/components/analysis-trial-access';
 import { ChartWorkspace } from '@/components/chart-workspace';
 
 export const dynamic = 'force-dynamic';
 
-const money = (value: number, digits = 0) =>
-  new Intl.NumberFormat('fa-IR', { maximumFractionDigits: digits, minimumFractionDigits: digits }).format(value);
-
-export default async function AnalysisPage({ params, searchParams }: { params: Promise<{ symbol: string }>; searchParams: Promise<{ trial?: string; request?: string; warning?: string }> }) {
+export default async function AnalysisPage({ params, searchParams }: {
+  params: Promise<{ symbol: string }>;
+  searchParams: Promise<{ trial?: string; request?: string; warning?: string }>;
+}) {
   const { symbol } = await params;
   const asset = instruments.find(item => item.symbol.toLowerCase() === symbol);
   if (!asset) notFound();
@@ -29,106 +28,28 @@ export default async function AnalysisPage({ params, searchParams }: { params: P
   if (reliability === 'WARNING') {
     const userId = await analysisUserId();
     if (!await acknowledgedRequest(userId, query.request, symbol, policy.version)) {
-      return <AnalysisReliabilityWarning policy={policy} symbol={symbol} loggedIn={Boolean(userId)} error={query.warning}/>;
+      return <AnalysisReliabilityWarning policy={policy} symbol={symbol} loggedIn={Boolean(userId)} error={query.warning} />;
     }
   }
-  const trial = await analysisTrial();
-  const trialError = (await searchParams).trial;
-  const trialActive = trial.expiresAt !== null && Date.parse(trial.expiresAt) > Date.now();
-  const snapshot = await getPublicSnapshot();
-  const quote = snapshot.quotes.find(item => item.symbol === asset.symbol);
-  const key = symbol === 'gold_melted' || symbol === 'gold_18k' ? 'GOLD_BUBBLE' : symbol === 'usd' ? 'USD_BUBBLE' : symbol === 'silver_999' || symbol === 'xag_usd' ? 'SILVER_BUBBLE' : null;
-  const bubble = computeLiveBubbles(snapshot).find(item => item.key === key);
-  const numeric = bubble && (bubble.status === 'ok' || bubble.status === 'stale') && bubble.percent !== null;
-  const isSilver = key === 'SILVER_BUBBLE';
-  const isUsd = key === 'USD_BUBBLE';
-
-  return <main id="main" className="shell content-page analysis-page">
-    <nav className="chart-breadcrumb"><Link href="/">خانه</Link><span>/</span><Link href="/markets">قیمت‌ها</Link><span>/ بررسی {asset.name}</span></nav>
-    <p className="analysis-warning" role="status">{reliability === 'WARNING' ? 'تحلیل خارج از بازه استاندارد' : 'در بازه استاندارد تحلیل'} · زمان تهران</p>
-    <p>موتور تحلیل معاملاتی هنوز آماده نیست؛ اطلاعات زیر بررسی پایه قیمت و حباب است.</p>
-    <h1>پشت قیمت {asset.name} چه می‌گذرد؟</h1>
-    <p className="lead">اول قیمت و فاصله از مبنای محاسباتی؛ سپس مقایسه با گذشته. حباب به‌تنهایی زمان خرید یا فروش را تعیین نمی‌کند.</p>
-    <section className="panel analysis-summary">
-      <div className="analysis-metrics">
-        <span className="eyebrow">بررسی پایه · رایگان</span>
-        <h2>{asset.name}</h2>
-        <dl>
-          <div>
-            <dt>قیمت بازار</dt>
-            <dd>
-              <bdi>{quote ? formatPrice(quote.sell, quote.currency) : bubble?.marketPrice != null ? `${money(bubble.marketPrice)} تومان` : 'در انتظار داده'}</bdi>
-              <small> / {asset.unit}</small>
-            </dd>
-          </div>
-          {isSilver && numeric ? (
-            <>
-              <div>
-                <dt>قیمت نظری</dt>
-                <dd><bdi>{money(bubble!.theoretical!, 0)} تومان</bdi><small> / گرم</small></dd>
-              </div>
-              <div>
-                <dt>اختلاف قیمت</dt>
-                <dd><bdi>{money(bubble!.gap ?? 0, 0)} تومان</bdi><small> / گرم</small></dd>
-              </div>
-              <div>
-                <dt>درصد حباب</dt>
-                <dd><bdi>{new Intl.NumberFormat('fa-IR', { maximumFractionDigits: 2, signDisplay: 'exceptZero' }).format(bubble!.percent!)}٪</bdi></dd>
-              </div>
-            </>
-          ) : (
-            <div>
-              <dt>{isUsd ? 'فاصله دلار با دلار ضمنی طلا' : 'فاصله با ارزش محاسباتی'}</dt>
-              <dd>
-                {numeric
-                  ? <bdi>{new Intl.NumberFormat('fa-IR', { maximumFractionDigits: 2, signDisplay: 'exceptZero' }).format(bubble!.percent!)}٪</bdi>
-                  : 'محاسبه در دسترس نیست'}
-              </dd>
-            </div>
-          )}
-        </dl>
-      </div>
-      <div className="analysis-context">
-        {(quote || bubble?.observedAt) && (
-          <p>آخرین داده: <RelativeTime value={(bubble?.observedAt ?? quote?.observedAt)!} /> · وضعیت: {bubble ? freshnessLabel(bubble.status) : '—'}</p>
-        )}
-        {bubble?.status === 'stale' && <p className="analysis-warning">این محاسبه از داده قدیمی است؛ وضعیت فعلی بازار نیست.</p>}
-        <p role="note">اختلاف قیمت · سیگنال خرید/فروش نیست</p>
-        <p>
-          {numeric
-            ? isUsd
-              ? 'این اختلاف، مقایسه دلار بازار با دلار ضمنی طلاست؛ ارزش بنیادی دلار نیست.'
-              : isSilver
-                ? 'حباب نقره اختلاف قیمت بازار ۹۹۹ با ارزش محاسباتی است (V5.4-SILVER.1). محدوده خنثی هنوز فعال نیست.'
-                : 'این عدد فاصله قیمت طلای ۱۸ عیار مشتق از مظنه با ارزش محاسباتی اونس و دلار را نشان می‌دهد؛ سود قابل تحقق نیست.'
-            : 'در نبود ورودی معتبر هم‌زمان، نتیجه جایگزین ساخته نمی‌شود.'}
-        </p>
-        {isSilver && numeric ? (
-          <details>
-            <summary>معیارهای حرفه‌ای (معماری آماده · entitlement جدا)</summary>
-            <dl className="analysis-pro-metrics">
-              <div><dt>دلار بازار</dt><dd><bdi>—</bdi><small> با اشتراک حرفه‌ای</small></dd></div>
-              <div><dt>دلار ضمنی نقره</dt><dd><bdi>—</bdi><small> با اشتراک حرفه‌ای</small></dd></div>
-              <div><dt>SilverUSDGapPct</dt><dd><bdi>—</bdi><small> با اشتراک حرفه‌ای</small></dd></div>
-            </dl>
-            <p className="subtle-note">مقادیر محاسبه‌شده در موتور موجودند؛ نمایش کامل پس از entitlement حرفه‌ای آزاد می‌شود. فرمول در UI عمومی نشان داده نمی‌شود.</p>
-          </details>
-        ) : (
-          <details>
-            <summary>برای تصمیم چه اطلاعاتی هنوز لازم است؟</summary>
-            <p>روند معتبر، هزینه معامله، قیمت قابل اجرا و ریسک شما. موتور توصیه خرید، فروش یا تبدیل هنوز آماده ارائه نیست؛ اشتراک این محدودیت را برطرف نمی‌کند.</p>
-          </details>
-        )}
-      </div>
-    </section>
-    <section className="analysis-upgrade" aria-label="دسترسی آزمایشی">
-      <div><h2>{trialActive ? 'فرصت بررسی عمیق‌تر بازار' : 'پیش از اشتراک، خودت بررسی کن.'}</h2>
-      {trialActive ? <TrialCountdown expiresAt={trial.expiresAt!} /> : <p>{!trial.available ? 'بررسی دسترسی موقتاً ممکن نیست؛ دوباره تلاش کنید.' : trial.used ? 'دوره آزمایشی این حساب پایان یافته یا غیرفعال شده است. قیمت و بررسی پایه همچنان رایگان است.' : trial.enabled ? `${new Intl.NumberFormat('fa-IR').format(trial.hours)} ساعت دسترسی آزمایشی به تاریخچه ۳۰ روزه قیمت و حباب؛ یک بار برای هر حساب.` : 'دوره آزمایشی فعلاً غیرفعال است؛ بررسی پایه رایگان است.'}</p>}
-      {trialError && <p role="alert">شروع دوره ممکن نشد؛ دوباره تلاش کنید.</p>}</div>
-      {!trialActive && trial.available && trial.enabled && !trial.used && (trial.loggedIn ? <form action={startAnalysisTrial}><input type="hidden" name="symbol" value={symbol}/><PendingButton className="button" pendingText="در حال فعال‌سازی…">شروع دسترسی آزمایشی</PendingButton></form> : <Link className="button" href={`/login?next=${encodeURIComponent(`/analysis/${symbol}`)}`}>ورود برای شروع دوره رایگان</Link>)}
-      {!trialActive && trial.used && <Link className="button" href="/pricing">ادامه با اشتراک</Link>}
-    </section>
-    <ChartWorkspace key={trialActive ? trial.expiresAt : 'standard'} symbol={asset.symbol} />
-    <div className="home-quick-tools"><Link href="/calculator">ماشین‌حساب</Link><Link href={`/markets/${symbol}`}>مشخصات و قیمت بازار</Link><Link href="/methodology">روش محاسبه</Link></div>
+  const session = await auth().catch(() => null);
+  const entitlement = session?.user?.id ? await resolveAccountEntitlement(session.user.id) : null;
+  const fullAccess = entitlement ? hasCapability(entitlement.level, 'ANALYSIS_BASIC') : false;
+  const [report, trial] = await Promise.all([
+    buildMarketViewReport(fullAccess ? 'full' : 'preview', asset.symbol), analysisTrial(),
+  ]);
+  return <main id="main" className="shell content-page analysis-page market-view-page">
+    <nav className="chart-breadcrumb" aria-label="مسیر"><Link href="/">خانه</Link><span>/</span><Link href="/analysis">دید بازار</Link><span>/ {asset.name}</span></nav>
+    <nav className="home-quick-tools" aria-label="انتخاب تحلیل">
+      <Link href="/analysis">کل بازار</Link>
+      {instruments.map(item => <Link key={item.symbol} href={`/analysis/${item.symbol.toLowerCase()}`} aria-current={item.symbol === asset.symbol ? 'page' : undefined}>{item.short}</Link>)}
+    </nav>
+    <p className="market-view__meta" role="status">{reliability === 'WARNING' ? 'تحلیل خارج از بازه استاندارد' : 'در بازه استاندارد تحلیل'} · زمان تهران</p>
+    <MarketViewReportView initial={report} canRefresh />
+    {(!fullAccess || entitlement?.statusLabel === 'آزمایشی') && <AnalysisTrialAccess trial={trial} symbol={symbol} error={query.trial} />}
+    <details className="market-view__details">
+      <summary>بررسی نمودار و تاریخچهٔ {asset.short}</summary>
+      <ChartWorkspace symbol={asset.symbol} />
+    </details>
+    <div className="home-quick-tools"><Link href="/calculator">محاسبهٔ معامله</Link><Link href={`/markets/${symbol}`}>قیمت و مشخصات {asset.short}</Link><Link href="/methodology">روش محاسبه</Link></div>
   </main>;
 }

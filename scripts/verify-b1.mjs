@@ -27,20 +27,20 @@ try {
     await page.setViewportSize({width,height:844});
     await page.goto(base+'/analysis/gold_melted');
     await expect(page.getByRole('heading',{name:'هشدار اعتبار تحلیل'})).toBeVisible();
-    await expect(page.locator('.analysis-summary')).toHaveCount(0);
+    await expect(page.locator('.market-view')).toHaveCount(0);
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
     await expect(page.getByRole('button',{name:'مشاهده تحلیل با پذیرش هشدار'})).toBeInViewport();
     await page.screenshot({path:`artifacts/phase-b1/warning-${width}.png`,fullPage:true});
   }
   await page.getByRole('button',{name:'مشاهده تحلیل با پذیرش هشدار'}).click();
-  await expect(page.locator('.analysis-summary')).toBeVisible();
+  await expect(page.locator('.market-view')).toBeVisible();
   await expect(page.getByRole('status').filter({hasText:'تحلیل خارج از بازه استاندارد'})).toBeVisible();
   const accepted=page.url();assert.ok(new URL(accepted).searchParams.get('request'));
   const other=await browser.newContext({viewport:{width:390,height:844},timezoneId:'Pacific/Auckland'});
   await other.addCookies([{name:'authjs.session-token',value:'b1-session-b',url:base}]);
   const otherPage=await other.newPage();await otherPage.goto(accepted);
   await expect(otherPage.getByRole('heading',{name:'هشدار اعتبار تحلیل'})).toBeVisible();
-  await expect(otherPage.locator('.analysis-summary')).toHaveCount(0);
+  await expect(otherPage.locator('.market-view')).toHaveCount(0);
   await page.goto(base+'/admin/analysis-settings');
   await page.getByRole('button',{name:'تیره',exact:true}).click();
   await expect(page.locator('html')).toHaveAttribute('data-theme','dark');

@@ -73,6 +73,7 @@ function buildTiers(plans: ManagedPlan[]): TierView[] {
         'تابلوی قیمت با زمان دریافت',
         'حباب طلا و فاصله دلار',
         'ماشین‌حساب وزن، مظنه و عیار',
+        'خلاصهٔ دید بازار (پیش‌نمایش)',
         'نمودار ۲۴ ساعت',
       ],
       cta: { href: '/markets', label: 'شروع با بازار', secondary: true },
@@ -80,7 +81,7 @@ function buildTiers(plans: ManagedPlan[]): TierView[] {
     {
       kind: 'home',
       title: home?.title?.replace(/آزمایشی/g, '').trim() || 'خانگی',
-      pitch: 'برای پیگیری روند هفتگی و ماهانه.',
+      pitch: 'برای پیگیری روند هفتگی و خواندن گزارش دید سیستم.',
       popular: true,
       plan: home,
       priceLabel: homePrice ? new Intl.NumberFormat('fa-IR').format(Number(homePrice.price)) : '۱۴۹٬۰۰۰',
@@ -88,9 +89,9 @@ function buildTiers(plans: ManagedPlan[]): TierView[] {
       metric: `تاریخچه تا ${new Intl.NumberFormat('fa-IR').format(planHistoryDays(home?.features ?? ['history:30d']) || 30)} روز`,
       fallbackFeatures: [
         'همه امکانات رایگان',
+        'گزارش کامل دید زرسیگنال به بازار',
         'تاریخچه قیمت و حباب',
         'نمودار ۷ و ۳۰ روز',
-        'جزئیات کندل روزانه',
       ],
       cta: { href: home ? `/subscribe/${home.slug}` : '/subscribe/home', label: 'انتخاب پلن خانگی' },
     },
@@ -104,9 +105,9 @@ function buildTiers(plans: ManagedPlan[]): TierView[] {
       metric: `تاریخچه تا ${new Intl.NumberFormat('fa-IR').format(planHistoryDays(pro?.features ?? ['history:90d']) || 90)} روز`,
       fallbackFeatures: [
         'همه امکانات خانگی',
+        'گزارش کامل دید بازار',
         'بازه ۹۰ روز',
         'مقایسه روند بلندمدت',
-        'اولویت در به‌روزرسانی ابزارها',
       ],
       cta: { href: pro ? `/subscribe/${pro.slug}` : '/subscribe/professional', label: 'انتخاب پلن حرفه‌ای' },
     },
@@ -134,6 +135,8 @@ function buildTiers(plans: ManagedPlan[]): TierView[] {
 const compareRows: { label: string; values: Record<TierKind, string | boolean> }[] = [
   { label: 'قیمت زنده بازار', values: { free: true, home: true, pro: true, api: true } },
   { label: 'حباب طلا و فاصله دلار', values: { free: true, home: true, pro: true, api: true } },
+  { label: 'خلاصهٔ دید بازار', values: { free: true, home: true, pro: true, api: false } },
+  { label: 'گزارش کامل دید سیستم', values: { free: false, home: true, pro: true, api: false } },
   { label: 'ماشین‌حساب فعال', values: { free: true, home: true, pro: true, api: false } },
   { label: 'نمودار ۲۴ ساعت', values: { free: true, home: true, pro: true, api: false } },
   { label: 'تاریخچه ۷–۳۰ روز', values: { free: false, home: true, pro: true, api: false } },
@@ -167,7 +170,7 @@ export default async function Pricing() {
         <h1>دسترسی مناسب کارتان را انتخاب کنید</h1>
         <p>
           زرسیگنال قیمت و محاسبه را شفاف نگه می‌دارد.
-          پلن‌ها فقط عمق تاریخچه یا اتصال API را گسترش می‌دهند — نه سیگنال خرید و فروش.
+          پلن خانگی و بالاتر گزارش کامل «دید سیستم به بازار» را باز می‌کند — نه سیگنال خرید و فروش.
         </p>
       </header>
 
@@ -212,10 +215,10 @@ export default async function Pricing() {
       {trialDays != null && (
         <aside className="pricing-trial">
           <div>
-            <strong>{new Intl.NumberFormat('fa-IR').format(trialDays)} {trialUnit} بررسی تاریخچه</strong>
-            <p>یک‌بار برای هر حساب؛ برای ارزیابی بازه‌های بلندتر قبل از انتخاب پلن.</p>
+            <strong>{new Intl.NumberFormat('fa-IR').format(trialDays)} {trialUnit} استفاده رایگان از تحلیل و تاریخچه</strong>
+            <p>گزارش کامل بازار، تحلیل نمادها و تاریخچهٔ ۳۰ روزه؛ یک‌بار برای هر حساب، از لحظهٔ شروع.</p>
           </div>
-          <Link href="/analysis/gold_melted">شروع دوره آزمایشی ←</Link>
+          <Link href="/analysis">شروع دوره آزمایشی ←</Link>
         </aside>
       )}
 

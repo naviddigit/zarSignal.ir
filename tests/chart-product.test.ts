@@ -14,7 +14,7 @@ test('daily backfill uses only matching completed days and stable versioned iden
   const result = synchronizedDailyBubbles(rows, new Date('2026-09-03T12:00:00Z'));
   assert.equal(result.length, 1);
   assert.deepEqual(result, synchronizedDailyBubbles([...rows].reverse(), new Date('2026-09-03T12:00:00Z')));
-  assert.match(result[0].id, /2026-09-01:f1.0:c1.0$/);
+  assert.match(result[0].id, /2026-09-01:f1.0:c1.1$/);
   assert.equal(result[0].xau.close, 4000);
   assert.throws(() => synchronizedDailyBubbles([...rows, rows[0]], new Date('2026-09-03')), /ambiguous/);
 });
@@ -46,7 +46,7 @@ test('free window and explicit plan capabilities fail closed', () => {
 test('paid history requires active subscription product matching an enabled web Plan entitlement', async t => {
   const userQuery = db.user.findUnique, planQuery = db.plan.findMany;
   t.after(() => { db.user.findUnique = userQuery; db.plan.findMany = planQuery; });
-  db.user.findUnique = (async () => ({ subscriptions: [{ product: 'home', status: 'ACTIVE', startsAt: new Date(0), expiresAt: new Date('2100-01-01') }] })) as unknown as typeof userQuery;
+  db.user.findUnique = (async () => ({ id: 'test-user', subscriptions: [{ product: 'home', status: 'ACTIVE', startsAt: new Date(0), expiresAt: new Date('2100-01-01') }] })) as unknown as typeof userQuery;
   db.plan.findMany = (async (args: { where: { slug: { in: string[] }; active: boolean; webAvailable: boolean } }) => {
     assert.deepEqual(args.where, { slug: { in: ['home'] }, active: true, webAvailable: true });
     return [{ features: ['history:90d'] }];
@@ -62,7 +62,7 @@ test('trial grants only 30 days, expires and fails closed when policy is disable
   const userQuery = db.user.findUnique, settingQuery = db.integrationSetting.findUnique, planQuery = db.plan.findMany;
   t.after(() => { db.user.findUnique = userQuery; db.integrationSetting.findUnique = settingQuery; db.plan.findMany = planQuery; });
   let expiry = new Date(Date.now() + 3600000);
-  db.user.findUnique = (async () => ({ subscriptions: [{ product: '__analysis_trial', status: 'ACTIVE', startsAt: new Date(0), expiresAt: expiry }] })) as unknown as typeof userQuery;
+  db.user.findUnique = (async () => ({ id: 'test-user', subscriptions: [{ product: '__analysis_trial', status: 'ACTIVE', startsAt: new Date(0), expiresAt: expiry }] })) as unknown as typeof userQuery;
   db.plan.findMany = (async () => []) as unknown as typeof planQuery;
   db.integrationSetting.findUnique = (async () => ({ enabled: true, publicValue: '24' })) as unknown as typeof settingQuery;
   assert.equal(await historyAccessForEmail(720, 'trial@example.invalid'), true);

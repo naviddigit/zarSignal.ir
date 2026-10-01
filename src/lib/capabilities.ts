@@ -35,7 +35,7 @@ export const CAPABILITY_META: Record<Capability, {
   CALCULATOR_BASIC: { label: 'ماشین‌حساب تأییدشده', status: 'live' },
   CALCULATOR_ADVANCED: { label: 'ماشین‌حساب پیشرفته', status: 'coming_soon' },
   HISTORY_CHART: { label: 'تاریخچه نمودار', status: 'live' },
-  ANALYSIS_BASIC: { label: 'تحلیل خانگی', status: 'coming_soon' },
+  ANALYSIS_BASIC: { label: 'گزارش دید بازار', status: 'live' },
   ANALYSIS_FULL: { label: 'گزارش کامل V5.4', status: 'source_required' },
   CONFIDENCE: { label: 'شاخص اطمینان', status: 'source_required' },
   REASON_DETAILS: { label: 'دلایل و ریسک', status: 'source_required' },
@@ -109,7 +109,7 @@ export function isInternalProduct(product: string) {
 
 /** Never expose developer slugs / capability codes in public UI. */
 export function planDisplayName(product: string, planTitle?: string | null): string {
-  if (isInternalProduct(product)) return 'آزمایش تاریخچه';
+  if (isInternalProduct(product)) return 'دسترسی آزمایشی';
   if (planTitle?.trim()) return planTitle.trim();
   if (/^[a-z0-9._-]+$/i.test(product)) return 'اشتراک فعال';
   return product;

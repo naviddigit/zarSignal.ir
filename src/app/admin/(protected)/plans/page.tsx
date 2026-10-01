@@ -38,8 +38,8 @@ export default async function PlansAdmin({ searchParams }: { searchParams: Promi
       )}
       {error && <p className="form-error" role="alert">اطلاعات فرم معتبر نبود؛ ورودی‌ها را بررسی کنید.</p>}
       <section className="admin-card">
-        <h2>دسترسی آزمایشی تحلیل</h2>{saved === "trial" && <p role="status" className="admin-message is-ok">مدت استفاده رایگان ذخیره شد.</p>}
-        <p>هر حساب یک بار، پس از ورود و انتخاب شروع. تاریخچه تا ۳۰ روز باز می‌شود. تغییر مدت برای دوره‌های جدید است؛ غیرفعال‌کردن، دسترسی آزمایشی جاری را هم می‌بندد.</p>
+        <h2>مدت استفاده رایگان از امکانات</h2>{saved === "trial" && <p role="status" className="admin-message is-ok">مدت استفاده رایگان ذخیره شد.</p>}
+        <p>مدت را به ساعت یا روز تعیین کنید. هر حساب یک بار، پس از ورود و انتخاب شروع، گزارش کامل بازار و تحلیل نمادها و تاریخچه تا ۳۰ روز را دریافت می‌کند. قیمت و ماشین‌حساب پایه همیشه رایگان‌اند. تغییر مدت برای دوره‌های جدید است؛ غیرفعال‌کردن، دسترسی آزمایشی جاری را هم می‌بندد.</p>
         {!trial.available && <p role="alert">اتصال پایگاه داده برای ذخیره این تنظیم در دسترس نیست.</p>}
         <form action={saveTrialPolicy} className="admin-form-grid">
           <Field label="مدت استفاده رایگان"><input className="ds-input" name="trialDuration" type="number" min="1" max="720" step="1" defaultValue={trial.hours % 24 === 0 ? trial.hours / 24 : trial.hours} required /></Field><Field label="واحد زمان"><Select name="trialUnit" defaultValue={trial.hours % 24 === 0 ? "days" : "hours"} options={[{value:"days",label:"روز (حداکثر ۳۰)"},{value:"hours",label:"ساعت (حداکثر ۷۲۰)"}]} /></Field>

@@ -7,6 +7,7 @@ import {
   LogOut,
   Newspaper,
   Radar,
+  ScanSearch,
   Store,
   UserRound,
 } from 'lucide-react';
@@ -17,6 +18,8 @@ import { deleteP0TestAccount } from '@/app/login/actions';
 import { resolveAccountEntitlement } from '@/server/account-entitlement';
 import { getPublicSnapshot } from '@/server/quotes';
 import { instruments } from '@/lib/market';
+import { hasCapability } from '@/lib/capabilities';
+import { buildMarketViewReport } from '@/server/market-view-report';
 
 export const metadata: Metadata = {
   title: 'میز کار من',
@@ -58,6 +61,9 @@ export default async function AccountPage({
     getPublicSnapshot().catch(() => null),
   ]);
 
+  const canAnalysis = hasCapability(entitlement.level, 'ANALYSIS_BASIC');
+  const marketPreview = await buildMarketViewReport(canAnalysis ? 'full' : 'preview').catch(() => null);
+
   const gold18 = snapshot?.quotes.find(q => q.symbol === 'GOLD_18K');
   const goldLabel = gold18
     ? instruments.find(i => i.symbol === gold18.symbol)?.name ?? 'طلای ۱۸ عیار'
@@ -93,7 +99,10 @@ export default async function AccountPage({
 
       <section className="account-quick" aria-label="میانبرها">
         <div className="account-quick__grid">
-          <Link className="account-quick__item is-primary" href="/markets">
+          <Link className="account-quick__item is-primary" href="/analysis">
+            <ScanSearch size={18} /><span>دید بازار</span>
+          </Link>
+          <Link className="account-quick__item" href="/markets">
             <Store size={18} /><span>بازار</span>
           </Link>
           <Link className="account-quick__item" href="/calculator">
@@ -105,14 +114,24 @@ export default async function AccountPage({
           <Link className="account-quick__item" href="/#bubbles">
             <Radar size={18} /><span>حباب</span>
           </Link>
-          <Link className="account-quick__item" href="/news">
-            <Newspaper size={18} /><span>مقالات</span>
-          </Link>
           <Link className="account-quick__item" href="/pricing">
             <ArrowUpLeft size={18} /><span>ارتقای پلن</span>
           </Link>
         </div>
       </section>
+
+      {marketPreview ? (
+        <section className="account-analysis" aria-label="آخرین دید بازار">
+          <h2>مشاهده تحلیل بازار</h2>
+          <p className="account-analysis__summary">{marketPreview.summaryLines[0]}</p>
+          <p className="account-analysis__meta">
+            {canAnalysis ? 'دسترسی گزارش کامل فعال است' : 'پیش‌نمایش رایگان · متن کامل با پلن تحلیل'}
+          </p>
+          <Link className="button" href="/analysis">
+            {canAnalysis ? 'باز کردن گزارش کامل' : 'دیدن پیش‌نمایش'} <ArrowUpLeft size={15} />
+          </Link>
+        </section>
+      ) : null}
 
       <section className="account-today" aria-label="الان در بازار">
         <h2>الان در بازار</h2>
@@ -130,16 +149,12 @@ export default async function AccountPage({
             <Link className="text-link" href="/markets">باز کردن</Link>
           </li>
           <li>
-            <LineChart size={16} aria-hidden="true" />
+            <ScanSearch size={16} aria-hidden="true" />
             <div>
-              <strong>تاریخچه نمودار</strong>
-              <small>
-                {entitlement.historyDays > 1
-                  ? `عمق فعال: ${faNumber(entitlement.historyDays)} روز`
-                  : '۲۴ ساعت رایگان — عمق بیشتر با پلن'}
-              </small>
+              <strong>دید زرسیگنال</strong>
+              <small>{canAnalysis ? 'گزارش کامل اختلاف با مرجع' : 'خلاصهٔ رایگان · ارتقا برای متن کامل'}</small>
             </div>
-            <Link className="text-link" href="/charts">نمودار</Link>
+            <Link className="text-link" href="/analysis">تحلیل</Link>
           </li>
           <li>
             <Newspaper size={16} aria-hidden="true" />
