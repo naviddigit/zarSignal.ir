@@ -13,13 +13,18 @@ import {
 } from 'react';
 import Link from 'next/link';
 import { Activity, ArrowUpLeft, ChevronDown, RefreshCw } from 'lucide-react';
-import type { MarketViewDecision, MarketViewReport } from '@/lib/market-view-report';
-import { formatFaPercent, formatTehranStamp } from '@/lib/market-view-report';
+import type { MarketViewDecision, MarketViewReport, MarketViewValuationStance } from '@/lib/market-view-report';
+import { buildAnalysisNarrativeSections, formatFaPercent, formatTehranStamp } from '@/lib/market-view-report';
 import {
   activeSectionIndex,
   flattenNarrativeGraphemes,
-  typingIntervalMs,
-  visibleBodiesAt,
+  readStoredTypeSpeed,
+  storeTypeSpeed,
+  typingCharsPerSecond,
+  visibleAtomsAt,
+  type AnalysisTypeSpeed,
+  type MetricTone,
+  type NarrativeAtom,
   type NarrativeSection,
 } from '@/lib/market-view-typing';
 import {
@@ -43,26 +48,54 @@ function decisionTone(kind: MarketViewDecision['kind']) {
   if (kind === 'buy') return 'is-buy';
   if (kind === 'sell') return 'is-sell';
   if (kind === 'hold') return 'is-hold';
+  if (kind === 'needs_confirmation') return 'is-pending';
   if (kind === 'insufficient_data' || kind === 'analysis_inactive') return 'is-empty';
   return 'is-pending';
 }
 
-function valuationTone(stance: NonNullable<MarketViewDecision['valuation']>['stance']) {
+function valuationTone(stance: MarketViewValuationStance) {
   if (stance === 'below') return 'is-below';
   if (stance === 'above') return 'is-above';
   if (stance === 'equal') return 'is-equal';
+  if (stance === 'mixed') return 'is-mixed';
   return 'is-unknown';
 }
 
-/** Minimal result: market once, valuation % once, decision once — no comparative prose repeat. */
+function metricClass(tone: MetricTone) {
+  return `market-view__metric is-${tone}`;
+}
+
+function MetricSpan({ atom }: { atom: Extract<NarrativeAtom, { kind: 'metric' }> }) {
+  const arrow = atom.arrow === 'up' ? '↑' : atom.arrow === 'down' ? '↓' : null;
+  return (
+    <bdi className={metricClass(atom.tone)}>
+      {arrow ? <span aria-hidden="true">{arrow}</span> : null}
+      {atom.text}
+    </bdi>
+  );
+}
+
+function renderAtoms(atoms: NarrativeAtom[]) {
+  return atoms.map((atom, index) => (
+    atom.kind === 'metric'
+      ? <MetricSpan key={`m-${index}`} atom={atom} />
+      : <span key={`t-${index}`}>{atom.text}</span>
+  ));
+}
+
+/** Minimal result: market once, valuation once, decision once — no invented overall %. */
 function ResultCard({ report }: { report: MarketViewReport }) {
   const decision = report.decision;
   const valuation = decision.valuation;
-  const marketName = valuation?.marketLabel
-    ?? (report.symbol ? report.title.replace(/^تحلیل\s+/, '') : 'بازار');
+  const isOverall = Boolean(valuation && valuation.marketLabel === 'بازار' && valuation.percent == null);
+  const marketName = isOverall
+    ? valuation!.title
+    : valuation?.marketLabel
+      ?? (report.symbol ? report.title.replace(/^تحلیل\s+/, '') : 'بازار');
   const percentLabel = valuation?.percent != null
     ? `${formatFaPercent(valuation.percent)}٪`
     : null;
+  const showUnknownRef = valuation?.stance === 'unknown' && !isOverall;
 
   return (
     <section className={`market-view__result ${decisionTone(decision.kind)}`} aria-label="کارت نتیجه">
@@ -70,17 +103,40 @@ function ResultCard({ report }: { report: MarketViewReport }) {
       {valuation ? (
         <div className={`market-view__result-value ${valuationTone(valuation.stance)}`}>
           <span className="market-view__result-dot" aria-hidden="true" />
-          <p className="market-view__result-percent">
-            {percentLabel ? <bdi>{percentLabel}</bdi> : <span>{valuation.stance === 'unknown' ? 'مرجع نامشخص' : valuation.title.split('·').pop()?.trim()}</span>}
-            <span> نسبت به مرجع محاسباتی</span>
-          </p>
+          <div>
+            {isOverall || valuation.stance === 'mixed' ? (
+              <p className="market-view__result-takeaway">{valuation.detail}</p>
+            ) : percentLabel ? (
+              <p className="market-view__result-percent">
+                <bdi className={metricClass(valuation.stance === 'below' ? 'below' : valuation.stance === 'above' ? 'above' : 'neutral')}>
+                  {percentLabel}
+                </bdi>
+                <span> نسبت به مرجع محاسباتی</span>
+              </p>
+            ) : showUnknownRef ? (
+              <p className="market-view__result-percent">
+                <bdi className={metricClass('missing')}>مرجع نامشخص</bdi>
+              </p>
+            ) : (
+              <p className="market-view__result-percent">
+                <span>{valuation.title.split('·').pop()?.trim()}</span>
+                <span> نسبت به مرجع محاسباتی</span>
+              </p>
+            )}
+            <p className="market-view__result-trend">
+              <bdi className={metricClass('missing')}>روند قابل ارزیابی نیست</bdi>
+              <span> · بدون تاریخچهٔ معتبر با بازه و مبنای مشخص</span>
+            </p>
+          </div>
         </div>
       ) : (
         <p className="market-view__result-stance">دید ارزشی در دسترس نیست</p>
       )}
       <div className="market-view__result-decision">
         <p className="market-view__result-kicker">وضعیت تصمیم</p>
-        <p className="market-view__result-decision-title">{decision.title}</p>
+        <p className={`market-view__result-decision-title${decision.kind === 'needs_confirmation' ? ' is-caution' : ''}`}>
+          {decision.title}
+        </p>
         <p className="market-view__result-decision-reason">{decision.reason}</p>
       </div>
     </section>
@@ -104,6 +160,7 @@ function useGraphemeTyping(
   totalGraphemes: number,
   reducedMotion: boolean,
   enabled: boolean,
+  speed: AnalysisTypeSpeed,
   onComplete: () => void,
 ) {
   const [shown, setShown] = useState(0);
@@ -114,8 +171,11 @@ function useGraphemeTyping(
   const shownRef = useRef(0);
   const keyRef = useRef(stepKey);
   const completedRef = useRef(false);
+  const speedRef = useRef(speed);
+  const progressRef = useRef(0);
   const onCompleteRef = useRef(onComplete);
   onCompleteRef.current = onComplete;
+  speedRef.current = speed;
 
   const clearTimers = useCallback(() => {
     for (const id of timers.current) window.clearTimeout(id);
@@ -130,6 +190,7 @@ function useGraphemeTyping(
     clearTimers();
     keyRef.current = stepKey;
     shownRef.current = 0;
+    progressRef.current = 0;
     completedRef.current = false;
     if (!enabled) {
       setShown(0);
@@ -139,6 +200,7 @@ function useGraphemeTyping(
     }
     if (reducedMotion || totalGraphemes === 0) {
       shownRef.current = totalGraphemes;
+      progressRef.current = totalGraphemes;
       setShown(totalGraphemes);
       setTyping(false);
       setReady(true);
@@ -149,18 +211,18 @@ function useGraphemeTyping(
     setShown(0);
     setTyping(true);
     setReady(true);
-    const interval = Math.max(30, typingIntervalMs(totalGraphemes));
     let last = performance.now();
+    const baseCps = typingCharsPerSecond(totalGraphemes);
     const step = (now: number) => {
       if (keyRef.current !== stepKey) return;
-      if (now - last < interval) {
-        raf.current = window.requestAnimationFrame(step);
-        return;
-      }
+      const dt = Math.max(0, (now - last) / 1000);
       last = now;
-      const next = Math.min(totalGraphemes, shownRef.current + 1);
-      shownRef.current = next;
-      setShown(next);
+      progressRef.current += dt * baseCps * speedRef.current;
+      const next = Math.min(totalGraphemes, Math.floor(progressRef.current));
+      if (next !== shownRef.current) {
+        shownRef.current = next;
+        setShown(next);
+      }
       if (next >= totalGraphemes) {
         setTyping(false);
         if (!completedRef.current) {
@@ -176,9 +238,22 @@ function useGraphemeTyping(
       raf.current = window.requestAnimationFrame(step);
     }, 280));
     return () => clearTimers();
+    // speed is read via speedRef so mid-type changes continue from the same grapheme
   }, [stepKey, totalGraphemes, reducedMotion, enabled, clearTimers]);
 
   return { shown, typing, ready, totalGraphemes };
+}
+
+function useTypeSpeed(): [AnalysisTypeSpeed, (next: AnalysisTypeSpeed) => void] {
+  const [speed, setSpeed] = useState<AnalysisTypeSpeed>(1);
+  useEffect(() => {
+    setSpeed(readStoredTypeSpeed());
+  }, []);
+  const update = useCallback((next: AnalysisTypeSpeed) => {
+    setSpeed(next);
+    storeTypeSpeed(next);
+  }, []);
+  return [speed, update];
 }
 
 function useReadingFollow(
@@ -315,7 +390,8 @@ function NarrativeBlock({
   endRef: RefObject<HTMLElement | null>;
   attachEndRef: boolean;
 }) {
-  const bodies = visibleBodiesAt(sections, shown);
+  const atomGroups = visibleAtomsAt(sections, shown);
+  const bodies = atomGroups.map(atoms => atoms.map(a => a.text).join(''));
   const active = activeSectionIndex(sections, shown);
   const complete = !typing && ready && shown >= totalGraphemes;
 
@@ -338,6 +414,7 @@ function NarrativeBlock({
       <div aria-hidden={typing || !complete ? true : undefined}>
         {sections.map((section, index) => {
           const body = bodies[index] ?? '';
+          const atoms = atomGroups[index] ?? [];
           const started = body.length > 0 || (index === 0 && ready);
           const isActive = typing && index === active && body.length < section.body.length;
           if (!started && index > 0) return null;
@@ -345,7 +422,7 @@ function NarrativeBlock({
             <section key={section.id} className="market-view__block market-view__typed is-in">
               <h2>{section.title}</h2>
               <p>
-                {body}
+                {renderAtoms(atoms)}
                 {isActive ? <span className="market-view__caret" aria-hidden="true" /> : null}
                 {attachEndRef && index === active ? (
                   <span ref={endRef} className="market-view__read-anchor" aria-hidden="true" />
@@ -364,19 +441,7 @@ function RevealItem({ children }: { children: ReactNode }) {
 }
 
 function buildMainNarrative(report: MarketViewReport): NarrativeSection[] {
-  const sections: NarrativeSection[] = [
-    { id: 'view', title: 'دید فعلی', body: report.summaryLines[0] },
-    { id: 'reason', title: 'دلیل', body: report.marketSays },
-  ];
-  if (report.access === 'full' && report.reading) {
-    sections.push({ id: 'meaning', title: 'معنی', body: report.reading });
-  }
-  if (report.access === 'full' && report.conclusion) {
-    sections.push({ id: 'result', title: 'نتیجه', body: report.conclusion });
-  } else if (report.access === 'preview') {
-    sections.push({ id: 'gate', title: 'ادامه', body: report.summaryLines[1] });
-  }
-  return sections;
+  return buildAnalysisNarrativeSections(report);
 }
 
 type PlanItem =
@@ -397,21 +462,39 @@ function EvidenceTable({ report }: { report: MarketViewReport }) {
             </tr>
           </thead>
           <tbody>
-            {report.evidence.map(row => (
-              <tr key={row.id} className={row.status !== 'ok' ? 'is-muted' : undefined}>
-                <th scope="row"><strong>{row.marketLabel}</strong></th>
-                <td data-label="قیمت بازار">{row.marketPriceLabel ?? 'در دسترس نیست'}</td>
-                <td data-label="مرجع محاسباتی">{row.referenceLabel ?? 'در دسترس نیست'}</td>
-                <td data-label="اختلاف">
-                  {row.diffPercent != null
-                    ? <bdi>{formatFaPercent(row.diffPercent)}٪</bdi>
-                    : 'در دسترس نیست'}
-                  {row.status !== 'ok' ? (
-                    <small>{freshnessLabel(row.status === 'blocked' ? 'blocked' : row.status === 'stale' ? 'stale' : 'unavailable')}</small>
-                  ) : null}
-                </td>
-              </tr>
-            ))}
+            {report.evidence.map(row => {
+              const missing = row.diffPercent == null || row.status === 'unavailable' || row.status === 'blocked';
+              const tone: MetricTone = missing
+                ? 'missing'
+                : row.diffPercent! < 0
+                  ? 'below'
+                  : row.diffPercent! > 0
+                    ? 'above'
+                    : 'neutral';
+              return (
+                <tr key={row.id} className={row.status !== 'ok' ? 'is-muted' : undefined}>
+                  <th scope="row"><strong>{row.marketLabel}</strong></th>
+                  <td data-label="قیمت بازار">
+                    {row.marketPriceLabel
+                      ? <bdi className={metricClass('neutral')}>{row.marketPriceLabel}</bdi>
+                      : <bdi className={metricClass('missing')}>در دسترس نیست</bdi>}
+                  </td>
+                  <td data-label="مرجع محاسباتی">
+                    {row.referenceLabel
+                      ? <bdi className={metricClass('neutral')}>{row.referenceLabel}</bdi>
+                      : <bdi className={metricClass('missing')}>در دسترس نیست</bdi>}
+                  </td>
+                  <td data-label="اختلاف">
+                    {row.diffPercent != null
+                      ? <bdi className={metricClass(tone)}>{formatFaPercent(row.diffPercent)}٪</bdi>
+                      : <bdi className={metricClass('missing')}>در دسترس نیست</bdi>}
+                    {row.status !== 'ok' ? (
+                      <small>{freshnessLabel(row.status === 'blocked' ? 'blocked' : row.status === 'stale' ? 'stale' : 'unavailable')}</small>
+                    ) : null}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
@@ -525,6 +608,7 @@ export function MarketViewReportView({
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const reduced = usePrefersReducedMotion();
+  const [typeSpeed, setTypeSpeed] = useTypeSpeed();
   const endRef = useRef<HTMLElement | null>(null);
 
   const reportKey = `${report.snapshotFingerprint}:${report.symbol ?? 'all'}:${report.access}`;
@@ -581,6 +665,7 @@ export function MarketViewReportView({
     activeGraphemes.length,
     reduced,
     typingEnabled,
+    typeSpeed,
     onTypeComplete,
   );
 
@@ -695,9 +780,32 @@ export function MarketViewReportView({
             </>
           ) : null}
         </p>
+        {!reduced ? (
+          <div className="market-view__speed" role="group" aria-label="سرعت نمایش">
+            <span>سرعت نمایش:</span>
+            <button
+              type="button"
+              className={typeSpeed === 1 ? 'is-active' : undefined}
+              aria-pressed={typeSpeed === 1}
+              onClick={() => setTypeSpeed(1)}
+            >
+              ۱×
+            </button>
+            <button
+              type="button"
+              className={typeSpeed === 2 ? 'is-active' : undefined}
+              aria-pressed={typeSpeed === 2}
+              onClick={() => setTypeSpeed(2)}
+            >
+              ۲×
+            </button>
+          </div>
+        ) : null}
         {report.currentQuote ? (
           <p className="market-view__meta">
-            قیمت تابلو {report.currentQuote.label}: <bdi>{report.currentQuote.price}</bdi> / {report.currentQuote.unit}
+            قیمت تابلو {report.currentQuote.label}:{' '}
+            <bdi className={metricClass('neutral')}>{report.currentQuote.price}</bdi>
+            {' / '}{report.currentQuote.unit}
           </p>
         ) : null}
       </header>

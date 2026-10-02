@@ -8,10 +8,14 @@ import {
 import {
   activeSectionIndex,
   flattenNarrativeGraphemes,
+  graphemesForElapsed,
   isGraphemePrefix,
   segmentGraphemes,
+  sliceAtoms,
   typingCharsPerSecond,
+  visibleAtomsAt,
   visibleBodiesAt,
+  withAtoms,
   type NarrativeSection,
 } from '../src/lib/market-view-typing';
 
@@ -49,19 +53,20 @@ test('narrative layers stay distinct: view reason meaning result', () => {
   ], 'ok');
   assert.match(prose.summaryLines[0], /طلا پایین‌تر و نقره بالاتر|طلا.*نقره/);
   assert.doesNotMatch(prose.summaryLines[0], /مشتق از مظنه/);
-  assert.match(prose.marketSays, /تومان|مرجع|اختلاف/);
+  assert.match(prose.marketSays, /جدول شواهد|تومان|مرجع/);
   assert.doesNotMatch(prose.marketSays, /اونس جهانی و دلار بازار می‌گذاریم/);
   assert.ok(prose.reading);
-  assert.match(prose.reading!, /نسبت|مجوز خرید یا فروش نیست/);
+  assert.match(prose.reading!, /نسبت|مجوز خرید یا فروش نیست|اضافه‌قیمت|دلار ضمنی|هم‌خوان/);
   assert.ok(prose.conclusion);
-  assert.match(prose.conclusion!, /فعال نیست|HOLD|منتظر فرصت/);
+  assert.match(prose.conclusion!, /فعال نیست/);
   assert.doesNotMatch(prose.conclusion!, /۲٫۴۰٪/);
-  assert.doesNotMatch(prose.reading! + prose.conclusion!, /در موتور محصول موجود نیست/);
+  assert.doesNotMatch(prose.reading! + prose.conclusion!, /در موتور محصول موجود نیست|اعلان خودکار/);
   assert.equal(prose.decision.kind, 'analysis_inactive');
   assert.equal(prose.decision.tradeAction, null);
   assert.ok(prose.decision.valuation);
   assert.equal(prose.decision.valuation!.marketLabel, 'بازار');
   assert.equal(prose.decision.valuation!.percent, null);
+  assert.equal(prose.decision.valuation!.stance, 'mixed');
   assert.match(prose.decision.valuation!.title, /مقایسه‌ای/);
   assert.match(prose.decision.reason, /موتور تصمیم|فعال نیست/);
   assert.doesNotMatch(prose.decision.title, /در انتظار تأیید شرایط/);
@@ -79,6 +84,19 @@ test('overall market summary compares gold and silver without crowning max abs g
   assert.doesNotMatch(prose.summaryLines[0], /۰٫۷۵٪|خرید|سود تضمینی/);
   assert.equal(prose.decision.valuation!.marketLabel, 'بازار');
   assert.equal(prose.decision.valuation!.percent, null);
+  assert.equal(prose.decision.valuation!.stance, 'mixed');
+  assert.equal(prose.decision.valuation!.title, 'برداشت مقایسه‌ای بازار');
+  assert.match(prose.decision.valuation!.detail, /طلا پایین‌تر و نقره بالاتر/);
+  assert.doesNotMatch(prose.decision.valuation!.title + prose.decision.valuation!.detail, /مرجع نامشخص/);
+});
+
+test('mixed gold-below silver-above stays mixed not unknown on result valuation', () => {
+  const prose = composeMarketViewProse([
+    row({ id: 'gold', marketLabel: 'طلا', status: 'ok', diffPercent: -0.67, marketPriceLabel: '1', referenceLabel: '2' }),
+    row({ id: 'silver', marketLabel: 'نقره', status: 'ok', diffPercent: 0.75, marketPriceLabel: '1', referenceLabel: '2' }),
+  ], 'ok');
+  assert.equal(prose.decision.valuation!.stance, 'mixed');
+  assert.equal(prose.decision.valuation!.percent, null);
   assert.match(prose.decision.valuation!.detail, /طلا پایین‌تر و نقره بالاتر/);
 });
 
@@ -88,14 +106,14 @@ test('gold silver parity stays in meaning without inventing executable swap', ()
     row({ id: 'silver', marketLabel: 'نقره', status: 'ok', diffPercent: 0.42, marketPriceLabel: '1', referenceLabel: '2' }),
   ];
   const prose = composeMarketViewProse(evidence, 'ok');
-  assert.match(prose.reading!, /۱٫۱۴٪ پایین‌تر/);
-  assert.match(prose.reading!, /تبدیل طلا به نقره مزیت ارزشی نشان نمی‌دهد/);
+  assert.match(prose.reading!, /۱٫۱۴٪/);
+  assert.match(prose.reading!, /طلا نسبت به نقره اضافه‌قیمت کمتری|اضافه‌قیمت کمتری/);
   assert.match(prose.reading!, /بازده قابل اجرای تبدیل نیست/);
   assert.doesNotMatch(prose.conclusion!, /تبدیل طلا به نقره/);
   const reversed = composeMarketViewProse(evidence.map(r => ({ ...r, diffPercent: r.id === 'gold' ? 0.42 : -0.72 })), 'ok');
-  assert.match(reversed.reading!, /نقره اضافه‌قیمت کمتری/);
+  assert.match(reversed.reading!, /نقره نسبت به طلا اضافه‌قیمت کمتری/);
   const stale = composeMarketViewProse(evidence.map(r => ({ ...r, status: 'stale' as const })), 'stale');
-  assert.doesNotMatch(stale.reading!, /نسبت طلا به نقره/);
+  assert.doesNotMatch(stale.reading!, /نسبت داخلی طلا به نقره/);
   assert.match(stale.decision.reason, /قدیمی/);
   assert.equal(stale.decision.kind, 'insufficient_data');
 });
@@ -116,9 +134,9 @@ test('decision card never invents BUY/SELL/HOLD or awaiting-confirmation from bu
   ], 'ok', null);
   assert.equal(pending.kind, 'analysis_inactive');
   assert.equal(pending.tradeAction, null);
-  assert.match(pending.reason, /فعال نیست|منتظر فرصت معامله نیست/);
+  assert.match(pending.reason, /فعال نیست/);
   assert.doesNotMatch(pending.title, /در انتظار تأیید شرایط/);
-  assert.doesNotMatch(pending.reason, /در موتور محصول موجود نیست/);
+  assert.doesNotMatch(pending.reason, /اعلان|منتظر فرصت|HOLD/);
 });
 
 test('needs_confirmation only when an active engine reports unmet conditions', () => {
@@ -159,8 +177,8 @@ test('BUY/SELL/HOLD only from explicit engineTrade fixture', () => {
 test('grapheme typing mid-progress shows a correct prefix of one paragraph', () => {
   const sections: NarrativeSection[] = [
     { id: 'view', title: 'دید فعلی', body: 'طلای ۱۸ عیار الان ۱٫۱۴٪ پایین‌تر از مرجع است.' },
-    { id: 'reason', title: 'دلیل', body: 'قیمت بازار ۲۵٬۷۰۵٬۲۵۰ تومان / گرم و مرجع ۲۶٬۰۰۰٬۰۰۰ تومان / گرم است.' },
-    { id: 'meaning', title: 'معنی', body: 'این اختلاف رابطهٔ قیمت داخلی با اونس و دلار را نشان می‌دهد.' },
+    { id: 'reason', title: 'چرا؟', body: 'قیمت بازار ۲۵٬۷۰۵٬۲۵۰ تومان / گرم و مرجع ۲۶٬۰۰۰٬۰۰۰ تومان / گرم است.' },
+    { id: 'meaning', title: 'برداشت از این اختلاف', body: 'این اختلاف رابطهٔ قیمت داخلی با اونس و دلار را نشان می‌دهد.' },
   ];
   const { graphemes } = flattenNarrativeGraphemes(sections);
   assert.ok(graphemes.length > 40);
@@ -184,6 +202,28 @@ test('grapheme typing mid-progress shows a correct prefix of one paragraph', () 
   assert.equal(onlyFirst[2], '');
   assert.ok(typingCharsPerSecond(graphemes.length) >= 40);
   assert.ok(typingCharsPerSecond(graphemes.length) <= 160);
+});
+
+test('2x typing advances about twice as many graphemes for the same elapsed time', () => {
+  const total = 400;
+  const at1 = graphemesForElapsed(2000, total, 1);
+  const at2 = graphemesForElapsed(2000, total, 2);
+  assert.ok(at1 > 0);
+  assert.ok(at2 > at1);
+  assert.ok(at2 >= Math.floor(at1 * 1.8));
+  assert.ok(at2 <= Math.ceil(at1 * 2.2) || at2 === total);
+});
+
+test('structured metric atoms slice without regex rewriting', () => {
+  const section = withAtoms('view', 'دید فعلی', [
+    { kind: 'text', text: 'طلا ' },
+    { kind: 'metric', text: '۰٫۶۷٪', tone: 'below' },
+    { kind: 'text', text: ' پایین‌تر' },
+  ]);
+  const mid = sliceAtoms(section.atoms!, 6);
+  assert.equal(mid.some(a => a.kind === 'metric'), true);
+  const bodies = visibleAtomsAt([section], 3);
+  assert.equal(bodies[0]!.every(a => a.kind === 'text' || a.kind === 'metric'), true);
 });
 
 test('skip-equivalent full shown equals complete bodies', () => {

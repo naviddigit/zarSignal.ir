@@ -4,6 +4,12 @@
  */
 
 import type { Symbol } from '@/lib/market';
+import {
+  withAtoms,
+  type MetricTone,
+  type NarrativeAtom,
+  type NarrativeSection,
+} from '@/lib/market-view-typing';
 
 export type MarketViewAccess = 'preview' | 'full';
 
@@ -37,13 +43,16 @@ export type MarketViewDecisionKind =
   /** Missing, blocked, or too-stale inputs for a reliable comparison/decision. */
   | 'insufficient_data';
 
+export type MarketViewValuationStance = 'below' | 'above' | 'equal' | 'mixed' | 'unknown';
+
 export type MarketViewValuationSummary = {
-  stance: 'below' | 'above' | 'equal' | 'unknown';
+  /** `mixed` = valid opposing gold/silver directions; `unknown` = missing reference only. */
+  stance: MarketViewValuationStance;
   title: string;
   detail: string;
   /** Short market name for the result card — never omit the asset. */
   marketLabel: string;
-  /** Percent gap vs reference; null when unknown. */
+  /** Percent gap vs reference; null for overall/mixed or when unknown. Never invent a single overall %. */
   percent: number | null;
 };
 
@@ -61,7 +70,7 @@ export type MarketViewDecision = {
 export type MarketViewValuationMark = {
   id: MarketViewEvidenceRow['id'];
   label: string;
-  stance: 'below' | 'above' | 'equal' | 'unknown';
+  stance: Exclude<MarketViewValuationStance, 'mixed'>;
   stanceLabel: string;
   percentLabel: string | null;
 };
@@ -196,15 +205,24 @@ function buildOverallComparativeView(usable: MarketViewEvidenceRow[]): {
         view += '.';
       }
       const mixed = gDir !== sDir && gDir !== 'equal' && sDir !== 'equal' && gDir !== 'none' && sDir !== 'none';
-      return { view, stance: mixed ? 'unknown' : (gDir === 'none' ? 'unknown' : gDir === 'equal' ? 'equal' : gDir) };
+      if (mixed) return { view, stance: 'mixed' };
+      if (gDir === 'none') return { view, stance: 'unknown' };
+      if (gDir === 'equal' && sDir === 'equal') return { view, stance: 'equal' };
+      if (gDir === 'equal') return { view, stance: sDir === 'none' ? 'unknown' : sDir };
+      return { view, stance: gDir };
     }
   }
 
   const parts = [phrase(gold, 'طلا'), phrase(silver, 'نقره'), phrase(usd, 'دلار آزاد')].filter(Boolean);
   if (parts.length >= 2) {
+    const dirs = [gold, silver, usd]
+      .map(row => (row && phrase(row, '') ? stance(row.diffPercent) : null))
+      .filter((d): d is Exclude<ReturnType<typeof stance>, 'none'> => d != null && d !== 'none');
+    const unique = new Set(dirs);
+    const mixed = unique.size > 1 && ![...unique].every(d => d === 'equal');
     return {
       view: `${parts.join(' و ')} از مرجع محاسباتی است؛ این مقایسه توصیهٔ خرید یا فروش نیست.`,
-      stance: 'unknown',
+      stance: mixed ? 'mixed' : (dirs[0] === 'equal' ? 'equal' : dirs[0] ?? 'unknown'),
     };
   }
   if (parts.length === 1) {
@@ -363,9 +381,9 @@ export function buildMarketViewDecision(
   return {
     kind: 'analysis_inactive',
     tradeAction: null,
-    title: 'تحلیل معاملاتی فعال نیست',
-    reason: 'اختلاف با مرجع محاسباتی موجود است، اما موتور تصمیم تأییدشده برای این نماد در محصول فعال نیست؛ سیستم خودکار منتظر فرصت معامله نیست.',
-    changeConditions: 'پس از اتصال موتور تصمیم تأییدشده با قواعد قابل ارزیابی، وضعیت تصمیم همین‌جا نمایش داده می‌شود.',
+    title: 'موتور تصمیم فعال نیست',
+    reason: 'موتور تصمیم معاملاتی تأییدشده برای این نماد فعال نیست.',
+    changeConditions: 'وضعیت خرید/فروش/نگهداری فقط پس از فعال‌شدن موتور تأییدشده نمایش داده می‌شود.',
     valuation,
   };
 }
@@ -376,24 +394,23 @@ function reasonSentence(row: MarketViewEvidenceRow, symbol?: Symbol | null) {
   const reference = row.referenceLabel ?? 'نامشخص';
   const direction = stance(row.diffPercent);
   if (direction === 'none' || row.diffPercent == null) {
-    return `برای ${name} قیمت بازار ${market} است؛ مرجع معتبر برای اختلاف در دسترس نیست.`;
+    return `برای ${name} مرجع معتبر اختلاف در دسترس نیست.`;
   }
-  const pct = formatFaMoney(Math.abs(row.diffPercent), 2);
-  const rel = direction === 'below' ? 'پایین‌تر' : direction === 'above' ? 'بالاتر' : 'برابر';
   if (direction === 'equal') {
-    return `قیمت ${name} در بازار ${market} و مرجع ${reference} است؛ اختلاف صفر است.`;
+    return `قیمت ${name} با مرجع برابر است.`;
   }
-  return `قیمت ${name} در بازار ${market} و مرجع ${reference} است؛ اختلاف ${pct}٪ ${rel} از مرجع.`;
+  // One point: prices live in the evidence table; narrative keeps direction only once.
+  return `قیمت بازار ${name} ${market} و مرجع ${reference} است.`;
 }
 
 function goldBasisNote(symbol?: Symbol | null) {
   if (symbol === 'GOLD_18K') {
-    return 'درصد اختلاف از ارزش محاسباتی مشتق از مظنهٔ آب‌شده است، نه جایگزین مستقیم قیمت تابلوی گرم ۱۸ عیار.';
+    return 'درصد اختلاف از ارزش محاسباتی مشتق از مظنه است، نه قیمت تابلوی گرم ۱۸.';
   }
   if (symbol === 'GOLD_MELTED') {
-    return 'مقایسه روی آب‌شده پس از تبدیل مظنه به گرم ۱۸ عیار انجام می‌شود؛ جزئیات تبدیل در بخش فرمول آمده است.';
+    return 'مقایسه پس از تبدیل مظنه به گرم ۱۸ عیار است؛ جزئیات در فرمول.';
   }
-  return 'اختلاف طلا از مقایسهٔ گرم ۱۸ عیار مشتق از مظنه با ارزش محاسباتی اونس و دلار است.';
+  return 'اختلاف طلا از گرم ۱۸ مشتق از مظنه در برابر اونس و دلار است.';
 }
 
 /** Describe observable valuation only; no invented neutral band or trading state. */
@@ -412,9 +429,9 @@ export function composeMarketViewProse(
   const unconfirmed = evidence.filter(row => row.status === 'blocked' || row.status === 'unavailable')
     .map(row => `${shortMarketLabel(row.id, symbol)}: ${row.statusReason ?? 'دادهٔ کافی موجود نیست'}`);
   if (freshness === 'stale' || freshness === 'mixed') {
-    unconfirmed.unshift('بخشی از داده‌ها قدیمی است؛ گزارش همان زمان مشاهده را توضیح می‌دهد و روند تازه محسوب نمی‌شود.');
+    unconfirmed.unshift('بخشی از داده‌ها قدیمی است؛ این گزارش روند تازه نیست.');
   }
-  unconfirmed.push('روند هم‌زمان و نرخ قابل اجرای خرید و فروش برای تأیید تصمیم معامله در این گزارش موجود نیست.');
+  unconfirmed.push('روند قیمت از تاریخچهٔ معتبر در این گزارش ارزیابی نشده است.');
 
   const decision = buildMarketViewDecision(evidence, freshness, options?.engineTrade ?? null, symbol);
 
@@ -424,7 +441,7 @@ export function composeMarketViewProse(
         'الان اختلاف معتبری میان قیمت بازار و مرجع محاسباتی دیده نمی‌شود.',
         'با رسیدن ورودی‌های معتبر، دید ارزشی اینجا شکل می‌گیرد.',
       ],
-      marketSays: 'بدون قیمت بازار و مرجع هم‌زمان، دلیل عددی ساخته نمی‌شود.',
+      marketSays: 'بدون قیمت و مرجع هم‌زمان، دلیل عددی ساخته نمی‌شود.',
       reading: null,
       conclusion: null,
       unconfirmed,
@@ -438,7 +455,7 @@ export function composeMarketViewProse(
   const silver = usable.find(row => row.id === 'silver');
   const usd = usable.find(row => row.id === 'usd');
 
-  // الف) دید فعلی — تک‌نماد روی همان نماد؛ کل بازار مقایسه‌ای بدون برجسته‌کردن max |diff|
+  // الف) دید فعلی — یک نکته؛ کل بازار مقایسه‌ای؛ بدون تاج max |diff|
   let view: string;
   let reasonFocus = independent[0] ?? usable[0]!;
   if (!symbol && usable.length > 1) {
@@ -455,62 +472,53 @@ export function composeMarketViewProse(
       : `${name} الان ${pct}٪ ${direction === 'below' ? 'پایین‌تر از' : 'بالاتر از'} مرجع محاسباتی است.`;
   }
 
-  // ب) دلیل — قیمت، مرجع، اختلاف با واحد
-  const reasonParts = usable.map(row => reasonSentence(row, symbol));
-  if (reasonFocus.id === 'gold' || symbol === 'GOLD_18K' || symbol === 'GOLD_MELTED') {
-    reasonParts.push(goldBasisNote(symbol));
+  // ب) چرا؟ — یک نکته؛ جزئیات جدول برای حرفه‌ای‌ها
+  let reason: string;
+  if (!symbol && usable.length > 1) {
+    reason = 'اعداد قیمت و مرجع در جدول شواهد آمده است؛ اینجا فقط جهت اختلاف بیان می‌شود.';
+  } else {
+    reason = reasonSentence(reasonFocus, symbol);
+    if (reasonFocus.id === 'gold' || symbol === 'GOLD_18K' || symbol === 'GOLD_MELTED') {
+      reason = `${reason} ${goldBasisNote(symbol)}`;
+    }
   }
-  const reason = reasonParts.join(' ');
 
-  // ج) معنی — رابطهٔ داخلی، دلار، اونس / مقایسهٔ طلا-نقره فقط وقتی هر دو در شواهد باشند
-  const meaningParts: string[] = [];
+  // ج) برداشت از این اختلاف — یک نکته؛ بدون تکرار درصد دید فعلی
+  let meaning: string;
   if (gold && silver) {
     const parityGap = gold.status === 'ok' && silver.status === 'ok'
       && gold.diffPercent! > -100 && silver.diffPercent! > -100
       ? ((1 + gold.diffPercent! / 100) / (1 + silver.diffPercent! / 100) - 1) * 100
       : null;
     if (parityGap != null) {
-      meaningParts.push(
-        `نسبت طلا به نقره در بازار داخلی ${formatFaMoney(Math.abs(parityGap), 2)}٪ ${parityGap < 0 ? 'پایین‌تر از' : parityGap > 0 ? 'بالاتر از' : 'برابر با'} نسبت محاسباتی جهانی است.`,
-      );
-      if (parityGap < 0) {
-        meaningParts.push('در این مقایسه طلا اضافه‌قیمت کمتری نسبت به نقره دارد؛ تبدیل طلا به نقره مزیت ارزشی نشان نمی‌دهد.');
-      } else if (parityGap > 0) {
-        meaningParts.push('در این مقایسه نقره اضافه‌قیمت کمتری نسبت به طلا دارد.');
-      } else {
-        meaningParts.push('مزیت ارزشی واضحی میان طلا و نقره دیده نمی‌شود.');
-      }
-      meaningParts.push('این رقم قبل از هزینه و اختلاف خرید و فروش است و بازده قابل اجرای تبدیل نیست.');
+      const side = parityGap < 0 ? 'طلا نسبت به نقره اضافه‌قیمت کمتری دارد' : parityGap > 0 ? 'نقره نسبت به طلا اضافه‌قیمت کمتری دارد' : 'مزیت واضحی میان طلا و نقره دیده نمی‌شود';
+      meaning = `نسبت داخلی طلا به نقره ${formatFaMoney(Math.abs(parityGap), 2)}٪ ${parityGap < 0 ? 'پایین‌تر از' : parityGap > 0 ? 'بالاتر از' : 'برابر با'} نسبت جهانی است؛ ${side}. این رقم بازده قابل اجرای تبدیل نیست.`;
     } else if (gold.diffPercent! < 0 && silver.diffPercent! >= 0) {
-      meaningParts.push('تخفیف نسبت به مرجع در طلا دیده می‌شود؛ نقره همان وضعیت را ندارد.');
+      meaning = 'تخفیف نسبت به مرجع در طلا دیده می‌شود؛ نقره همان وضعیت را ندارد.';
     } else if (silver.diffPercent! < 0 && gold.diffPercent! >= 0) {
-      meaningParts.push('تخفیف نسبت به مرجع در نقره دیده می‌شود؛ طلا همان وضعیت را ندارد.');
+      meaning = 'تخفیف نسبت به مرجع در نقره دیده می‌شود؛ طلا همان وضعیت را ندارد.';
     } else {
-      meaningParts.push(`فاصله از مرجع در ${Math.abs(gold.diffPercent!) >= Math.abs(silver.diffPercent!) ? 'طلا' : 'نقره'} بزرگ‌تر است.`);
+      meaning = 'اختلاف با مرجع به‌تنهایی مجوز خرید یا فروش نیست.';
     }
   } else if (gold && usd) {
-    meaningParts.push('فاصلهٔ دلار بازار با دلار ضمنی طلا بازتاب همان رابطهٔ طلا، اونس و دلار است؛ تأیید مستقل دلار از درهم نیست.');
-    if (gold.impliedUsdLabel) {
-      meaningParts.push(`قیمت طلا عملاً دلار حدود ${gold.impliedUsdLabel} را منعکس می‌کند.`);
-    }
+    meaning = gold.impliedUsdLabel
+      ? `فاصلهٔ دلار بازار با دلار ضمنی طلا (~${gold.impliedUsdLabel}) همان رابطهٔ طلا/اونس است؛ تأیید مستقل از درهم نیست.`
+      : 'فاصلهٔ دلار بازار با دلار ضمنی طلا بازتاب همان رابطهٔ طلا و اونس است؛ تأیید مستقل از درهم نیست.';
   } else if (silver) {
-    meaningParts.push('اختلاف نقره نشان می‌دهد قیمت داخلی تا چه حد با اونس جهانی و دلار بازار هم‌خوان است.');
-    if (silver.impliedUsdLabel) {
-      meaningParts.push(`قیمت نقره عملاً دلار حدود ${silver.impliedUsdLabel} را منعکس می‌کند.`);
-    }
+    meaning = silver.impliedUsdLabel
+      ? `اختلاف نقره هم‌خوانی قیمت داخلی با اونس و دلار (~${silver.impliedUsdLabel}) را نشان می‌دهد.`
+      : 'اختلاف نقره هم‌خوانی قیمت داخلی با اونس جهانی و دلار بازار را نشان می‌دهد.';
   } else if (usd) {
-    meaningParts.push('این اختلاف فقط فاصلهٔ دلار بازار با دلار ضمنی طلا را نشان می‌دهد؛ ارزش بنیادی جداگانه برای دلار نیست.');
+    meaning = 'این رقم فقط فاصلهٔ دلار بازار با دلار ضمنی طلا است؛ ارزش بنیادی جداگانه نیست.';
   } else {
-    meaningParts.push('این اختلاف رابطهٔ قیمت داخلی با مرجع محاسباتی را نشان می‌دهد، نه جهت قطعی حرکت بعدی.');
+    meaning = 'این اختلاف رابطه با مرجع محاسباتی را نشان می‌دهد، نه جهت قطعی حرکت بعدی.';
   }
-  meaningParts.push('اختلاف با مرجع به‌تنهایی مجوز خرید یا فروش نیست.');
-  const meaning = meaningParts.join(' ');
 
-  // د) نتیجه — وضعیت تصمیم و محدودیت (بدون تکرار درصد دید فعلی)
+  // د) نتیجه — کوتاه؛ بدون وعدهٔ اعلان خودکار
   const result = decision.kind === 'analysis_inactive'
-    ? `${decision.reason} این وضعیت به‌معنای نگهداری (HOLD) یا انتظار خودکار برای فرصت نیست.`
+    ? decision.reason
     : decision.kind === 'needs_confirmation'
-      ? `${decision.reason}`
+      ? decision.reason
       : decision.reason;
 
   const teaser = symbol
@@ -527,3 +535,110 @@ export function composeMarketViewProse(
     valuationMarks,
   };
 }
+
+function metricAtom(text: string, tone: MetricTone, arrow?: 'up' | 'down' | null): NarrativeAtom {
+  return { kind: 'metric', text, tone, arrow: arrow ?? null };
+}
+
+function textAtom(text: string): NarrativeAtom {
+  return { kind: 'text', text };
+}
+
+/** Build typed narrative with structured metrics — no regex HTML rewriting. */
+export function buildAnalysisNarrativeSections(report: MarketViewReport): NarrativeSection[] {
+  const valuation = report.decision.valuation;
+  const viewAtoms: NarrativeAtom[] = [];
+
+  if (!report.symbol && valuation && (valuation.stance === 'mixed' || valuation.marketLabel === 'بازار')) {
+    const gold = report.evidence.find(r => r.id === 'gold');
+    const silver = report.evidence.find(r => r.id === 'silver');
+    const gDir = gold ? stance(gold.diffPercent) : 'none';
+    const sDir = silver ? stance(silver.diffPercent) : 'none';
+    if (gDir !== 'none' && sDir !== 'none') {
+      viewAtoms.push(textAtom('طلا '));
+      viewAtoms.push(metricAtom(
+        gDir === 'below' ? 'پایین‌تر' : gDir === 'above' ? 'بالاتر' : 'برابر',
+        gDir === 'below' ? 'below' : gDir === 'above' ? 'above' : 'neutral',
+      ));
+      viewAtoms.push(textAtom(' و نقره '));
+      viewAtoms.push(metricAtom(
+        sDir === 'below' ? 'پایین‌تر' : sDir === 'above' ? 'بالاتر' : 'برابر',
+        sDir === 'below' ? 'below' : sDir === 'above' ? 'above' : 'neutral',
+      ));
+      viewAtoms.push(textAtom(' از مرجع محاسباتی است'));
+      if (gDir === 'below' && (sDir === 'above' || sDir === 'equal')) {
+        viewAtoms.push(textAtom('؛ در این مقایسه، طلا اضافه‌قیمت کمتری دارد.'));
+      } else if (sDir === 'below' && (gDir === 'above' || gDir === 'equal')) {
+        viewAtoms.push(textAtom('؛ در این مقایسه، نقره اضافه‌قیمت کمتری دارد.'));
+      } else if (gDir === 'above' && sDir === 'above') {
+        viewAtoms.push(textAtom('؛ هر دو بالاتر از مرجع‌اند و این به‌معنای توصیهٔ خرید نیست.'));
+      } else if (gDir === 'below' && sDir === 'below') {
+        viewAtoms.push(textAtom('؛ هر دو پایین‌تر از مرجع‌اند و این به‌معنای سود تضمینی نیست.'));
+      } else {
+        viewAtoms.push(textAtom('.'));
+      }
+    } else {
+      viewAtoms.push(textAtom(report.summaryLines[0]));
+    }
+  } else if (valuation?.percent != null && valuation.stance !== 'unknown' && valuation.stance !== 'mixed') {
+    const name = valuation.marketLabel;
+    const pct = formatFaMoney(Math.abs(valuation.percent), 2);
+    viewAtoms.push(textAtom(`${name} الان `));
+    viewAtoms.push(metricAtom(
+      `${pct}٪`,
+      valuation.stance === 'below' ? 'below' : valuation.stance === 'above' ? 'above' : 'neutral',
+    ));
+    viewAtoms.push(textAtom(
+      valuation.stance === 'equal'
+        ? ' برابر با مرجع محاسباتی است.'
+        : ` ${valuation.stance === 'below' ? 'پایین‌تر از' : 'بالاتر از'} مرجع محاسباتی است.`,
+    ));
+  } else {
+    viewAtoms.push(textAtom(report.summaryLines[0]));
+  }
+
+  const sections: NarrativeSection[] = [
+    withAtoms('view', 'دید فعلی', viewAtoms),
+    withAtoms('reason', 'چرا؟', [textAtom(report.marketSays)]),
+  ];
+
+  if (report.access === 'full' && report.reading) {
+    const meaningAtoms: NarrativeAtom[] = [];
+    const gold = report.evidence.find(r => r.id === 'gold' && r.status === 'ok');
+    const silver = report.evidence.find(r => r.id === 'silver' && r.status === 'ok');
+    if (gold && silver && gold.diffPercent != null && silver.diffPercent != null
+      && gold.diffPercent > -100 && silver.diffPercent > -100) {
+      const parityGap = ((1 + gold.diffPercent / 100) / (1 + silver.diffPercent / 100) - 1) * 100;
+      meaningAtoms.push(textAtom('نسبت داخلی طلا به نقره '));
+      meaningAtoms.push(metricAtom(
+        `${formatFaMoney(Math.abs(parityGap), 2)}٪`,
+        parityGap < 0 ? 'below' : parityGap > 0 ? 'above' : 'neutral',
+      ));
+      meaningAtoms.push(textAtom(
+        ` ${parityGap < 0 ? 'پایین‌تر از' : parityGap > 0 ? 'بالاتر از' : 'برابر با'} نسبت جهانی است؛ ${
+          parityGap < 0 ? 'طلا نسبت به نقره اضافه‌قیمت کمتری دارد' : parityGap > 0 ? 'نقره نسبت به طلا اضافه‌قیمت کمتری دارد' : 'مزیت واضحی میان طلا و نقره دیده نمی‌شود'
+        }. این رقم بازده قابل اجرای تبدیل نیست.`,
+      ));
+    } else {
+      meaningAtoms.push(textAtom(report.reading));
+    }
+    sections.push(withAtoms('meaning', 'برداشت از این اختلاف', meaningAtoms));
+  }
+
+  if (report.access === 'full' && report.conclusion) {
+    const tone = report.decision.kind === 'needs_confirmation' || report.decision.kind === 'analysis_inactive'
+      ? 'pending' as const
+      : report.decision.kind === 'insufficient_data'
+        ? 'missing' as const
+        : 'neutral' as const;
+    sections.push(withAtoms('result', 'نتیجه', [
+      metricAtom(report.conclusion, tone),
+    ]));
+  } else if (report.access === 'preview') {
+    sections.push(withAtoms('gate', 'ادامه', [textAtom(report.summaryLines[1])]));
+  }
+
+  return sections;
+}
+
+
