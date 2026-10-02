@@ -1,7 +1,7 @@
 import { db } from '@/lib/db';
 import { withDeadline } from '@/lib/with-deadline';
 import { isStale, type Snapshot } from '@/lib/market';
-import { computeLiveBubbles } from '@/server/live-bubbles';
+import { computeMarketIndicators } from '@/server/market-indicators';
 import { getPublicSnapshot } from '@/server/quotes';
 import {
   channelDeliveryReady,
@@ -38,15 +38,22 @@ export function metricsFromSnapshot(snapshot: Snapshot): MarketSnapshotMetrics |
   }
   if (!times.length) return null;
 
-  const bubbles = computeLiveBubbles(snapshot);
+  // Same versioned indicators as market-view — price/gap alerts only (not trade confirmation).
+  const indicators = computeMarketIndicators(snapshot);
   const gaps: MarketSnapshotMetrics['gaps'] = {};
-  for (const card of bubbles) {
-    if (card.percent == null || !Number.isFinite(card.percent)) continue;
-    if (card.status !== 'ok' && card.status !== 'stale') continue;
-    const key = card.key === 'GOLD_BUBBLE' ? 'gold' : card.key === 'USD_BUBBLE' ? 'usd' : card.key === 'SILVER_BUBBLE' ? 'silver' : null;
-    if (!key) continue;
-    gaps[key] = { percent: card.percent, stale: card.status === 'stale' };
-  }
+  const put = (key: 'gold' | 'usd' | 'silver', ind: { status: string; percent: number | null }) => {
+    if (ind.percent == null || !Number.isFinite(ind.percent)) return;
+    if (ind.status !== 'ok' && ind.status !== 'stale') return;
+    gaps[key] = { percent: ind.percent, stale: ind.status === 'stale' };
+  };
+  put(
+    'gold',
+    indicators.goldDirect.status === 'ok' || indicators.goldDirect.status === 'stale'
+      ? indicators.goldDirect
+      : indicators.goldDerived,
+  );
+  put('usd', indicators.usdImpliedGold);
+  put('silver', indicators.silver);
 
   const gold = gaps.gold;
   const silver = gaps.silver;

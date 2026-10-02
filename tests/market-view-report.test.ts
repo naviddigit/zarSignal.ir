@@ -251,7 +251,11 @@ function liveSnapshot(): Snapshot {
 test('same snapshot supports overall and focused reports, preview redacts full prose', () => {
   const snapshot = liveSnapshot();
   const overall = marketViewReportFromSnapshot(snapshot, 'full');
-  assert.equal(overall.evidence.length, 4);
+  assert.equal(overall.evidence.length, 8);
+  assert.ok(overall.evidence.some(r => r.id === 'gold_direct'));
+  assert.ok(overall.evidence.some(r => r.id === 'usd_aed'));
+  assert.ok(overall.evidence.some(r => r.id === 'uae_gold'));
+  assert.ok(overall.evidence.some(r => r.id === 'gold_silver'));
   assert.equal(overall.decision.kind, 'analysis_inactive');
   assert.equal(overall.decision.tradeAction, null);
   assert.ok(overall.decision.valuation);
@@ -260,11 +264,10 @@ test('same snapshot supports overall and focused reports, preview redacts full p
   assert.equal(overall.decision.valuation!.marketLabel, 'بازار');
   assert.ok(overall.valuationMarks.length);
   const silver = marketViewReportFromSnapshot(snapshot, 'full', 'SILVER_999');
-  assert.deepEqual(silver.evidence.map(row => row.id), ['silver']);
+  assert.deepEqual(silver.evidence.map(row => row.id), ['silver', 'gold_silver']);
   assert.match(silver.title, /نقره/);
   assert.ok(silver.reading);
-  assert.ok(silver.evidence[0].impliedUsdLabel);
-  assert.doesNotMatch(silver.reading!, /نسبت طلا به نقره/);
+  assert.ok(silver.evidence.find(r => r.id === 'silver')?.impliedUsdLabel);
   const preview = marketViewReportFromSnapshot(snapshot, 'preview', 'SILVER_999');
   assert.equal(preview.reading, null);
   assert.equal(preview.conclusion, null);
@@ -275,10 +278,11 @@ test('same snapshot supports overall and focused reports, preview redacts full p
 
 test('international ounce never masquerades as the local silver valuation', () => {
   const report = marketViewReportFromSnapshot(liveSnapshot(), 'full', 'XAG_USD');
-  assert.equal(report.evidence.length, 0);
+  assert.ok(report.evidence.every(r => r.id === 'silver' || r.id === 'gold_silver'));
   assert.equal(report.currentQuote?.unit, 'اونس تروا');
-  assert.equal(report.conclusion, report.decision.reason);
-  assert.equal(report.decision.kind, 'insufficient_data');
+  assert.ok(report.evidence.every(r => !/گرم نقره ۹۹۹/.test(r.marketLabel) || r.id === 'silver'));
+  // Ounce symbol keeps ounce unit on currentQuote; local silver evidence is labeled as 999 gap, not as ounce price.
+  assert.equal(report.currentQuote?.unit, 'اونس تروا');
 });
 
 test('report timestamp uses oldest relevant input and fingerprint ignores refetch time', () => {

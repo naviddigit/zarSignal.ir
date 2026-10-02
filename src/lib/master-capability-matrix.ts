@@ -1,6 +1,6 @@
 /**
  * Honest Master / product matrix — only from what exists in this repo.
- * Do not invent V5.7 rules from chat samples; Master Prompt V5.7 is not in the tree.
+ * Do not invent V5.7 decision/RSI/coin rules from chat samples; Master Prompt V5.7 file is not in the tree.
  */
 
 export type MatrixPresence = 'present' | 'partial' | 'absent' | 'source_required';
@@ -11,13 +11,13 @@ export type MasterCapabilityRow = {
   note: string;
 };
 
-/** Snapshot of product vs documented Master extracts (V5.4-level + local code). */
+/** Snapshot of product vs documented Master extracts (V5.4-level + Premium R01.2 explicit formulas). */
 export function buildMasterCapabilityMatrix(): MasterCapabilityRow[] {
   return [
     {
       area: 'فرمول حباب طلا / فاصله دلار ضمنی',
       status: 'present',
-      note: 'در live-bubbles و ماشین‌حساب تأییدشده اجرا می‌شود (نسخهٔ فرمول محصول).',
+      note: 'در live-bubbles، market-indicators و ماشین‌حساب تأییدشده اجرا می‌شود.',
     },
     {
       area: 'فرمول نقره V5.4-SILVER.1',
@@ -25,24 +25,34 @@ export function buildMasterCapabilityMatrix(): MasterCapabilityRow[] {
       note: 'در کاتالوگ و live bubbles فعال است.',
     },
     {
-      area: 'سکه (حباب / مرجع)',
-      status: 'absent',
-      note: 'قیمت تابلو ممکن است باشد؛ مرجع محاسباتی سکه تأیید نشده (SPEC_BLOCKER).',
+      area: 'دلار مبتنی بر درهم (USD_AED_GAP)',
+      status: 'present',
+      note: 'Premium R01.2 صریح: V5.7-USD_AED_GAP.1 با پگ نسخه‌دار USD_AED.',
     },
     {
-      area: 'ایران / امارات (جداسازی بازار)',
-      status: 'source_required',
-      note: 'قواعد جداگانهٔ ایران/امارات در مخزن به‌عنوان Master اجرایی نیست.',
+      area: 'مرجع نظری امارات / اختلاف ایران',
+      status: 'present',
+      note: 'Premium R01.2 صریح: V5.7-UAE18K.1 — مرجع نظری است نه خرده‌فروشی دبی.',
+    },
+    {
+      area: 'لبهٔ تبدیل نظری طلا/نقره',
+      status: 'present',
+      note: 'V5.7-GS-RATIO.1؛ سوآپ اجرایی منتشر نشده.',
+    },
+    {
+      area: 'سکه (حباب / مرجع)',
+      status: 'absent',
+      note: 'قیمت تابلو ممکن است باشد؛ وزن/عیار/حق ضرب و قواعد ZSA-COIN-001 کامل نیست (SPEC_BLOCKER).',
     },
     {
       area: 'SwapEdge اجرایی',
       status: 'absent',
-      note: 'نسبت طلا/نقره فقط در نثر مقایسه می‌آید؛ تبدیل قابل اجرا منتشر نشده.',
+      note: 'نسبت طلا/نقره نظری محاسبه می‌شود؛ تبدیل قابل اجرا منتشر نشده.',
     },
     {
-      area: 'روند قیمت (GAP_TREND)',
+      area: 'روند قیمت (GAP_TREND / RSI)',
       status: 'source_required',
-      note: 'قابلیت در ماتریس پلن source_required است؛ به گزارش وصل نشده.',
+      note: 'تاریخچهٔ محصول 1D است؛ روش مصوب روند/RSI در مخزن نیست؛ به گزارش وصل نشده.',
     },
     {
       area: 'موتور تصمیم BUY/SELL/HOLD',
@@ -52,12 +62,12 @@ export function buildMasterCapabilityMatrix(): MasterCapabilityRow[] {
     {
       area: 'اعلان / هشدار تغییر بازار',
       status: 'partial',
-      note: 'اعلان داخل سایت + ارزیابی سرور پس از ingestion؛ Push/SMS نیازمند سرویس.',
+      note: 'اعلان داخل سایت + ارزیابی سرور پس از ingestion؛ جدا از تأیید معامله؛ Push/SMS نیازمند سرویس.',
     },
     {
       area: 'Master Prompt فایل V5.7',
       status: 'absent',
-      note: 'فایل Master V5.7 در ریپو نیست؛ قواعد مفقود از چت حدس زده نمی‌شوند.',
+      note: 'فایل Master V5.7 در ریپو نیست؛ فقط فرمول‌های صریح Premium R01.2 پیاده شده‌اند.',
     },
   ];
 }

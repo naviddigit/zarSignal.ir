@@ -1,0 +1,19 @@
+---
+description: After shippable work, commit and push without needing a second reminder
+alwaysApply: true
+---
+
+# Ship: commit + push
+
+When a ZarSignal task is finished and meant to go live:
+
+1. Commit relevant changed files with a concise message (why > what).
+2. Push to the tracked remote (`github` / `master`) — do not wait for a second «پوش کن».
+3. Treat these as the same request: پوش، پوش کن، آپلود، برود بالا، لایو کن.
+
+Do not:
+
+- Force-push or amend published history unless explicitly asked
+- Commit `.env`, credentials, or secrets
+- Discard unrelated dirty/untracked files just to clean the tree
+- Push half-done / broken work; say what is still blocking instead

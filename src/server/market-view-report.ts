@@ -1,24 +1,52 @@
 import { createHash } from 'crypto';
 import { getPublicSnapshot } from '@/server/quotes';
 import { computeLiveBubbles } from '@/server/live-bubbles';
-import { FORMULA_VERSION, SILVER_FORMULA_VERSION } from '@/server/bubble-formulas';
+import {
+  FORMULA_VERSION,
+  GOLD_SILVER_RATIO_VERSION,
+  SILVER_FORMULA_VERSION,
+  UAE_GOLD_FORMULA_VERSION,
+  USD_AED_GAP_VERSION,
+  USD_AED_PEG_VERSION,
+} from '@/server/bubble-formulas';
 import { MAZANEH_TO_18K_VERSION } from '@/server/mazaneh-to-18k';
+import {
+  computeMarketIndicators,
+  relevantSymbolsForFocus,
+  type IndicatorValue,
+  type MarketIndicators,
+} from '@/server/market-indicators';
 import { instruments, formatPrice, isStale, type Snapshot, type Symbol } from '@/lib/market';
 import {
   composeMarketViewProse,
   buildMarketViewTrend,
   formatFaMoney,
   type MarketViewAccess,
+  type MarketViewEvidenceId,
   type MarketViewEvidenceRow,
   type MarketViewReport,
 } from '@/lib/market-view-report';
 import { explainEvidenceStatus, USD_GAP_PUBLIC_LABEL } from '@/lib/evidence-status-reason';
 
-function fingerprint(snapshot: Snapshot, bubbles: ReturnType<typeof computeLiveBubbles>) {
+function fingerprint(
+  snapshot: Snapshot,
+  indicators: MarketIndicators,
+  bubbles: ReturnType<typeof computeLiveBubbles>,
+) {
   const payload = JSON.stringify({
     mode: snapshot.mode,
     status: snapshot.status,
     quotes: snapshot.quotes.map(q => [q.symbol, q.buy, q.sell, q.observedAt]),
+    indicators: {
+      goldDerived: [indicators.goldDerived.status, indicators.goldDerived.percent, indicators.goldDerived.marketPrice],
+      goldDirect: [indicators.goldDirect.status, indicators.goldDirect.percent, indicators.goldDirect.marketPrice],
+      usdImplied: [indicators.usdImpliedGold.status, indicators.usdImpliedGold.percent],
+      usdAed: [indicators.usdFromAed.status, indicators.usdFromAed.percent],
+      uae: [indicators.iranUaeGold.status, indicators.iranUaeGold.percent],
+      silver: [indicators.silver.status, indicators.silver.percent],
+      gs: [indicators.goldSilverEdge.status, indicators.goldSilverEdge.percent],
+      peg: [indicators.peg.usdAed, indicators.peg.version],
+    },
     bubbles: bubbles.map(b => [b.key, b.status, b.percent, b.theoretical, b.marketPrice, b.formulaVersion]),
   });
   return createHash('sha256').update(payload).digest('hex').slice(0, 16);
@@ -29,100 +57,155 @@ function moneyLabel(value: number | null | undefined, unit: string, digits = 0):
   return `${formatFaMoney(value, digits)} ${unit}`;
 }
 
-function buildEvidence(bubbles: ReturnType<typeof computeLiveBubbles>, snapshot: Snapshot): MarketViewEvidenceRow[] {
-  const gold = bubbles.find(b => b.key === 'GOLD_BUBBLE');
-  const silver = bubbles.find(b => b.key === 'SILVER_BUBBLE');
-  const usd = bubbles.find(b => b.key === 'USD_BUBBLE');
-  const coin = snapshot.mode === 'live' ? snapshot.quotes.find(q => q.symbol === 'SEKE_CASH' && q.currency === 'TMN' && q.unit === 'عدد') : null;
-  const coinPrice = coin ? Number(coin.sell) : null;
+function rowStatus(ind: IndicatorValue): MarketViewEvidenceRow['status'] {
+  if (ind.status === 'blocked') return 'blocked';
+  if (ind.status === 'stale') return 'stale';
+  if (ind.status === 'ok') return 'ok';
+  return 'unavailable';
+}
 
-  const goldOk = gold && (gold.status === 'ok' || gold.status === 'stale') && gold.percent != null;
-  const silverOk = silver && (silver.status === 'ok' || silver.status === 'stale') && silver.percent != null;
-  const usdOk = usd && (usd.status === 'ok' || usd.status === 'stale') && usd.percent != null;
+function toEvidenceRow(args: {
+  id: MarketViewEvidenceId;
+  ind: IndicatorValue;
+  marketLabel: string;
+  referenceBasis: string;
+  unitNote: string;
+  marketUnit: string;
+  referenceUnit: string;
+  formulaVersion: string | null;
+  marketBasis?: 'DIRECT' | 'DERIVED' | null;
+  impliedUsdLabel?: string | null;
+  referenceDigits?: number;
+}): MarketViewEvidenceRow {
+  const ok = args.ind.status === 'ok' || args.ind.status === 'stale';
+  const status = rowStatus(args.ind);
+  return {
+    id: args.id,
+    marketLabel: args.marketLabel,
+    marketPriceLabel: ok ? moneyLabel(args.ind.marketPrice, args.marketUnit, args.referenceDigits ?? 0) : null,
+    referenceLabel: ok ? moneyLabel(args.ind.reference, args.referenceUnit, args.referenceDigits ?? 0) : null,
+    referenceBasis: args.referenceBasis,
+    diffPercent: ok ? args.ind.percent : null,
+    unitNote: args.unitNote,
+    status,
+    statusReason: explainEvidenceStatus({
+      id: args.id,
+      status,
+      rawReason: args.ind.reason,
+      hasMarketPrice: args.ind.marketPrice != null && args.ind.marketPrice > 0,
+    }),
+    formulaVersion: args.ind.formulaVersion ?? args.formulaVersion,
+    impliedUsdLabel: args.impliedUsdLabel,
+    marketBasis: args.marketBasis ?? null,
+  };
+}
 
-  const goldStatus = gold?.status === 'blocked' ? 'blocked' as const
-    : gold?.status === 'stale' ? 'stale' as const
-    : goldOk ? 'ok' as const : 'unavailable' as const;
-  const usdStatus = usd?.status === 'blocked' ? 'blocked' as const
-    : usd?.status === 'stale' ? 'stale' as const
-    : usdOk ? 'ok' as const : 'unavailable' as const;
-  const silverStatus = silver?.status === 'blocked' ? 'blocked' as const
-    : silver?.status === 'stale' ? 'stale' as const
-    : silverOk ? 'ok' as const : 'unavailable' as const;
-  const coinHasPrice = coinPrice != null && coinPrice > 0;
+function buildEvidence(indicators: MarketIndicators): MarketViewEvidenceRow[] {
+  const impliedUsd = indicators.usdImpliedGold.reference;
+  const silverImplied = typeof indicators.silver.extra?.usdImplied === 'number'
+    ? indicators.silver.extra.usdImplied
+    : null;
 
   return [
-    {
+    toEvidenceRow({
       id: 'gold',
+      ind: indicators.goldDerived,
       marketLabel: 'طلا · گرم ۱۸ عیار (مشتق از مظنه)',
-      marketPriceLabel: goldOk ? moneyLabel(gold!.marketPrice, 'تومان / گرم') : null,
-      referenceLabel: goldOk ? moneyLabel(gold!.theoretical, 'تومان / گرم') : null,
       referenceBasis: 'ارزش محاسباتی از اونس جهانی × دلار بازار × ۰٫۷۵',
-      diffPercent: goldOk ? gold!.percent : null,
-      unitNote: 'مظنه آب‌شده به گرم ۱۸ تبدیل شده؛ با مثقال خام مقایسه نمی‌شود',
-      status: goldStatus,
-      statusReason: explainEvidenceStatus({
-        id: 'gold',
-        status: goldStatus,
-        rawReason: gold?.reason,
-        hasMarketPrice: goldOk || (gold?.marketPrice != null && gold.marketPrice > 0),
-      }),
-      formulaVersion: gold?.formulaVersion ?? FORMULA_VERSION,
-      impliedUsdLabel: goldOk ? moneyLabel(usd?.theoretical, 'تومان') : null,
-    },
-    {
+      unitNote: `مبنای DERIVED · مظنه÷۴٫۳۳۱۸ (${MAZANEH_TO_18K_VERSION})؛ با مثقال خام مقایسه نمی‌شود`,
+      marketUnit: 'تومان / گرم',
+      referenceUnit: 'تومان / گرم',
+      formulaVersion: FORMULA_VERSION,
+      marketBasis: 'DERIVED',
+      impliedUsdLabel: moneyLabel(impliedUsd, 'تومان'),
+    }),
+    toEvidenceRow({
+      id: 'gold_direct',
+      ind: indicators.goldDirect,
+      marketLabel: 'طلا · گرم ۱۸ عیار (قیمت مستقیم تابلو)',
+      referenceBasis: 'ارزش محاسباتی از اونس جهانی × دلار بازار × ۰٫۷۵',
+      unitNote: 'مبنای DIRECT · قیمت تابلوی GOLD_18K؛ مستقل از مظنه',
+      marketUnit: 'تومان / گرم',
+      referenceUnit: 'تومان / گرم',
+      formulaVersion: FORMULA_VERSION,
+      marketBasis: 'DIRECT',
+    }),
+    toEvidenceRow({
       id: 'usd',
-      marketLabel: 'دلار آزاد بازار',
-      marketPriceLabel: usdOk ? moneyLabel(usd!.marketPrice, 'تومان / دلار') : null,
-      referenceLabel: usdOk ? moneyLabel(usd!.theoretical, 'تومان / دلار') : null,
-      referenceBasis: 'دلار ضمنی طلا (از گرم ۱۸ و اونس) — نه درهم و نه نرخ صرافی اجباری',
-      diffPercent: usdOk ? usd!.percent : null,
+      ind: indicators.usdImpliedGold,
+      marketLabel: 'دلار ضمنی طلا',
+      referenceBasis: `دلار ضمنی از گرم ۱۸ (${indicators.usdImpliedGold.goldBasis}) و اونس — نه درهم و نه حباب مستقل دلار`,
       unitNote: `${USD_GAP_PUBLIC_LABEL}؛ ارزش بنیادی یا حباب مستقل دلار نیست`,
-      status: usdStatus,
-      statusReason: explainEvidenceStatus({
-        id: 'usd',
-        status: usdStatus,
-        rawReason: usd?.reason,
-        hasMarketPrice: usdOk || (usd?.marketPrice != null && usd.marketPrice > 0),
-      }),
-      formulaVersion: usd?.formulaVersion ?? FORMULA_VERSION,
-    },
-    {
+      marketUnit: 'تومان / دلار',
+      referenceUnit: 'تومان / دلار',
+      formulaVersion: FORMULA_VERSION,
+    }),
+    toEvidenceRow({
+      id: 'usd_aed',
+      ind: indicators.usdFromAed,
+      marketLabel: 'دلار مبتنی بر درهم',
+      referenceBasis: `AED×USD_AED (${indicators.peg.version} · ${indicators.peg.source} · ${indicators.peg.usdAed})`,
+      unitNote: `نسخه ${USD_AED_GAP_VERSION}؛ با دلار ضمنی طلا یکی نیست`,
+      marketUnit: 'تومان / دلار',
+      referenceUnit: 'تومان / دلار',
+      formulaVersion: USD_AED_GAP_VERSION,
+    }),
+    toEvidenceRow({
+      id: 'uae_gold',
+      ind: indicators.iranUaeGold,
+      marketLabel: 'اختلاف ایران با مرجع نظری امارات',
+      referenceBasis: `UAE18K نظری (${UAE_GOLD_FORMULA_VERSION}) · نه قیمت خرده‌فروشی دبی`,
+      unitNote: `مبنای ایران: ${indicators.iranUaeGold.iranBasis ?? 'نامشخص'} · پگ ${USD_AED_PEG_VERSION}`,
+      marketUnit: 'تومان / گرم',
+      referenceUnit: 'تومان / گرم',
+      formulaVersion: UAE_GOLD_FORMULA_VERSION,
+      marketBasis: indicators.iranUaeGold.iranBasis,
+    }),
+    toEvidenceRow({
       id: 'silver',
+      ind: indicators.silver,
       marketLabel: 'نقره ۹۹۹',
-      marketPriceLabel: silverOk ? moneyLabel(silver!.marketPrice, 'تومان / گرم') : null,
-      referenceLabel: silverOk ? moneyLabel(silver!.theoretical, 'تومان / گرم') : null,
       referenceBasis: 'V5.4-SILVER.1 · اونس نقره × دلار × ۰٫۹۹۹ / ۳۱٫۱۰۳۴۷۶۸',
-      diffPercent: silverOk ? silver!.percent : null,
       unitNote: 'قیمت بازار نقره ۹۹۹ مستقیم گرم است؛ مقسوم‌علیه مظنه ندارد',
-      status: silverStatus,
-      statusReason: explainEvidenceStatus({
-        id: 'silver',
-        status: silverStatus,
-        rawReason: silver?.reason,
-        hasMarketPrice: silverOk || (silver?.marketPrice != null && silver.marketPrice > 0),
-      }),
-      formulaVersion: silver?.formulaVersion ?? SILVER_FORMULA_VERSION,
-      impliedUsdLabel: silverOk ? moneyLabel(silver?.usdImplied, 'تومان') : null,
-    },
-    {
+      marketUnit: 'تومان / گرم',
+      referenceUnit: 'تومان / گرم',
+      formulaVersion: SILVER_FORMULA_VERSION,
+      impliedUsdLabel: moneyLabel(silverImplied, 'تومان'),
+    }),
+    toEvidenceRow({
+      id: 'gold_silver',
+      ind: indicators.goldSilverEdge,
+      marketLabel: 'لبهٔ تبدیل نظری طلا/نقره',
+      referenceBasis: `نسبت جهانی (XAU×۰٫۷۵)/(XAG×۰٫۹۹۹) · ${GOLD_SILVER_RATIO_VERSION}`,
+      unitNote: 'بازده قابل اجرای سوآپ نیست؛ با حباب طلا و نقره هم‌پوشان است',
+      marketUnit: 'نسبت داخلی',
+      referenceUnit: 'نسبت جهانی',
+      formulaVersion: GOLD_SILVER_RATIO_VERSION,
+      referenceDigits: 4,
+    }),
+    toEvidenceRow({
       id: 'coin',
+      ind: indicators.coin,
       marketLabel: 'سکه',
-      marketPriceLabel: coinHasPrice ? moneyLabel(coinPrice, 'تومان / عدد') : null,
-      referenceLabel: null,
       referenceBasis: 'مبنای ارزش و حباب سکه در مشخصات محصول تأیید نشده است',
-      diffPercent: null,
-      unitNote: 'SPEC_BLOCKER · بدون فرمول قطعی منتشر نمی‌شود',
-      status: 'blocked',
-      statusReason: explainEvidenceStatus({
-        id: 'coin',
-        status: 'blocked',
-        rawReason: 'reference_inactive',
-        hasMarketPrice: coinHasPrice,
-      }),
+      unitNote: 'SPEC_BLOCKER · حباب داخلی و فاصله با مرجع جهانی پس از مشخصات قطعی سکه',
+      marketUnit: 'تومان / عدد',
+      referenceUnit: 'تومان / عدد',
       formulaVersion: null,
-    },
+    }),
   ];
+}
+
+function focusIdsForSymbol(symbol?: Symbol): MarketViewEvidenceId[] | null {
+  if (!symbol) return null;
+  if (symbol === 'GOLD_MELTED') return ['gold', 'usd', 'usd_aed', 'uae_gold', 'gold_silver'];
+  if (symbol === 'GOLD_18K') return ['gold_direct', 'gold', 'usd', 'usd_aed', 'uae_gold', 'gold_silver'];
+  if (symbol === 'USD') return ['usd', 'usd_aed'];
+  if (symbol === 'AED') return ['usd_aed', 'uae_gold'];
+  if (symbol === 'SILVER_999' || symbol === 'XAG_USD') return ['silver', 'gold_silver'];
+  if (symbol === 'SEKE_CASH' || symbol === 'ROB_SEKE') return ['coin'];
+  if (symbol === 'XAU_USD') return ['gold', 'gold_direct', 'uae_gold'];
+  return null;
 }
 
 function freshnessOf(evidence: MarketViewEvidenceRow[], snapshot: Snapshot): MarketViewReport['dataFreshness'] {
@@ -138,29 +221,61 @@ function freshnessOf(evidence: MarketViewEvidenceRow[], snapshot: Snapshot): Mar
 function observedAt(snapshot: Snapshot) {
   const times = snapshot.quotes.map(q => Date.parse(q.observedAt)).filter(Number.isFinite);
   if (!times.length) return null;
-  // Oldest input, so a fresh quote cannot make older calculation inputs look fresh.
   return new Date(Math.min(...times)).toISOString();
 }
 
-export function marketViewReportFromSnapshot(snapshot: Snapshot, access: MarketViewAccess, symbol?: Symbol): MarketViewReport {
+async function historyTrendMeta(symbol?: Symbol | null) {
+  try {
+    const { db } = await import('@/lib/db');
+    const target = symbol ?? 'GOLD_MELTED';
+    const rows = await db.symbolHistoryBar.groupBy({
+      by: ['resolution'],
+      where: { symbol: target },
+      _count: { _all: true },
+      orderBy: { resolution: 'asc' },
+    });
+    if (!rows.length) {
+      return { historyConnected: false, historyResolution: null as string | null, candleCount: 0 };
+    }
+    const daily = rows.find(r => r.resolution === '1D');
+    const hourly = rows.find(r => r.resolution === '60' || r.resolution === '1H');
+    if (hourly && hourly._count._all > 0) {
+      return { historyConnected: true, historyResolution: hourly.resolution, candleCount: hourly._count._all };
+    }
+    return {
+      historyConnected: true,
+      historyResolution: daily?.resolution ?? rows[0]!.resolution,
+      candleCount: daily?._count._all ?? rows[0]!._count._all,
+    };
+  } catch {
+    return { historyConnected: false, historyResolution: '1D' as string | null, candleCount: null as number | null };
+  }
+}
+
+export function marketViewReportFromSnapshot(
+  snapshot: Snapshot,
+  access: MarketViewAccess,
+  symbol?: Symbol,
+  trendMeta?: { historyConnected?: boolean; historyResolution?: string | null; candleCount?: number | null },
+): MarketViewReport {
+  const indicators = computeMarketIndicators(snapshot);
   const bubbles = computeLiveBubbles(snapshot);
-  const focusId = symbol === 'GOLD_MELTED' || symbol === 'GOLD_18K' ? 'gold'
-    : symbol === 'USD' ? 'usd' : symbol === 'SILVER_999' ? 'silver'
-    : symbol === 'SEKE_CASH' ? 'coin' : null;
+  const focusIds = focusIdsForSymbol(symbol);
   const asset = instruments.find(item => item.symbol === symbol);
   const quote = snapshot.mode === 'live' ? snapshot.quotes.find(item => item.symbol === symbol) : null;
   const quoteValid = quote && Number.isFinite(Number(quote.sell)) && Number(quote.sell) > 0 && quote.currency === asset?.currency && quote.unit === asset?.unit;
-  const evidence = buildEvidence(bubbles, snapshot).filter(row => !symbol || row.id === focusId);
-  const relevantSymbols: readonly Symbol[] = !symbol
-    ? ['GOLD_MELTED', 'XAU_USD', 'USD', 'SILVER_999', 'XAG_USD']
-    : focusId === 'gold' || focusId === 'usd' ? ['GOLD_MELTED', 'XAU_USD', 'USD']
-    : focusId === 'silver' ? ['SILVER_999', 'XAG_USD', 'USD'] : [symbol];
+  let evidence = buildEvidence(indicators);
+  if (focusIds) evidence = evidence.filter(row => focusIds.includes(row.id));
+
+  const relevantSymbols = relevantSymbolsForFocus(symbol);
   const relevantSnapshot = { ...snapshot, quotes: snapshot.quotes.filter(q => relevantSymbols.includes(q.symbol)) };
-  const dataFreshness = evidence.length && focusId !== 'coin' ? freshnessOf(evidence, snapshot)
-    : quoteValid ? isStale(quote) ? 'stale' : 'ok' : 'unavailable';
+  const dataFreshness = evidence.length && !(symbol === 'SEKE_CASH' || symbol === 'ROB_SEKE')
+    ? freshnessOf(evidence, snapshot)
+    : quoteValid ? (isStale(quote) ? 'stale' : 'ok') : 'unavailable';
   const prose = composeMarketViewProse(evidence, dataFreshness, { symbol: symbol ?? null });
+
   if (asset && !evidence.some(row => row.diffPercent != null)) {
-    const hasFormula = focusId === 'gold' || focusId === 'silver' || focusId === 'usd';
+    const hasFormula = evidence.some(row => row.id !== 'coin' && row.formulaVersion != null);
     const shortName = asset.short;
     prose.summaryLines = [
       quoteValid ? `قیمت ${shortName} الان ${formatPrice(quote.sell, quote.currency)} / ${asset.unit} است.` : `قیمت معتبر ${shortName} فعلاً در دسترس نیست.`,
@@ -178,14 +293,17 @@ export function marketViewReportFromSnapshot(snapshot: Snapshot, access: MarketV
       ];
     }
     if (symbol === 'GOLD_18K') {
-      prose.unconfirmed.unshift('قیمت تابلوی گرم ۱۸ عیار با درصد حباب مشتق از مظنه یکی نیست؛ مبنای درصد در جزئیات فرمول آمده است.');
+      prose.unconfirmed.unshift('برای گرم ۱۸ عیار مبنای مستقیم تابلو و مبنای مشتق از مظنه جداگانه در شواهد آمده است.');
     }
   }
+
   const inputTimes = relevantSnapshot.quotes.map(q => q.observedAt);
-  if (new Set(inputTimes).size > 1) prose.unconfirmed.unshift('زمان مشاهدهٔ ورودی‌ها یکسان نیست؛ مقایسهٔ حاضر را Snapshot دقیقاً هم‌زمان در نظر نگیرید.');
+  if (new Set(inputTimes).size > 1) {
+    prose.unconfirmed.unshift('زمان مشاهدهٔ ورودی‌ها یکسان نیست؛ مقایسهٔ حاضر را Snapshot دقیقاً هم‌زمان در نظر نگیرید.');
+  }
   const dataObservedAtIso = observedAt(relevantSnapshot);
   const generatedAtIso = new Date().toISOString();
-  const snapFp = fingerprint(relevantSnapshot, bubbles.filter(b => !symbol || b.key === (focusId === 'gold' ? 'GOLD_BUBBLE' : focusId === 'usd' ? 'USD_BUBBLE' : focusId === 'silver' ? 'SILVER_BUBBLE' : '')));
+  const snapFp = fingerprint(relevantSnapshot, indicators, bubbles);
 
   const full: MarketViewReport = {
     schemaVersion: '1.0',
@@ -206,13 +324,21 @@ export function marketViewReportFromSnapshot(snapshot: Snapshot, access: MarketV
     conclusion: prose.conclusion,
     decision: prose.decision,
     valuationMarks: prose.valuationMarks,
-    trend: buildMarketViewTrend(),
+    trend: buildMarketViewTrend({
+      historyConnected: trendMeta?.historyConnected,
+      historyResolution: trendMeta?.historyResolution ?? '1D',
+      candleCount: trendMeta?.candleCount,
+      methodApproved: false,
+    }),
     changeFromPrior: null,
     details: {
       formulaNotes: [
-        `حباب طلا و فاصله دلار: نسخه ${FORMULA_VERSION} · تبدیل مظنه→گرم۱۸: ${MAZANEH_TO_18K_VERSION}`,
+        `حباب طلا و دلار ضمنی طلا: نسخه ${FORMULA_VERSION} · تبدیل مظنه→گرم۱۸: ${MAZANEH_TO_18K_VERSION}`,
         `حباب نقره: ${SILVER_FORMULA_VERSION}`,
-        'دلار ضمنی طلا با درهم یا دلار حواله‌ای یکی نیست.',
+        `دلار مبتنی بر درهم: ${USD_AED_GAP_VERSION} · پگ: ${USD_AED_PEG_VERSION}`,
+        `مرجع نظری امارات: ${UAE_GOLD_FORMULA_VERSION} (نه خرده‌فروشی دبی)`,
+        `لبهٔ تبدیل نظری طلا/نقره: ${GOLD_SILVER_RATIO_VERSION}`,
+        'دلار ضمنی طلا با درهم یا دلار حواله‌ای یکی نیست؛ اونس/دلار و اونس/درهم دو تأیید مستقل نیستند.',
         'آرشیو و مقایسهٔ گزارش‌های قبلی هنوز در محصول ذخیره نمی‌شود.',
       ],
       disclaimer: 'این گزارش توصیف اختلاف قیمت با مرجع محاسباتی است؛ سیگنال خرید، فروش یا تضمین نتیجه نیست.',
@@ -221,7 +347,6 @@ export function marketViewReportFromSnapshot(snapshot: Snapshot, access: MarketV
 
   if (access === 'full') return full;
 
-  // Preview: keep evidence labels + freshness, shorten narrative, hide private reading/conclusion.
   return {
     ...full,
     access: 'preview',
@@ -241,7 +366,6 @@ export function marketViewReportFromSnapshot(snapshot: Snapshot, access: MarketV
           changeConditions: 'با پلن مجاز یا دورهٔ آزمایش فعال، نتیجهٔ کامل همین‌جا باز می‌شود.',
           valuation: prose.decision.valuation,
         },
-    // Public preview may show valuation chips from evidence already visible — not private prose.
     valuationMarks: prose.valuationMarks,
     unconfirmed: [
       ...prose.unconfirmed.slice(0, 2),
@@ -251,5 +375,9 @@ export function marketViewReportFromSnapshot(snapshot: Snapshot, access: MarketV
 }
 
 export async function buildMarketViewReport(access: MarketViewAccess, symbol?: Symbol): Promise<MarketViewReport> {
-  return marketViewReportFromSnapshot(await getPublicSnapshot(), access, symbol);
+  const [snapshot, trendMeta] = await Promise.all([
+    getPublicSnapshot(),
+    historyTrendMeta(symbol),
+  ]);
+  return marketViewReportFromSnapshot(snapshot, access, symbol, trendMeta);
 }

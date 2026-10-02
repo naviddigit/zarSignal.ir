@@ -69,11 +69,19 @@ export function buildStoryPublicPayload(
 
   const metrics: StoryPublicMetric[] = report.evidence
     .filter(row => row.id !== 'coin' && (row.status === 'ok' || row.status === 'stale') && row.diffPercent != null)
-    .slice(0, 3)
+    .filter(row => row.id === 'gold' || row.id === 'gold_direct' || row.id === 'silver' || row.id === 'usd' || row.id === 'uae_gold' || row.id === 'usd_aed')
+    .slice(0, 4)
     .map(row => {
       const tone = toneFor(row.diffPercent);
+      const label =
+        row.id === 'gold' || row.id === 'gold_direct' ? 'طلا'
+          : row.id === 'silver' ? 'نقره ۹۹۹'
+            : row.id === 'usd' ? 'فاصلهٔ دلار بازار با دلار ضمنی طلا'
+              : row.id === 'usd_aed' ? 'دلار مبتنی بر درهم'
+                : row.id === 'uae_gold' ? 'ایران/امارات'
+                  : row.marketLabel;
       return {
-        label: row.id === 'gold' ? 'طلا' : row.id === 'silver' ? 'نقره ۹۹۹' : row.id === 'usd' ? 'فاصلهٔ دلار بازار با دلار ضمنی طلا' : row.marketLabel,
+        label,
         value: `${formatFaPercent(row.diffPercent!)}٪`,
         unit: 'اختلاف با مرجع',
         tone,

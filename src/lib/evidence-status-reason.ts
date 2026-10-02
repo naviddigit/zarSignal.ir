@@ -1,3 +1,5 @@
+import type { MarketViewEvidenceId } from '@/lib/market-view-report';
+
 /** Map machine / bubble reasons to specific Persian status reasons for evidence rows. */
 
 export type EvidenceReasonKind =
@@ -14,13 +16,14 @@ const SYMBOL_FA: Record<string, string> = {
   XAU_USD: 'اونس جهانی طلا',
   XAG_USD: 'اونس جهانی نقره',
   USD: 'دلار',
+  AED: 'درهم',
   SILVER_999: 'نقره ۹۹۹',
   SEKE_CASH: 'سکه',
 };
 
 export function evidenceReasonKind(raw: string | null | undefined): EvidenceReasonKind {
   if (!raw) return 'other';
-  if (/^missing_/i.test(raw) || /داده زنده در دسترس نیست|قیمت بازار نقره/.test(raw)) return 'price_missing';
+  if (/^missing_/i.test(raw) || /داده زنده در دسترس نیست|قیمت بازار نقره|missing_iran|missing_market|missing_gold/i.test(raw)) return 'price_missing';
   if (/قدیمی|stale|input_stale/i.test(raw)) return 'input_stale';
   if (/^invalid_|rial_toman_mismatch|واحد/i.test(raw)) return 'unit_invalid';
   if (/مرجع|reference|blocked|SPEC|فعال نیست|تأیید نشده/i.test(raw)) return 'reference_inactive';
@@ -35,7 +38,7 @@ function symbolFromMissing(raw: string): string | null {
 
 /** Human status reason for an evidence cell — never collapse everything to «در دسترس نیست». */
 export function explainEvidenceStatus(args: {
-  id: 'gold' | 'usd' | 'silver' | 'coin';
+  id: MarketViewEvidenceId;
   status: 'ok' | 'stale' | 'unavailable' | 'blocked';
   rawReason: string | null | undefined;
   hasMarketPrice: boolean;
