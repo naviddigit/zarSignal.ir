@@ -1,13 +1,12 @@
 /** Story layout templates for 1080×1920 Instagram PNG export. */
 
-export const STORY_TEMPLATES = ['vault_dark', 'studio_light', 'dual_metal', 'pulse_neon'] as const;
+export const STORY_TEMPLATES = ['vault_dark', 'studio_light', 'dual_metal'] as const;
 export type StoryTemplateId = (typeof STORY_TEMPLATES)[number];
 
 export const STORY_TEMPLATE_LABELS: Record<StoryTemplateId, string> = {
-  vault_dark: 'تیره طلایی',
-  studio_light: 'روشن تمیز',
-  dual_metal: 'مقایسه دوتایی',
-  pulse_neon: 'نمودار محور',
+  vault_dark: 'نبض بازار',
+  studio_light: 'تمرکز روی یک دارایی',
+  dual_metal: 'مقایسهٔ طلا و نقره',
 };
 
 export type StoryPalette = {
@@ -55,21 +54,7 @@ export function storyPalette(template: StoryTemplateId): StoryPalette {
       qrLight: '#080c12',
     };
   }
-  if (template === 'pulse_neon') {
-    return {
-      bg: '#04070c',
-      bg2: '#0a121c',
-      text: '#f4f7fb',
-      muted: '#8b9bb0',
-      accent: '#f0c568',
-      card: '#0e1622',
-      cardBorder: '#223247',
-      metalA: '#4dd8e7',
-      metalB: '#f0c568',
-      qrDark: '#f4f7fb',
-      qrLight: '#04070c',
-    };
-  }
+
   return {
     bg: '#060a10',
     bg2: '#0d1520',

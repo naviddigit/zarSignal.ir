@@ -139,6 +139,11 @@ test('GT-R01 market-view report wires independent evidence from fixture snapshot
   near(byId.silver!.diffPercent!, -0.14, 2);
   near(byId.gold_silver!.diffPercent!, -1.43, 2);
   assert.equal(byId.coin!.status, 'blocked');
+  assert.ok(byId.coin!.marketPriceLabel, 'A blocked reference must not hide the valid coin quote');
+  assert.equal(byId.coin!.referenceLabel, null);
+  assert.equal(byId.coin!.diffPercent, null);
+  assert.match(byId.usd!.marketLabel, /دلار آزاد.*دلار ضمنی طلا/);
+  assert.match(byId.usd_aed!.marketLabel, /دلار آزاد.*مرجع درهم/);
   assert.equal(report.decision.kind, 'analysis_inactive');
   assert.equal(report.decision.tradeAction, null);
   assert.equal(report.trend.status, 'not_computed');

@@ -118,12 +118,13 @@ export const MARKET_VIEW_OVERALL_SYMBOLS: readonly Symbol[] = [
 
 export function relevantSymbolsForFocus(symbol?: Symbol | null): readonly Symbol[] {
   if (!symbol) return MARKET_VIEW_OVERALL_SYMBOLS;
-  if (symbol === 'GOLD_MELTED') return ['GOLD_MELTED', 'GOLD_18K', 'XAU_USD', 'USD', 'AED'];
-  if (symbol === 'GOLD_18K') return ['GOLD_18K', 'GOLD_MELTED', 'XAU_USD', 'USD', 'AED'];
+  if (symbol === 'GOLD_MELTED') return ['GOLD_MELTED', 'GOLD_18K', 'XAU_USD', 'USD', 'AED', 'XAG_USD', 'SILVER_999'];
+  if (symbol === 'GOLD_18K') return ['GOLD_18K', 'GOLD_MELTED', 'XAU_USD', 'USD', 'AED', 'XAG_USD', 'SILVER_999'];
   if (symbol === 'USD') return ['USD', 'AED', 'GOLD_MELTED', 'GOLD_18K', 'XAU_USD'];
   if (symbol === 'AED') return ['AED', 'USD', 'XAU_USD', 'GOLD_18K', 'GOLD_MELTED'];
-  if (symbol === 'SILVER_999') return ['SILVER_999', 'XAG_USD', 'USD', 'GOLD_18K', 'GOLD_MELTED', 'XAU_USD'];
+  if (symbol === 'SILVER_999' || symbol === 'XAG_USD') return ['SILVER_999', 'XAG_USD', 'USD', 'GOLD_18K', 'GOLD_MELTED', 'XAU_USD'];
   if (symbol === 'SEKE_CASH' || symbol === 'ROB_SEKE') return ['SEKE_CASH', 'ROB_SEKE', 'GOLD_MELTED', 'GOLD_18K', 'XAU_USD', 'USD'];
+  if (symbol === 'XAU_USD') return ['XAU_USD', 'USD', 'AED', 'GOLD_18K', 'GOLD_MELTED'];
   return [symbol];
 }
 

@@ -117,7 +117,13 @@ export function sliceAtoms(atoms: NarrativeAtom[], graphemeCount: number): Narra
       continue;
     }
     if (remaining > 0) {
-      const text = parts.slice(0, remaining).join('');
+      // Numbers (including signs, separators and percent) and joined Persian words appear whole.
+      const prefix = parts.slice(0, remaining).join('');
+      let boundary = prefix.length;
+      for (const match of atom.text.matchAll(/[\u200e\u200f+−-]?[۰-۹٠-٩0-9]+(?:[٫٬.,][۰-۹٠-٩0-9]+)*(?:[٪%])?|[\p{L}\p{M}]+(?:\u200c[\p{L}\p{M}]+)+/gu)) {
+        if (match.index! < boundary && match.index! + match[0].length > boundary) boundary = match.index!;
+      }
+      const text = atom.text.slice(0, boundary);
       out.push(atom.kind === 'metric'
         ? { kind: 'metric', text, tone: atom.tone, arrow: atom.arrow }
         : { kind: 'text', text });

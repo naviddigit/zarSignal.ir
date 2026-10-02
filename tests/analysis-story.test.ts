@@ -104,7 +104,7 @@ test('story payload stays public and uses live summary link wording', () => {
     showPlanBadge: true,
   });
   assert.equal(payload.planBadge, null);
-  assert.equal(payload.linkLabel, 'مشاهده خلاصهٔ بازار');
+  assert.equal(payload.linkLabel, 'وضعیت امروز بازار را ببین');
   assert.equal(payload.url, 'https://www.zarsignal.ir/analysis');
   assert.doesNotMatch(payload.url, /request=/);
   assert.equal(payload.metrics.length, 3);
@@ -164,9 +164,9 @@ test('specialized plan is not sellable on inactive engine alone', () => {
 
 test('story templates are named and USD gap is labeled honestly', () => {
   const { STORY_TEMPLATES, STORY_TEMPLATE_LABELS } = require('../src/lib/analysis-story-templates') as typeof import('../src/lib/analysis-story-templates');
-  assert.deepEqual([...STORY_TEMPLATES], ['vault_dark', 'studio_light', 'dual_metal', 'pulse_neon']);
-  assert.match(STORY_TEMPLATE_LABELS.vault_dark, /تیره/);
-  assert.match(STORY_TEMPLATE_LABELS.studio_light, /روشن/);
+  assert.deepEqual([...STORY_TEMPLATES], ['vault_dark', 'studio_light', 'dual_metal']);
+  assert.match(STORY_TEMPLATE_LABELS.vault_dark, /نبض/);
+  assert.match(STORY_TEMPLATE_LABELS.studio_light, /دارایی/);
   const payload = buildStoryPublicPayload(sampleReport(), 'https://www.zarsignal.ir');
   assert.ok(payload.metrics.some(m => /فاصلهٔ دلار بازار با دلار ضمنی طلا/.test(m.label)));
   assert.doesNotMatch(payload.metrics.map(m => m.label).join(' '), /ارزش بنیادی|حباب مستقل دلار/);

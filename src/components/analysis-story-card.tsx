@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { ImageDown, Share2 } from 'lucide-react';
 import type { MarketViewReport } from '@/lib/market-view-report';
 import {
@@ -30,6 +30,9 @@ export function AnalysisStoryCardButton({
   showPlanBadge?: boolean;
   testDataLabel?: string | null;
 }) {
+  const [opened, setOpened] = useState(false);
+  const [dark, setDark] = useState(true);
+  const [focus, setFocus] = useState(0);
   const [template, setTemplate] = useState<StoryTemplateId>('vault_dark');
   const [status, setStatus] = useState<'idle' | 'building' | 'ready' | 'error'>('idle');
   const [error, setError] = useState<string | null>(null);
@@ -40,7 +43,7 @@ export function AnalysisStoryCardButton({
     setStatus('building');
     setError(null);
     try {
-      const payload = buildStoryPublicPayload(report, window.location.origin, {
+      const payload = buildStoryPublicPayload(report, 'https://www.zarsignal.ir', {
         planLevel,
         planLabel,
         planStatus,
@@ -48,7 +51,12 @@ export function AnalysisStoryCardButton({
         testDataLabel,
       });
       assertStoryPayloadPublic(payload);
-      const blob = await renderAnalysisStoryPng(payload, { template: nextTemplate });
+      if (nextTemplate === 'studio_light' && payload.metrics[focus]) {
+        payload.metrics = [payload.metrics[focus]!];
+        payload.title = payload.metrics[0]!.label;
+        payload.takeaway = `${payload.metrics[0]!.label}: ${payload.metrics[0]!.meaning}. این اختلاف، جهت حرکت بعدی قیمت را مشخص نمی‌کند.`;
+      }
+      const blob = await renderAnalysisStoryPng(payload, { template: nextTemplate, dark });
       const nextFile = new File([blob], `zarsignal-story-${nextTemplate}-${Date.now()}.png`, { type: 'image/png' });
       const url = URL.createObjectURL(blob);
       setPreviewUrl(prev => {
@@ -61,7 +69,9 @@ export function AnalysisStoryCardButton({
       setStatus('error');
       setError(err instanceof Error ? err.message : 'ساخت کارت ممکن نشد');
     }
-  }, [report, planLevel, planLabel, planStatus, showPlanBadge, testDataLabel, template]);
+  }, [report, planLevel, planLabel, planStatus, showPlanBadge, testDataLabel, template, dark, focus]);
+
+  useEffect(() => () => { if (previewUrl) URL.revokeObjectURL(previewUrl); }, [previewUrl]);
 
   const download = useCallback(() => {
     if (!previewUrl || !file) return;
@@ -91,6 +101,8 @@ export function AnalysisStoryCardButton({
 
   return (
     <div className="market-view__story" data-follow-keep>
+      <button type="button" className="button small-button" aria-expanded={opened} onClick={() => setOpened(value => !value)}>ساخت استوری</button>
+      {opened ? <>
       <div className="market-view__story-templates" role="group" aria-label="قالب استوری">
         {STORY_TEMPLATES.map(id => (
           <button
@@ -98,16 +110,19 @@ export function AnalysisStoryCardButton({
             type="button"
             className={template === id ? 'is-active' : undefined}
             aria-pressed={template === id}
+            disabled={status === 'building'}
             data-follow-keep
             onClick={() => {
               setTemplate(id);
-              if (status === 'ready') void build(id);
+              setStatus('idle');
             }}
           >
             {STORY_TEMPLATE_LABELS[id]}
           </button>
         ))}
       </div>
+      <label>تم تصویر <select className="ds-input" disabled={status === 'building'} value={dark ? 'dark' : 'light'} onChange={event => { setDark(event.target.value === 'dark'); setStatus('idle'); }}><option value="dark">تیره طلایی</option><option value="light">روشن</option></select></label>
+      {template === 'studio_light' ? <label>دارایی <select className="ds-input" disabled={status === 'building'} value={focus} onChange={event => { setFocus(Number(event.target.value)); setStatus('idle'); }}>{buildStoryPublicPayload(report, 'https://www.zarsignal.ir').metrics.map((metric, index) => <option key={index} value={index}>{metric.label}</option>)}</select></label> : null}
       <button
         type="button"
         className="button small-button market-view__story-btn"
@@ -126,7 +141,7 @@ export function AnalysisStoryCardButton({
       {status === 'ready' && previewUrl ? (
         <div className="market-view__story-result">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={previewUrl} alt={`پیش‌نمایش استوری ${STORY_TEMPLATE_LABELS[template]}`} width={180} height={320} />
+          <div className="market-view__story-preview"><img src={previewUrl} alt={`پیش‌نمایش استوری ${STORY_TEMPLATE_LABELS[template]}`} width={180} height={320} /></div>
           <div className="market-view__engagement-actions">
             <button type="button" className="button small-button" onClick={download}>دانلود PNG</button>
             <button type="button" className="button small-button" onClick={() => void shareFile()}>
@@ -135,6 +150,7 @@ export function AnalysisStoryCardButton({
           </div>
         </div>
       ) : null}
+      </> : null}
     </div>
   );
 }

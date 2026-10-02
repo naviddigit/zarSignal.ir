@@ -1,6 +1,5 @@
 import { createHash } from 'crypto';
 import { getPublicSnapshot } from '@/server/quotes';
-import { computeLiveBubbles } from '@/server/live-bubbles';
 import {
   FORMULA_VERSION,
   GOLD_SILVER_RATIO_VERSION,
@@ -28,26 +27,13 @@ import {
 } from '@/lib/market-view-report';
 import { explainEvidenceStatus, USD_GAP_PUBLIC_LABEL } from '@/lib/evidence-status-reason';
 
-function fingerprint(
-  snapshot: Snapshot,
-  indicators: MarketIndicators,
-  bubbles: ReturnType<typeof computeLiveBubbles>,
-) {
+function fingerprint(snapshot: Snapshot, evidence: MarketViewEvidenceRow[], symbol?: Symbol) {
+  // Rate timestamps do not change report identity; validity/freshness and prices do.
   const payload = JSON.stringify({
+    symbol: symbol ?? null,
     mode: snapshot.mode,
-    status: snapshot.status,
-    quotes: snapshot.quotes.map(q => [q.symbol, q.buy, q.sell, q.observedAt]),
-    indicators: {
-      goldDerived: [indicators.goldDerived.status, indicators.goldDerived.percent, indicators.goldDerived.marketPrice],
-      goldDirect: [indicators.goldDirect.status, indicators.goldDirect.percent, indicators.goldDirect.marketPrice],
-      usdImplied: [indicators.usdImpliedGold.status, indicators.usdImpliedGold.percent],
-      usdAed: [indicators.usdFromAed.status, indicators.usdFromAed.percent],
-      uae: [indicators.iranUaeGold.status, indicators.iranUaeGold.percent],
-      silver: [indicators.silver.status, indicators.silver.percent],
-      gs: [indicators.goldSilverEdge.status, indicators.goldSilverEdge.percent],
-      peg: [indicators.peg.usdAed, indicators.peg.version],
-    },
-    bubbles: bubbles.map(b => [b.key, b.status, b.percent, b.theoretical, b.marketPrice, b.formulaVersion]),
+    quotes: snapshot.quotes.map(q => [q.symbol, q.buy, q.sell, q.currency, q.unit, isStale(q)]).sort((a, b) => String(a[0]).localeCompare(String(b[0]))),
+    evidence: evidence.map(row => [row.id, row.status, row.marketPriceLabel, row.referenceLabel, row.diffPercent, row.formulaVersion]),
   });
   return createHash('sha256').update(payload).digest('hex').slice(0, 16);
 }
@@ -82,7 +68,7 @@ function toEvidenceRow(args: {
   return {
     id: args.id,
     marketLabel: args.marketLabel,
-    marketPriceLabel: ok ? moneyLabel(args.ind.marketPrice, args.marketUnit, args.referenceDigits ?? 0) : null,
+    marketPriceLabel: moneyLabel(args.ind.marketPrice, args.marketUnit, args.referenceDigits ?? 0),
     referenceLabel: ok ? moneyLabel(args.ind.reference, args.referenceUnit, args.referenceDigits ?? 0) : null,
     referenceBasis: args.referenceBasis,
     diffPercent: ok ? args.ind.percent : null,
@@ -133,7 +119,7 @@ function buildEvidence(indicators: MarketIndicators): MarketViewEvidenceRow[] {
     toEvidenceRow({
       id: 'usd',
       ind: indicators.usdImpliedGold,
-      marketLabel: 'دلار ضمنی طلا',
+      marketLabel: 'دلار آزاد در مقایسه با دلار ضمنی طلا',
       referenceBasis: `دلار ضمنی از گرم ۱۸ (${indicators.usdImpliedGold.goldBasis}) و اونس — نه درهم و نه حباب مستقل دلار`,
       unitNote: `${USD_GAP_PUBLIC_LABEL}؛ ارزش بنیادی یا حباب مستقل دلار نیست`,
       marketUnit: 'تومان / دلار',
@@ -143,7 +129,7 @@ function buildEvidence(indicators: MarketIndicators): MarketViewEvidenceRow[] {
     toEvidenceRow({
       id: 'usd_aed',
       ind: indicators.usdFromAed,
-      marketLabel: 'دلار مبتنی بر درهم',
+      marketLabel: 'دلار آزاد در مقایسه با مرجع درهم',
       referenceBasis: `AED×USD_AED (${indicators.peg.version} · ${indicators.peg.source} · ${indicators.peg.usdAed})`,
       unitNote: `نسخه ${USD_AED_GAP_VERSION}؛ با دلار ضمنی طلا یکی نیست`,
       marketUnit: 'تومان / دلار',
@@ -187,8 +173,8 @@ function buildEvidence(indicators: MarketIndicators): MarketViewEvidenceRow[] {
       id: 'coin',
       ind: indicators.coin,
       marketLabel: 'سکه',
-      referenceBasis: 'مبنای ارزش و حباب سکه در مشخصات محصول تأیید نشده است',
-      unitNote: 'SPEC_BLOCKER · حباب داخلی و فاصله با مرجع جهانی پس از مشخصات قطعی سکه',
+      referenceBasis: 'برای سکه فقط قیمت تابلو نمایش داده می‌شود',
+      unitNote: 'قیمت هر عدد سکه به تومان',
       marketUnit: 'تومان / عدد',
       referenceUnit: 'تومان / عدد',
       formulaVersion: null,
@@ -259,13 +245,15 @@ export function marketViewReportFromSnapshot(
   trendMeta?: { historyConnected?: boolean; historyResolution?: string | null; candleCount?: number | null },
 ): MarketViewReport {
   const indicators = computeMarketIndicators(snapshot);
-  const bubbles = computeLiveBubbles(snapshot);
   const focusIds = focusIdsForSymbol(symbol);
   const asset = instruments.find(item => item.symbol === symbol);
   const quote = snapshot.mode === 'live' ? snapshot.quotes.find(item => item.symbol === symbol) : null;
   const quoteValid = quote && Number.isFinite(Number(quote.sell)) && Number(quote.sell) > 0 && quote.currency === asset?.currency && quote.unit === asset?.unit;
   let evidence = buildEvidence(indicators);
   if (focusIds) evidence = evidence.filter(row => focusIds.includes(row.id));
+  if (symbol === 'ROB_SEKE') evidence = evidence.map(row => row.id === 'coin' ? {
+    ...row, marketLabel: 'ربع سکه', marketPriceLabel: quoteValid ? moneyLabel(Number(quote.sell), 'تومان / عدد') : null,
+  } : row);
 
   const relevantSymbols = relevantSymbolsForFocus(symbol);
   const relevantSnapshot = { ...snapshot, quotes: snapshot.quotes.filter(q => relevantSymbols.includes(q.symbol)) };
@@ -288,7 +276,6 @@ export function marketViewReportFromSnapshot(
     prose.conclusion = prose.decision.reason;
     if (!hasFormula) {
       prose.unconfirmed = [
-        'مرجع ارزش‌گذاری و قواعد تصمیم این نماد تأیید نشده‌اند.',
         ...(dataFreshness === 'stale' ? ['قیمت نمایش‌داده‌شده قدیمی است.'] : []),
       ];
     }
@@ -299,11 +286,11 @@ export function marketViewReportFromSnapshot(
 
   const inputTimes = relevantSnapshot.quotes.map(q => q.observedAt);
   if (new Set(inputTimes).size > 1) {
-    prose.unconfirmed.unshift('زمان مشاهدهٔ ورودی‌ها یکسان نیست؛ مقایسهٔ حاضر را Snapshot دقیقاً هم‌زمان در نظر نگیرید.');
+    prose.unconfirmed.unshift('نرخ‌های ورودی در یک لحظه ثبت نشده‌اند؛ زمان قدیمی‌ترین نرخ در سربرگ آمده است.');
   }
   const dataObservedAtIso = observedAt(relevantSnapshot);
   const generatedAtIso = new Date().toISOString();
-  const snapFp = fingerprint(relevantSnapshot, indicators, bubbles);
+  const snapFp = fingerprint(relevantSnapshot, evidence, symbol);
 
   const full: MarketViewReport = {
     schemaVersion: '1.0',
@@ -315,7 +302,7 @@ export function marketViewReportFromSnapshot(
     access,
     symbol: symbol ?? null,
     currentQuote: asset && quoteValid ? { label: asset.name, price: formatPrice(quote.sell, quote.currency), unit: asset.unit } : null,
-    title: asset ? `تحلیل ${asset.name}` : 'دید زرسیگنال به بازار',
+    title: asset ? `تحلیل ${asset.short}` : 'دید بازار',
     summaryLines: prose.summaryLines,
     marketSays: prose.marketSays,
     evidence,

@@ -54,7 +54,7 @@ export default async function MarketAnalysisPage({ searchParams }: { searchParam
       )}
 
       <AnalysisMarketSelect />
-      <LastVisitChanges changes={lastVisit.changes} baselineAt={lastVisit.baselineAt} />
+
       <MarketViewReportView
         initial={report}
         canRefresh
@@ -74,6 +74,7 @@ export default async function MarketAnalysisPage({ searchParams }: { searchParam
           ) : null
         )}
       />
+      <LastVisitChanges changes={lastVisit.changes} baselineAt={lastVisit.baselineAt} />
       <nav className="analysis-page__tools" aria-label="ابزارهای مرتبط">
         <Link href="/markets">نرخ‌ها</Link>
         <Link href="/calculator">محاسبه</Link>

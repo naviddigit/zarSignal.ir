@@ -58,7 +58,7 @@ test('narrative layers stay distinct: view reason meaning result', () => {
   assert.ok(prose.reading);
   assert.match(prose.reading!, /نسبت|مجوز خرید یا فروش نیست|اضافه‌قیمت|دلار ضمنی|هم‌خوان/);
   assert.ok(prose.conclusion);
-  assert.match(prose.conclusion!, /مقایسهٔ ارزش|سیگنال خرید و فروش هنوز/);
+  assert.match(prose.conclusion!, /مقایسه|فاصله|جهت حرکت/);
   assert.doesNotMatch(prose.conclusion!, /۲٫۴۰٪/);
   assert.doesNotMatch(prose.reading! + prose.conclusion!, /در موتور محصول موجود نیست|اعلان خودکار/);
   assert.equal(prose.decision.kind, 'analysis_inactive');

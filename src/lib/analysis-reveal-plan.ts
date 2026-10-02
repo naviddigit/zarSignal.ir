@@ -16,8 +16,8 @@ export function buildAnalysisRevealSteps(report: MarketViewReport): RevealPlanSt
     steps.push({ id: 'prior-intro', kind: 'type' });
   }
   steps.push({ id: 'formula-details', kind: 'fade' });
-  steps.push({ id: 'page-extras', kind: 'fade' });
   steps.push({ id: 'engagement', kind: 'fade' });
+  steps.push({ id: 'page-extras', kind: 'fade' });
   return steps;
 }
 

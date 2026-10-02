@@ -15,12 +15,14 @@ export function AnalysisEngagementPanel({
   planLevel = null,
   planLabel = null,
   planStatus = null,
+  onReady,
 }: {
   report: MarketViewReport;
   signedIn: boolean;
   planLevel?: AccessLevel | null;
   planLabel?: string | null;
   planStatus?: 'فعال' | 'آزمایشی' | 'رایگان' | 'در انتظار پرداخت' | 'تعلیق‌شده' | null;
+  onReady?: () => void;
 }) {
   const [readCount, setReadCount] = useState<number | null>(null);
   const [readError, setReadError] = useState<string | null>(null);
@@ -32,14 +34,17 @@ export function AnalysisEngagementPanel({
   const [feedbackStatus, setFeedbackStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [feedbackError, setFeedbackError] = useState<string | null>(null);
   const [nextAllowedAt, setNextAllowedAt] = useState<string | null>(null);
+  const [feedbackReady, setFeedbackReady] = useState(false);
+  const [canCreateNew, setCanCreateNew] = useState(false);
+  const [availabilityCheck, setAvailabilityCheck] = useState(0);
   const [shareStatus, setShareStatus] = useState<'idle' | 'shared' | 'copied' | 'error'>('idle');
   const [shareError, setShareError] = useState<string | null>(null);
-  const recordedKey = useRef<string | null>(null);
   const submitting = useRef(false);
 
   const engagementKey = `${report.reportId}:${report.schemaVersion}`;
   const collapsed = hasSaved && !editing;
   const displayRating = hover ?? rating;
+  useEffect(() => { if (!signedIn || feedbackReady) onReady?.(); }, [signedIn, feedbackReady, onReady]);
 
   useEffect(() => {
     if (!signedIn) {
@@ -51,17 +56,26 @@ export function AnalysisEngagementPanel({
       setEditing(false);
       return;
     }
+    setFeedbackReady(false);
+    setCanCreateNew(false);
+    setNextAllowedAt(null);
+    setRating(null);
+    setComment('');
+    setHasSaved(false);
+    setEditing(false);
     let cancelled = false;
     void (async () => {
       try {
         const existing = await fetch(
           `/api/public/analysis/feedback?reportId=${encodeURIComponent(report.reportId)}&schemaVersion=${encodeURIComponent(report.schemaVersion)}`,
-          { credentials: 'same-origin', cache: 'no-store' },
+          { credentials: 'same-origin', cache: 'no-store', signal: AbortSignal.timeout(8000) },
         );
+        if (!existing.ok) throw new Error('feedback_unavailable');
         if (!cancelled && existing.ok) {
           const data = await existing.json() as {
             feedback?: { rating: number; comment: string | null } | null;
             nextAllowedAt?: string | null;
+            canCreateNew?: boolean;
           };
           if (data.feedback) {
             setRating(data.feedback.rating);
@@ -75,16 +89,21 @@ export function AnalysisEngagementPanel({
             setFeedbackStatus('idle');
           }
           setNextAllowedAt(data.nextAllowedAt ?? null);
+          setCanCreateNew(data.canCreateNew === true);
+          setFeedbackReady(true);
         }
-      } catch { /* quiet */ }
+      } catch {
+        if (!cancelled) {
+          setCanCreateNew(false);
+          setFeedbackReady(true);
+        }
+      }
     })();
     return () => { cancelled = true; };
-  }, [signedIn, report.reportId, report.schemaVersion]);
+  }, [signedIn, report.reportId, report.schemaVersion, availabilityCheck]);
 
   useEffect(() => {
     if (!signedIn) return;
-    if (recordedKey.current === engagementKey) return;
-    recordedKey.current = engagementKey;
     let cancelled = false;
     void (async () => {
       try {
@@ -104,16 +123,13 @@ export function AnalysisEngagementPanel({
           setReadCount(data.count);
           setReadError(null);
         } else if (res.status === 401) {
-          recordedKey.current = null;
           setReadCount(null);
         } else {
-          recordedKey.current = null;
           setReadCount(null);
           setReadError('ثبت مطالعه ممکن نشد؛ عدد ساختگی نمایش داده نمی‌شود.');
         }
       } catch {
         if (!cancelled) {
-          recordedKey.current = null;
           setReadCount(null);
           setReadError('ثبت مطالعه ممکن نشد؛ عدد ساختگی نمایش داده نمی‌شود.');
         }
@@ -122,8 +138,16 @@ export function AnalysisEngagementPanel({
     return () => { cancelled = true; };
   }, [signedIn, engagementKey, report.reportId, report.schemaVersion, report.symbol]);
 
+  useEffect(() => {
+    if (canCreateNew || !nextAllowedAt) return;
+    const remaining = Date.parse(nextAllowedAt) - Date.now();
+    if (!Number.isFinite(remaining)) return;
+    const timer = window.setTimeout(() => setAvailabilityCheck(value => value + 1), Math.max(1000, Math.min(remaining + 250, 2_147_483_647)));
+    return () => window.clearTimeout(timer);
+  }, [canCreateNew, nextAllowedAt]);
+
   const submitFeedback = useCallback(async () => {
-    if (!signedIn || rating == null || submitting.current) return;
+    if (!signedIn || !feedbackReady || (!hasSaved && !canCreateNew) || rating == null || submitting.current) return;
     submitting.current = true;
     setFeedbackStatus('saving');
     setFeedbackError(null);
@@ -145,7 +169,10 @@ export function AnalysisEngagementPanel({
         feedback?: { rating: number; comment: string | null };
       } | null;
       if (!res.ok) {
-        if (data?.nextAllowedAt) setNextAllowedAt(data.nextAllowedAt);
+        if (data?.nextAllowedAt) {
+          setNextAllowedAt(data.nextAllowedAt);
+          setCanCreateNew(false);
+        }
         throw new Error(data?.error ?? 'ذخیره نشد');
       }
       if (data?.feedback) {
@@ -161,7 +188,7 @@ export function AnalysisEngagementPanel({
     } finally {
       submitting.current = false;
     }
-  }, [signedIn, rating, comment, report.reportId, report.schemaVersion]);
+  }, [signedIn, feedbackReady, hasSaved, canCreateNew, rating, comment, report.reportId, report.schemaVersion]);
 
   const shareSummary = useCallback(async () => {
     setShareError(null);
@@ -192,7 +219,7 @@ export function AnalysisEngagementPanel({
       {signedIn && readCount != null ? (
         <p className="market-view__read-chip" role="status">
           <span className="market-view__chip is-reads">
-            {new Intl.NumberFormat('fa-IR').format(readCount)} گزارش خوانده‌شده
+            {new Intl.NumberFormat('fa-IR').format(readCount)} گزارش مشاهده‌شده
           </span>
         </p>
       ) : null}
@@ -202,8 +229,20 @@ export function AnalysisEngagementPanel({
 
       {signedIn ? (
         <div className="market-view__feedback">
-          {collapsed ? (
-            <div className="market-view__feedback-saved" role="status">
+          {!feedbackReady || (!hasSaved && !canCreateNew) ? (
+            <div className="market-view__feedback-saved" role="status" data-follow-anchor>
+              <p className="market-view__feedback-status">
+                {!feedbackReady ? 'در حال بررسی بازخورد…' : nextAllowedAt
+                  ? `بازخورد قبلی شما ثبت شده است؛ بازخورد جدید از ${new Intl.DateTimeFormat('fa-IR', { timeZone: 'Asia/Tehran', dateStyle: 'short', timeStyle: 'short' }).format(new Date(nextAllowedAt))} امکان‌پذیر است.`
+                  : 'ثبت بازخورد فعلاً ممکن نیست؛ دوباره تلاش کنید.'}
+              </p>
+              {feedbackReady && !nextAllowedAt ? <button type="button" className="text-link" onClick={() => setAvailabilityCheck(value => value + 1)}>تلاش دوباره</button> : null}
+              <button type="button" className="button small-button market-view__share-btn" onClick={() => void shareSummary()}>
+                <Share2 size={16} aria-hidden /> اشتراک خلاصه
+              </button>
+            </div>
+          ) : collapsed ? (
+            <div className="market-view__feedback-saved" role="status" data-follow-anchor>
               <p className="market-view__feedback-status is-ok">
                 <Check size={16} aria-hidden />
                 بازخورد شما ثبت شد
@@ -222,6 +261,7 @@ export function AnalysisEngagementPanel({
                   );
                 })}
               </div>
+              {comment ? <p>{comment}</p> : null}
               <button
                 type="button"
                 className="button small-button market-view__feedback-edit"
@@ -273,6 +313,8 @@ export function AnalysisEngagementPanel({
                   );
                 })}
               </div>
+              <details className="market-view__comment-details">
+              <summary>افزودن توضیح اختیاری</summary>
               <label className="market-view__feedback-comment">
                 <span className="visually-hidden">بازخورد اختیاری</span>
                 <textarea
@@ -286,6 +328,7 @@ export function AnalysisEngagementPanel({
                   }}
                 />
               </label>
+              </details>
               <div className="market-view__engagement-actions">
                 <button
                   type="submit"
@@ -295,7 +338,7 @@ export function AnalysisEngagementPanel({
                   {feedbackStatus === 'saving' ? 'در حال ارسال…' : hasSaved ? 'ذخیرهٔ ویرایش' : 'ارسال بازخورد'}
                 </button>
                 {hasSaved ? (
-                  <button type="button" className="button small-button" onClick={() => setEditing(false)}>
+                  <button type="button" className="button small-button" onClick={() => { setEditing(false); setAvailabilityCheck(value => value + 1); }}>
                     انصراف
                   </button>
                 ) : null}

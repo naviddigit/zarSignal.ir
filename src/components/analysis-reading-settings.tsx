@@ -84,15 +84,15 @@ export function AnalysisReadingSettingsForm({
           required
         />
       </Field>
-      <Field label={`ضریب حالت سریع (۱–۲)`}>
+      <Field label="سقف سرعت (نویسه در ثانیه؛ پایه حداکثر نصف سقف)">
         <input
           className="ds-input"
           type="number"
-          min={ANALYSIS_READING_BOUNDS.fastMultiplier.min}
-          max={ANALYSIS_READING_BOUNDS.fastMultiplier.max}
-          step={0.1}
-          value={draft.fastMultiplier}
-          onChange={e => setDraft(d => ({ ...d, fastMultiplier: Number(e.target.value) }))}
+          min={ANALYSIS_READING_BOUNDS.maxCps.min}
+          max={ANALYSIS_READING_BOUNDS.maxCps.max}
+          step={1}
+          value={draft.maxCps ?? 160}
+          onChange={e => setDraft(d => ({ ...d, maxCps: Number(e.target.value) }))}
           dir="ltr"
           required
         />

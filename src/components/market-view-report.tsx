@@ -13,8 +13,8 @@ import {
 } from 'react';
 import Link from 'next/link';
 import { Activity, ArrowUpLeft, ChevronDown, RefreshCw } from 'lucide-react';
-import { buildAnalysisNarrativeSections, buildBriefAnalysisNarrativeSections, formatFaPercent, formatTehranStamp } from '@/lib/market-view-report';
-import type { MarketViewDecision, MarketViewReport, MarketViewValuationStance } from '@/lib/market-view-report';
+import { buildAnalysisNarrativeSections, buildBriefAnalysisNarrativeSections, formatFaPercent, formatTehranStamp, selectReportMetrics } from '@/lib/market-view-report';
+import type { MarketViewDecision, MarketViewReport } from '@/lib/market-view-report';
 import {
   activeSectionIndex,
   flattenNarrativeGraphemes,
@@ -34,10 +34,8 @@ import {
 import {
   defaultAnalysisReadingSettings,
   effectiveTypingCps,
-  readingSpeedLabel,
   type AnalysisReadingSettings,
 } from '@/lib/analysis-reading-settings';
-import { canOfferConfirmationWatch } from '@/lib/analysis-engine-status';
 import { AnalysisEngagementPanel } from '@/components/analysis-engagement';
 
 function freshnessText(report: MarketViewReport) {
@@ -54,14 +52,6 @@ function decisionTone(kind: MarketViewDecision['kind']) {
   if (kind === 'needs_confirmation') return 'is-pending';
   if (kind === 'insufficient_data' || kind === 'analysis_inactive') return 'is-empty';
   return 'is-pending';
-}
-
-function valuationTone(stance: MarketViewValuationStance) {
-  if (stance === 'below') return 'is-below';
-  if (stance === 'above') return 'is-above';
-  if (stance === 'equal') return 'is-equal';
-  if (stance === 'mixed') return 'is-mixed';
-  return 'is-unknown';
 }
 
 function metricClass(tone: MetricTone) {
@@ -86,86 +76,24 @@ function renderAtoms(atoms: NarrativeAtom[]) {
   ));
 }
 
-/** Minimal result: market once, valuation once, decision once — no invented overall %. */
 function ResultCard({ report }: { report: MarketViewReport }) {
-  const decision = report.decision;
-  const valuation = decision.valuation;
-  const isOverall = Boolean(valuation && valuation.marketLabel === 'بازار' && valuation.percent == null);
-  const marketName = isOverall
-    ? valuation!.title
-    : valuation?.marketLabel
-      ?? (report.symbol ? report.title.replace(/^تحلیل\s+/, '') : 'بازار');
-  const percentLabel = valuation?.percent != null
-    ? `${formatFaPercent(valuation.percent)}٪`
-    : null;
-  const showUnknownRef = valuation?.stance === 'unknown' && !isOverall;
-  const dataChip = report.dataFreshness === 'ok' ? 'داده · تازه'
-    : report.dataFreshness === 'stale' ? 'داده · قدیمی'
-    : report.dataFreshness === 'mixed' ? 'داده · ترکیبی'
-    : 'داده · ناموجود';
-  const valuationChip = valuation
-    ? valuation.stance === 'mixed' ? 'دید ارزشی · مقایسه‌ای'
-      : valuation.stance === 'below' ? 'دید ارزشی · پایین‌تر از مرجع'
-      : valuation.stance === 'above' ? 'دید ارزشی · بالاتر از مرجع'
-      : valuation.stance === 'equal' ? 'دید ارزشی · برابر مرجع'
-      : 'دید ارزشی · نامشخص'
-    : 'دید ارزشی · ناموجود';
-  const trendChip = report.trend.status === 'ready'
-    ? `روند · ${report.trend.label}`
-    : `روند · ${report.trend.label}`;
-  const decisionChip = `تصمیم · ${decision.title}`;
-
   return (
-    <section className={`market-view__result ${decisionTone(decision.kind)}`} aria-label="کارت نتیجه">
-      <div className="market-view__result-chips" role="list" aria-label="نشانه‌های گزارش">
-        <span className="market-view__chip is-data" role="listitem">{dataChip}</span>
-        <span className="market-view__chip is-valuation" role="listitem">{valuationChip}</span>
-        <span className="market-view__chip is-trend" role="listitem">{trendChip}</span>
-        <span className="market-view__chip is-decision" role="listitem">{decisionChip}</span>
-      </div>
-      <p className="market-view__result-market">{marketName}</p>
-      {valuation ? (
-        <div className={`market-view__result-value ${valuationTone(valuation.stance)}`}>
-          <span className="market-view__result-dot" aria-hidden="true" />
-          <div>
-            {isOverall || valuation.stance === 'mixed' ? (
-              <p className="market-view__result-takeaway">{valuation.detail}</p>
-            ) : percentLabel ? (
-              <p className="market-view__result-percent">
-                <bdi className={metricClass(valuation.stance === 'below' ? 'below' : valuation.stance === 'above' ? 'above' : 'neutral')}>
-                  {percentLabel}
-                </bdi>
-                <span> نسبت به مرجع محاسباتی</span>
-              </p>
-            ) : showUnknownRef ? (
-              <p className="market-view__result-percent">
-                <bdi className={metricClass('missing')}>مرجع نامشخص</bdi>
-              </p>
-            ) : (
-              <p className="market-view__result-percent">
-                <span>{valuation.title.split('·').pop()?.trim()}</span>
-                <span> نسبت به مرجع محاسباتی</span>
-              </p>
-            )}
-            <p className="market-view__result-trend">
-              <span>روند: </span>
-              <bdi className={metricClass(report.trend.status === 'ready' ? 'neutral' : 'missing')}>
-                {report.trend.label}
-              </bdi>
-              {report.trend.detail ? <span> · {report.trend.detail}</span> : null}
-            </p>
+    <section className={`market-view__result ${decisionTone(report.decision.kind)}`} aria-label="جمع‌بندی">
+      <h2>جمع‌بندی</h2>
+      <p className="market-view__result-takeaway">{report.conclusion ?? report.decision.reason}</p>
+      <dl className="market-view__result-metrics">
+        {selectReportMetrics(report).map(row => (
+          <div key={row.id}>
+            <dt>{row.marketLabel}</dt>
+            <dd><bdi className={metricClass(row.diffPercent == null ? 'missing' : row.diffPercent < 0 ? 'below' : row.diffPercent > 0 ? 'above' : 'neutral')}>
+              {row.diffPercent == null ? row.marketPriceLabel : `${formatFaPercent(row.diffPercent)}٪`}
+            </bdi></dd>
+            <small>{row.diffPercent == null ? 'قیمت بازار' : row.diffPercent < 0 ? 'پایین‌تر از مرجع' : row.diffPercent > 0 ? 'بالاتر از مرجع' : 'برابر مرجع'}</small>
           </div>
-        </div>
-      ) : (
-        <p className="market-view__result-stance">دید ارزشی در دسترس نیست</p>
-      )}
-      <div className="market-view__result-decision">
-        <p className="market-view__result-kicker">وضعیت تصمیم</p>
-        <p className={`market-view__result-decision-title${decision.kind === 'needs_confirmation' ? ' is-caution' : ''}`}>
-          {decision.title}
-        </p>
-        <p className="market-view__result-decision-reason">{decision.reason}</p>
-      </div>
+        ))}
+      </dl>
+      <p className="market-view__result-trend">{report.trend.label} · {report.decision.title}</p>
+      <Link className="text-link" href="/calculator">محاسبه با این نرخ‌ها <ArrowUpLeft size={16} aria-hidden /></Link>
     </section>
   );
 }
@@ -305,7 +233,6 @@ function useReadingFollow(
   const [following, setFollowing] = useState(true);
   const followingRef = useRef(true);
   const programmatic = useRef(false);
-  const lastY = useRef(0);
   const raf = useRef<number | null>(null);
   const settleTimer = useRef<number | null>(null);
   const lastAlignH = useRef(0);
@@ -318,7 +245,6 @@ function useReadingFollow(
 
   useEffect(() => {
     setFollow(true);
-    lastY.current = window.scrollY;
     lastAlignH.current = 0;
     observedEl.current = null;
   }, [reportKey, setFollow]);
@@ -335,8 +261,7 @@ function useReadingFollow(
     if (Math.abs(delta) < 6) return;
     programmatic.current = true;
     // Resize-driven settles use auto to avoid smooth-scroll ↔ layout feedback loops.
-    window.scrollBy({ top: delta, behavior: smooth && !reducedMotion ? 'smooth' : 'auto' });
-    lastY.current = window.scrollY;
+    window.scrollBy({ top: delta, behavior: smooth && !reducedMotion ? 'smooth' : 'instant' });
     window.setTimeout(() => { programmatic.current = false; }, smooth && !reducedMotion ? 320 : 80);
   }, [anchorRef, reducedMotion]);
 
@@ -400,16 +325,11 @@ function useReadingFollow(
   }, [anchorRef, enabled, reducedMotion, scheduleAlign, reportKey, targetKey]);
 
   useEffect(() => {
-    const onScroll = () => {
-      if (programmatic.current) {
-        lastY.current = window.scrollY;
-        return;
-      }
-      const y = window.scrollY;
-      // Only intentional upward scroll breaks follow — not programmatic auto-align.
-      if (y + 2 < lastY.current && followingRef.current) setFollow(false);
-      lastY.current = y;
-    };
+    let touchY = 0;
+    const onWheel = (event: WheelEvent) => { if (event.deltaY < -2) setFollow(false); };
+    const onTouchStart = (event: TouchEvent) => { touchY = event.touches[0]?.clientY ?? 0; };
+    const onTouchMove = (event: TouchEvent) => { if ((event.touches[0]?.clientY ?? touchY) > touchY + 8) setFollow(false); };
+    const onKey = (event: KeyboardEvent) => { if (['ArrowUp', 'PageUp', 'Home'].includes(event.key)) setFollow(false); };
     const onSelect = () => {
       const sel = window.getSelection();
       if (sel && !sel.isCollapsed && followingRef.current) setFollow(false);
@@ -427,14 +347,21 @@ function useReadingFollow(
         if (followingRef.current) setFollow(false);
       }
     };
-    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('wheel', onWheel, { passive: true });
+    window.addEventListener('touchstart', onTouchStart, { passive: true });
+    window.addEventListener('touchmove', onTouchMove, { passive: true });
+    window.addEventListener('keydown', onKey);
     document.addEventListener('selectionchange', onSelect);
     document.addEventListener('pointerdown', onPointer, true);
     return () => {
-      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('wheel', onWheel);
+      window.removeEventListener('touchstart', onTouchStart);
+      window.removeEventListener('touchmove', onTouchMove);
+      window.removeEventListener('keydown', onKey);
       document.removeEventListener('selectionchange', onSelect);
       document.removeEventListener('pointerdown', onPointer, true);
       if (raf.current != null) window.cancelAnimationFrame(raf.current);
+      raf.current = null;
     };
   }, [setFollow]);
 
@@ -482,7 +409,6 @@ function NarrativeBlock({
   const atomGroups = visibleAtomsAt(sections, shown);
   const bodies = atomGroups.map(atoms => atoms.map(a => a.text).join(''));
   const active = activeSectionIndex(sections, shown);
-  const complete = !typing && ready && shown >= totalGraphemes;
 
   return (
     <div
@@ -500,7 +426,7 @@ function NarrativeBlock({
           </section>
         ))}
       </div>
-      <div aria-hidden={typing || !complete ? true : undefined}>
+      <div aria-hidden="true">
         {sections.map((section, index) => {
           const body = bodies[index] ?? '';
           const atoms = atomGroups[index] ?? [];
@@ -542,8 +468,10 @@ type PlanItem =
   | { id: string; kind: 'fade'; node: ReactNode };
 
 function EvidenceTable({ report }: { report: MarketViewReport }) {
+  const secondaryGold = report.symbol !== 'GOLD_MELTED' && report.evidence.some(row => row.id === 'gold_direct' && row.marketPriceLabel)
+    ? report.evidence.find(row => row.id === 'gold') : null;
   return (
-    <DetailsToggle title="جدول شواهد و اختلاف با مرجع">
+    <DetailsToggle title="اعداد و شواهد">
       <div className="market-view__table-wrap">
         <table className="market-view__table" role="table">
           <thead>
@@ -555,7 +483,7 @@ function EvidenceTable({ report }: { report: MarketViewReport }) {
             </tr>
           </thead>
           <tbody>
-            {report.evidence.map(row => {
+            {report.evidence.filter(row => row !== secondaryGold).map(row => {
               const missing = row.diffPercent == null || row.status === 'unavailable' || row.status === 'blocked';
               const tone: MetricTone = missing
                 ? 'missing'
@@ -578,17 +506,13 @@ function EvidenceTable({ report }: { report: MarketViewReport }) {
                     {row.referenceLabel
                       ? <bdi className={metricClass('neutral')}>{row.referenceLabel}</bdi>
                       : <bdi className={metricClass('missing')}>
-                          {row.id === 'coin' && row.marketPriceLabel
-                            ? 'مرجع محاسباتی سکه فعلاً فعال نیست'
-                            : reason && /مرجع|فعال نیست/.test(reason)
-                              ? reason
-                              : 'مرجع محاسباتی فعال نیست'}
+                          —
                         </bdi>}
                   </td>
                   <td data-label="اختلاف">
                     {row.diffPercent != null
                       ? <bdi className={metricClass(tone)}>{formatFaPercent(row.diffPercent)}٪</bdi>
-                      : <bdi className={metricClass('missing')}>{missingLabel}</bdi>}
+                      : <bdi className={metricClass('missing')}>—</bdi>}
                     {row.status !== 'ok' && reason ? (
                       <small>{reason}</small>
                     ) : null}
@@ -599,6 +523,10 @@ function EvidenceTable({ report }: { report: MarketViewReport }) {
           </tbody>
         </table>
       </div>
+      {secondaryGold ? <details className="market-view__comparison">
+        <summary>مقایسه با طلای مشتق از مظنه</summary>
+        <p>مظنه ÷ ۴٫۳۳۱۸ = <bdi>{secondaryGold.marketPriceLabel ?? 'ناموجود'}</bdi>؛ اختلاف با مرجع: <bdi>{secondaryGold.diffPercent == null ? 'ناموجود' : `${formatFaPercent(secondaryGold.diffPercent)}٪`}</bdi></p>
+      </details> : null}
     </DetailsToggle>
   );
 }
@@ -614,6 +542,7 @@ function buildRevealPlan(
     status: 'فعال' | 'آزمایشی' | 'رایگان' | 'در انتظار پرداخت' | 'تعلیق‌شده' | null;
   },
   density: 'brief' | 'full' = 'full',
+  onEngagementReady?: () => void,
 ): { items: PlanItem[]; meta: RevealPlanStep[] } {
   const items: PlanItem[] = [];
 
@@ -636,21 +565,19 @@ function buildRevealPlan(
     ),
   });
 
-  if (density === 'full' && report.evidence.length > 0) {
+  if (report.evidence.length > 0) {
     items.push({ id: 'evidence-table', kind: 'fade', node: <EvidenceTable report={report} /> });
   }
 
-  if (density === 'full') {
-    items.push({
+  items.push({
       id: 'limits-details',
       kind: 'fade',
       node: (
-        <DetailsToggle title="اعتبار داده و محدودیت‌ها">
+        <DetailsToggle title="اعتبار داده">
           <ul className="market-view__list">{report.unconfirmed.map(item => <li key={item}>{item}</li>)}</ul>
         </DetailsToggle>
       ),
     });
-  }
 
   if (density === 'full' && report.changeFromPrior) {
     items.push({
@@ -664,12 +591,11 @@ function buildRevealPlan(
     });
   }
 
-  if (density === 'full') {
-    items.push({
+  items.push({
       id: 'formula-details',
       kind: 'fade',
       node: (
-        <DetailsToggle title="فرمول و نسخه">
+        <DetailsToggle title="روش محاسبه">
           <ul className="market-view__list">
             {report.evidence.map(row => (
               <li key={row.id}>{row.marketLabel}: {row.referenceBasis}. {row.unitNote}</li>
@@ -681,11 +607,6 @@ function buildRevealPlan(
         </DetailsToggle>
       ),
     });
-  }
-
-  if (pageExtras) {
-    items.push({ id: 'page-extras', kind: 'fade', node: <div className="market-view__page-extras">{pageExtras}</div> });
-  }
 
   items.push({
     id: 'engagement',
@@ -697,11 +618,15 @@ function buildRevealPlan(
         planLevel={plan?.level ?? null}
         planLabel={plan?.label ?? null}
         planStatus={plan?.status ?? null}
+        onReady={onEngagementReady}
       />
     ),
   });
 
-  void canOfferConfirmationWatch(report.symbol);
+  if (pageExtras) {
+    items.push({ id: 'page-extras', kind: 'fade', node: <div className="market-view__page-extras">{pageExtras}</div> });
+  }
+
 
   return {
     items,
@@ -731,17 +656,18 @@ export function MarketViewReportView({
   readingSettings?: AnalysisReadingSettings;
 }) {
   const [report, setReport] = useState(initial);
-  const [pendingFingerprint, setPendingFingerprint] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [unchangedNote, setUnchangedNote] = useState<string | null>(null);
   const [cooldownUntil, setCooldownUntil] = useState<number | null>(null);
   const [cooldownLeft, setCooldownLeft] = useState(0);
-  const [density, setDensity] = useState<'brief' | 'full'>('full');
+  const [density, setDensity] = useState<'brief' | 'full'>('brief');
   const reduced = usePrefersReducedMotion();
   const [typeSpeed, setTypeSpeed] = useTypeSpeed();
   const endRef = useRef<HTMLElement | null>(null);
   const reading = readingSettings;
+  const [engagementReady, setEngagementReady] = useState(false);
+  const onEngagementReady = useCallback(() => setEngagementReady(true), []);
 
   const reportKey = `${report.snapshotFingerprint}:${report.symbol ?? 'all'}:${report.access}:${density}`;
   const { items: plan } = useMemo(
@@ -749,8 +675,8 @@ export function MarketViewReportView({
       level: planLevel,
       label: planLabel,
       status: planStatus,
-    }, density),
-    [report, trialCta, pageExtras, signedIn, planLevel, planLabel, planStatus, density],
+    }, density, onEngagementReady),
+    [report, trialCta, pageExtras, signedIn, planLevel, planLabel, planStatus, density, onEngagementReady],
   );
 
   const [activeIndex, setActiveIndex] = useState(0);
@@ -766,17 +692,15 @@ export function MarketViewReportView({
   useEffect(() => {
     if (initial.access !== report.access || initial.symbol !== report.symbol) {
       setReport(initial);
-      setPendingFingerprint(null);
       return;
     }
-    if (initial.snapshotFingerprint !== report.snapshotFingerprint) {
-      setPendingFingerprint(initial.snapshotFingerprint);
-    }
+
   }, [initial, report.access, report.symbol, report.snapshotFingerprint]);
 
   useEffect(() => {
     clearFade();
     setActiveIndex(0);
+    setEngagementReady(false);
   }, [reportKey, clearFade]);
 
   const advance = useCallback(() => {
@@ -820,11 +744,17 @@ export function MarketViewReportView({
     return () => clearFade();
   }, [activeIndex, activeStep, reduced, plan.length, advance, clearFade, reportKey, reading.sectionAppearMs]);
 
-  // Follow only while narrative is revealing — stop at the end so the user can
-  // reach engagement / tools without being pinned mid-page.
+  // Finish following after the feedback status resolves, then release the page.
   const revealDone = activeIndex >= plan.length;
-  const followEnabled = !reduced && !revealDone;
-  const followTargetKey = `${reportKey}:${activeIndex}:${activeStep?.id ?? 'done'}:${revealDone ? 'done' : 'run'}`;
+  const [followSettled, setFollowSettled] = useState(false);
+  useEffect(() => {
+    setFollowSettled(false);
+    if (!revealDone || !engagementReady) return;
+    const timer = window.setTimeout(() => setFollowSettled(true), 500);
+    return () => window.clearTimeout(timer);
+  }, [revealDone, reportKey, engagementReady]);
+  const followEnabled = !reduced && !followSettled;
+  const followTargetKey = `${reportKey}:${activeIndex}:${activeStep?.id ?? 'done'}:${engagementReady}`;
   const { following, resume, scheduleAlign } = useReadingFollow(
     followEnabled,
     endRef,
@@ -880,26 +810,6 @@ export function MarketViewReportView({
     return () => window.clearInterval(id);
   }, [cooldownUntil]);
 
-  useEffect(() => {
-    if (!canRefresh) return;
-    const id = window.setInterval(() => {
-      void (async () => {
-        try {
-          const next = await applyLatest(false);
-          if (!next) return;
-          if (next.access !== report.access) {
-            setReport(next);
-            setPendingFingerprint(null);
-            return;
-          }
-          if (next.snapshotFingerprint !== report.snapshotFingerprint) {
-            setPendingFingerprint(next.snapshotFingerprint);
-          }
-        } catch { /* quiet — polling must not trip manual cooldown */ }
-      })();
-    }, 45000);
-    return () => window.clearInterval(id);
-  }, [applyLatest, canRefresh, report.snapshotFingerprint, report.access]);
 
   function showFresh() {
     if (cooldownLeft > 0) return;
@@ -910,13 +820,11 @@ export function MarketViewReportView({
         if (!next) return;
         setCooldownUntil(Date.now() + 30_000);
         if (next.unchanged || next.snapshotFingerprint === report.snapshotFingerprint) {
-          setUnchangedNote('از آخرین بررسی، داده‌های مؤثر بر این گزارش تغییر نکرده‌اند.');
-          setPendingFingerprint(null);
+          setUnchangedNote('از آخرین بررسی، دادهٔ مؤثر بر تحلیل تغییر نکرده است.');
           return;
         }
         setUnchangedNote(null);
         setReport(next);
-        setPendingFingerprint(null);
       } catch (err) {
         if (err instanceof Error && err.message === 'cooldown') {
           setError('لطفاً چند ثانیه صبر کنید و دوباره بررسی کنید.');
@@ -929,7 +837,6 @@ export function MarketViewReportView({
   }
 
   const phase = activeIndex >= plan.length ? 'done' : activeStep?.kind === 'fade' ? 'fading' : 'typing';
-  const showUpdateChip = Boolean(pendingFingerprint) && canRefresh;
   const done = activeIndex >= plan.length;
 
   return (
@@ -941,33 +848,12 @@ export function MarketViewReportView({
       data-reveal-total={plan.length}
     >
       <header className="market-view__hero">
-        <div className="market-view__brand" aria-hidden="true">
-          <span className="brand-mark"><Activity size={26} /></span>
-          <span className="market-view__brand-name">زر<span className="gold-text">سیگنال</span></span>
-        </div>
-        <span className="eyebrow">گزارش بازار</span>
         <h1>{report.title}</h1>
         <p className="market-view__meta" role="status">
           داده: {formatTehranStamp(report.dataObservedAtIso)} به وقت تهران
           {' · '}
           وضعیت: {freshnessText(report)}
-          {' · '}
-          تولید گزارش: {formatTehranStamp(report.generatedAtIso)}
-          {showUpdateChip ? (
-            <>
-              {' · '}
-              <button
-                type="button"
-                className="market-view__update-chip"
-                onClick={showFresh}
-                disabled={pending || !done}
-                title={!done ? 'پس از پایان نمایش می‌توانید به‌روز کنید' : undefined}
-              >
-                <RefreshCw size={13} aria-hidden />
-                {pending ? 'در حال بارگذاری…' : 'به‌روزرسانی موجود'}
-              </button>
-            </>
-          ) : null}
+
         </p>
         {!reduced ? (
           <div className="market-view__controls" data-follow-keep>
@@ -991,13 +877,12 @@ export function MarketViewReportView({
                 کامل
               </button>
             </div>
-            <div className="market-view__speed" role="group" aria-label={readingSpeedLabel(reading, typeSpeed)} data-follow-keep>
-              <span>{readingSpeedLabel(reading, typeSpeed)}</span>
+            <div className="market-view__speed" role="group" aria-label="سرعت نمایش" data-follow-keep>
+              <span>سرعت</span>
               <button
                 type="button"
                 className={typeSpeed === 1 ? 'is-active' : undefined}
                 aria-pressed={typeSpeed === 1}
-                title={`${Math.round(effectiveTypingCps(reading, 1))} نویسه/ثانیه`}
                 data-follow-keep
                 onClick={() => setTypeSpeed(1)}
               >
@@ -1007,7 +892,6 @@ export function MarketViewReportView({
                 type="button"
                 className={typeSpeed === 2 ? 'is-active' : undefined}
                 aria-pressed={typeSpeed === 2}
-                title={`${Math.round(effectiveTypingCps(reading, 2))} نویسه/ثانیه`}
                 data-follow-keep
                 onClick={() => setTypeSpeed(2)}
               >
@@ -1028,8 +912,7 @@ export function MarketViewReportView({
       <div className="market-view__reading">
         <div className="market-view__watermark-slot" aria-hidden="true">
           <div className="market-view__watermark">
-            <span className="brand-mark"><Activity size={200} /></span>
-            <span>زرسیگنال</span>
+            <Activity size={240} strokeWidth={1.5} aria-hidden />
           </div>
         </div>
 
@@ -1073,14 +956,12 @@ export function MarketViewReportView({
               );
             }
             const activeFade = isRevealStepActive(index, activeIndex, reduced);
-            const stepRevealDone = activeIndex >= plan.length;
             // Follow engagement only while that step is active — not after the report is done
             // (avoids trapping scroll mid-page over chart/tools below).
             const keepEngagementFollow = item.id === 'engagement'
               && following
-              && activeFade
-              && !stepRevealDone;
-            const attachFadeFollow = activeFade || keepEngagementFollow;
+              && !followSettled;
+            const attachFadeFollow = (activeFade && item.id !== 'page-extras') || keepEngagementFollow;
             return (
               <RevealItem key={item.id}>
                 <div
@@ -1102,7 +983,7 @@ export function MarketViewReportView({
         </div>
       </div>
 
-      {!following && followEnabled && !done ? (
+      {!following && followEnabled ? (
         <button
           type="button"
           className="market-view__follow-resume"
@@ -1116,7 +997,7 @@ export function MarketViewReportView({
       {error ? <p role="alert" className="market-view__meta">{error}</p> : null}
       {unchangedNote ? <p role="status" className="market-view__meta">{unchangedNote}</p> : null}
 
-      {canRefresh && done && !pendingFingerprint ? (
+      {canRefresh && done ? (
         <button
           type="button"
           className="market-view__reload text-link"
@@ -1132,17 +1013,7 @@ export function MarketViewReportView({
         </button>
       ) : null}
 
-      {showUpdateChip && done ? (
-        <button
-          type="button"
-          className="market-view__update-chip is-block"
-          onClick={showFresh}
-          disabled={pending}
-        >
-          <RefreshCw size={13} aria-hidden />
-          {pending ? 'در حال بارگذاری…' : 'به‌روزرسانی موجود'}
-        </button>
-      ) : null}
+
     </article>
   );
 }

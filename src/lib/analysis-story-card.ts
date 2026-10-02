@@ -2,7 +2,7 @@
 
 import type { AccessLevel } from '@/lib/capabilities';
 import type { MarketViewReport } from '@/lib/market-view-report';
-import { formatFaPercent, formatTehranStamp } from '@/lib/market-view-report';
+import { formatFaPercent, formatTehranStamp, selectReportMetrics } from '@/lib/market-view-report';
 import { publicAnalysisPath } from '@/lib/analysis-share';
 
 export const STORY_WIDTH = 1080;
@@ -57,35 +57,31 @@ export function buildStoryPublicPayload(
     testDataLabel?: string | null;
   },
 ): StoryPublicPayload {
-  const origin = siteOrigin.replace(/\/$/, '');
+  const origin = new URL(siteOrigin).origin;
   const path = publicAnalysisPath(report.symbol);
   const url = `${origin}${path}`;
   // Live path is not a pinned report revision.
-  const linkLabel = 'مشاهده خلاصهٔ بازار';
+  const linkLabel = 'وضعیت امروز بازار را ببین';
 
-  const takeaway = report.decision.valuation?.detail
-    ?? report.summaryLines[0]
+  const takeaway = report.summaryLines[0]
     ?? 'خلاصهٔ دید ارزشی در دسترس نیست.';
 
-  const metrics: StoryPublicMetric[] = report.evidence
-    .filter(row => row.id !== 'coin' && (row.status === 'ok' || row.status === 'stale') && row.diffPercent != null)
-    .filter(row => row.id === 'gold' || row.id === 'gold_direct' || row.id === 'silver' || row.id === 'usd' || row.id === 'uae_gold' || row.id === 'usd_aed')
-    .slice(0, 4)
+  const metrics: StoryPublicMetric[] = selectReportMetrics(report)
     .map(row => {
       const tone = toneFor(row.diffPercent);
       const label =
-        row.id === 'gold' || row.id === 'gold_direct' ? 'طلا'
+        row.id === 'gold' ? 'طلای مشتق از مظنه' : row.id === 'gold_direct' ? 'طلای ۱۸ عیار'
           : row.id === 'silver' ? 'نقره ۹۹۹'
             : row.id === 'usd' ? 'فاصلهٔ دلار بازار با دلار ضمنی طلا'
-              : row.id === 'usd_aed' ? 'دلار مبتنی بر درهم'
+              : row.id === 'usd_aed' ? 'دلار آزاد / مرجع درهم'
                 : row.id === 'uae_gold' ? 'ایران/امارات'
                   : row.marketLabel;
       return {
         label,
-        value: `${formatFaPercent(row.diffPercent!)}٪`,
-        unit: 'اختلاف با مرجع',
+        value: row.diffPercent == null ? row.marketPriceLabel ?? 'ناموجود' : `${formatFaPercent(row.diffPercent)}٪`,
+        unit: row.diffPercent == null ? 'قیمت بازار' : 'اختلاف با مرجع',
         tone,
-        meaning: meaningFor(tone),
+        meaning: row.diffPercent == null && row.marketPriceLabel ? 'قیمت بازار · مرجع ناموجود' : meaningFor(tone),
       };
     });
 
@@ -100,7 +96,7 @@ export function buildStoryPublicPayload(
   return {
     brand: 'زرسیگنال',
     title: report.title,
-    observedLabel: `زمان داده: ${formatTehranStamp(report.dataObservedAtIso)} به وقت تهران`,
+    observedLabel: `زمان داده: ${formatTehranStamp(report.dataObservedAtIso)} · ${report.dataFreshness === 'ok' ? 'تازه' : report.dataFreshness === 'unavailable' ? 'ناموجود' : 'دارای نرخ قدیمی'}`,
     takeaway,
     metrics,
     disclaimer: 'مقایسهٔ ارزش؛ نه سیگنال خرید و فروش',
