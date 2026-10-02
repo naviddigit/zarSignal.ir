@@ -1239,7 +1239,8 @@ html[data-theme='light'] .market-view__watermark{opacity:.13;color:var(--text-pr
 /* Tidy analysis + TradingView-like chart + stars */
 .analysis-page.is-tidy{max-width:720px;margin-inline:auto}
 .analysis-page__status{margin:4px 0 12px;font-size:12px}
-.analysis-page__chart{margin:20px 0 12px}
+.analysis-page__chart{margin:8px 0 18px}
+.market-view__story-result img{width:160px;height:auto;border:1px solid var(--border-subtle);border-radius:14px;background:var(--surface-soft)}
 .analysis-page__tools{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 28px;padding-top:12px;border-top:1px solid var(--border-subtle)}
 .analysis-page__tools a{min-height:40px;padding:8px 14px;border:1px solid var(--border-subtle);border-radius:999px;font:600 12px Vazirmatn;color:var(--text-secondary);background:var(--surface-soft)}
 .analysis-page__tools a:hover{color:var(--accent);border-color:color-mix(in srgb,var(--accent) 40%,var(--border-subtle))}
@@ -1265,6 +1266,9 @@ html[data-theme='light'] .market-view__watermark{opacity:.13;color:var(--text-pr
 .tv-chart__ranges button.is-on,.tv-chart__modes button.is-on{background:var(--surface-card);color:var(--text-primary);box-shadow:0 1px 0 var(--border-subtle)}
 .tv-chart__ranges button.is-locked{opacity:.55}
 .tv-chart__empty,.tv-chart__locked{min-height:180px;display:grid;place-items:center;gap:10px;text-align:center;color:var(--text-secondary);font-size:13px;padding:20px}
+.tv-chart__locked.is-banner{min-height:0;margin:0 0 10px;padding:12px 14px;border:1px solid var(--border-subtle);border-radius:12px;background:color-mix(in srgb,var(--accent) 8%,var(--surface-soft));grid-template-columns:auto 1fr;align-items:center;text-align:right;gap:10px 12px}
+.tv-chart__locked.is-banner p{margin:0;grid-column:2}
+.tv-chart__locked.is-banner .tv-chart__locked-actions{grid-column:1/-1;justify-content:flex-start}
 .tv-chart__locked-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
 .tv-chart__foot{margin:10px 0 0;font-size:11px;color:var(--text-muted)}
 .tv-chart__foot a{color:var(--accent)}

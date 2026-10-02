@@ -328,15 +328,11 @@ function useReadingFollow(
     const target = resolveFollowTarget(anchorRef.current);
     if (!target) return;
     const rect = target.getBoundingClientRect();
-    const topPad = 88;
-    const bottomPad = window.matchMedia('(max-width: 720px)').matches ? 96 : 32;
-    let delta = 0;
-    if (rect.bottom > window.innerHeight - bottomPad) {
-      delta = rect.bottom - (window.innerHeight - bottomPad);
-    } else if (rect.top < topPad) {
-      delta = rect.top - topPad;
-    }
-    if (Math.abs(delta) < 4) return;
+    // Keep the live edge of the revealing text near mid-viewport so reading
+    // starts mid-page and continues through the end of the narrative.
+    const focus = window.innerHeight * 0.48;
+    const delta = rect.bottom - focus;
+    if (Math.abs(delta) < 6) return;
     programmatic.current = true;
     // Resize-driven settles use auto to avoid smooth-scroll ↔ layout feedback loops.
     window.scrollBy({ top: delta, behavior: smooth && !reducedMotion ? 'smooth' : 'auto' });
@@ -824,9 +820,10 @@ export function MarketViewReportView({
     return () => clearFade();
   }, [activeIndex, activeStep, reduced, plan.length, advance, clearFade, reportKey, reading.sectionAppearMs]);
 
-  // Keep follow alive after the last fade so feedback / scores can settle into view.
-  const followEnabled = !reduced;
+  // Follow only while narrative is revealing — stop at the end so the user can
+  // reach engagement / tools without being pinned mid-page.
   const revealDone = activeIndex >= plan.length;
+  const followEnabled = !reduced && !revealDone;
   const followTargetKey = `${reportKey}:${activeIndex}:${activeStep?.id ?? 'done'}:${revealDone ? 'done' : 'run'}`;
   const { following, resume, scheduleAlign } = useReadingFollow(
     followEnabled,

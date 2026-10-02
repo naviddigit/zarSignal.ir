@@ -60,6 +60,9 @@ export default async function AnalysisPage({ params, searchParams }: {
         {reliability === 'WARNING' ? 'خارج از بازه استاندارد' : 'بازه استاندارد'} · تهران
       </p>
       <LastVisitChanges changes={lastVisit.changes} baselineAt={lastVisit.baselineAt} />
+      <section className="analysis-page__chart" aria-label="نمودار قیمت" data-follow-keep>
+        <ChartWorkspace symbol={asset.symbol} compact hideMarketLink />
+      </section>
       <MarketViewReportView
         initial={report}
         canRefresh
@@ -79,9 +82,6 @@ export default async function AnalysisPage({ params, searchParams }: {
           ) : null
         )}
       />
-      <section className="analysis-page__chart" aria-label="نمودار قیمت">
-        <ChartWorkspace symbol={asset.symbol} compact hideMarketLink />
-      </section>
       <nav className="analysis-page__tools" aria-label="ابزارهای مرتبط">
         <Link href="/calculator">محاسبه</Link>
         <Link href="/alerts">هشدار</Link>

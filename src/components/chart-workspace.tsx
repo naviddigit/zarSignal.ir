@@ -40,16 +40,28 @@ export function ChartWorkspace({ symbol, compact = false, hideMarketLink = false
   useEffect(() => {
     const controller = new AbortController();
     setState('loading');
-    setPoints([]);
     async function read(url: string) {
       const json = await fetchJson<{ bars?: HistoryBar[]; points?: BubblePoint[]; error?: string }>(url, controller.signal);
       if (json.error) throw new Error('unavailable');
       return json;
     }
+    async function loadFreeFallback() {
+      const bubbles = formula
+        ? await read(`/api/public/bubbles/history?formula=${formula}&range=24h`)
+        : { points: [] as BubblePoint[] };
+      if (controller.signal.aborted) return;
+      if (formula) {
+        setPoints(snapshotChartPoints(bubbles.points ?? [], symbol));
+      } else {
+        const history = await read(`/api/public/markets/${symbol.toLowerCase()}/history?days=1&resolution=1D`);
+        if (controller.signal.aborted) return;
+        setPoints(mergeDailyHistory(history.bars ?? [], []));
+      }
+    }
     async function load() {
       const [history, bubbles] = await Promise.all([
-        range === '24h' && formula ? Promise.resolve({ bars: [] }) : read(`/api/public/markets/${symbol.toLowerCase()}/history?days=${historyRanges[range] / 24}&resolution=1D`),
-        formula ? read(`/api/public/bubbles/history?formula=${formula}&range=${range}`) : Promise.resolve({ points: [] }),
+        range === '24h' && formula ? Promise.resolve({ bars: [] as HistoryBar[] }) : read(`/api/public/markets/${symbol.toLowerCase()}/history?days=${historyRanges[range] / 24}&resolution=1D`),
+        formula ? read(`/api/public/bubbles/history?formula=${formula}&range=${range}`) : Promise.resolve({ points: [] as BubblePoint[] }),
       ]);
       if (controller.signal.aborted) return;
       setPoints(range === '24h' && formula ? snapshotChartPoints(bubbles.points ?? [], symbol) : mergeDailyHistory(history.bars ?? [], bubbles.points ?? []));
@@ -63,11 +75,16 @@ export function ChartWorkspace({ symbol, compact = false, hideMarketLink = false
         });
       }
     }
-    void load().catch(error => {
+    void load().catch(async error => {
       if (controller.signal.aborted) return;
       if (error.message === 'http_403') {
-        setState('locked');
         setLockedRanges(current => new Set(current).add(range));
+        try {
+          await loadFreeFallback();
+          if (!controller.signal.aborted) setState('locked');
+        } catch {
+          if (!controller.signal.aborted) setState('locked');
+        }
         return;
       }
       setState('error');
@@ -152,15 +169,6 @@ export function ChartWorkspace({ symbol, compact = false, hideMarketLink = false
 
       {state === 'loading' ? (
         <div className="tv-chart__empty" role="status">در حال بارگذاری…</div>
-      ) : state === 'locked' ? (
-        <div className="tv-chart__locked">
-          <LockKeyhole size={20} />
-          <p>بازهٔ {RANGE_LABEL[range]} با اشتراک تاریخچه باز می‌شود. ۲۴ ساعت رایگان است.</p>
-          <div className="tv-chart__locked-actions">
-            <Link href="/pricing#paid-plans" className="button small-button">پلن‌ها</Link>
-            <button type="button" className="button small-button" onClick={() => { previousLineRange.current = null; setStyle('line'); setRange('24h'); }}>۲۴ ساعت</button>
-          </div>
-        </div>
       ) : state === 'error' ? (
         <div className="tv-chart__empty" role="status">
           <p>نمودار دریافت نشد.</p>
@@ -168,19 +176,33 @@ export function ChartWorkspace({ symbol, compact = false, hideMarketLink = false
             <RefreshCw size={14} /> تلاش دوباره
           </button>
         </div>
-      ) : !enough ? (
-        <div className="tv-chart__empty">هنوز دادهٔ کافی برای این بازه نیست.</div>
       ) : (
-        <MarketChart
-          key={`${symbol}-${range}-${style}`}
-          points={points}
-          label={asset.name}
-          unit={`${asset.currency === 'USD' ? 'دلار' : 'تومان'} / ${asset.unit}`}
-          candles={style === 'candles'}
-          showPrice
-          showBubble={Boolean(formula) && showBubble && bubbleReady}
-          minimal
-        />
+        <>
+          {state === 'locked' ? (
+            <div className="tv-chart__locked is-banner">
+              <LockKeyhole size={18} />
+              <p>بازهٔ {RANGE_LABEL[range]} با اشتراک. فعلاً نمودار ۲۴ساعت رایگان نمایش داده می‌شود.</p>
+              <div className="tv-chart__locked-actions">
+                <Link href="/pricing#paid-plans" className="button small-button">پلن‌ها</Link>
+                <button type="button" className="button small-button" onClick={() => { previousLineRange.current = null; setStyle('line'); setRange('24h'); }}>۲۴ ساعت</button>
+              </div>
+            </div>
+          ) : null}
+          {!enough ? (
+            <div className="tv-chart__empty">هنوز دادهٔ کافی برای این بازه نیست.</div>
+          ) : (
+            <MarketChart
+              key={`${symbol}-${state === 'locked' ? '24h' : range}-${style === 'candles' && state !== 'locked' ? 'candles' : 'line'}`}
+              points={points}
+              label={asset.name}
+              unit={`${asset.currency === 'USD' ? 'دلار' : 'تومان'} / ${asset.unit}`}
+              candles={style === 'candles' && state !== 'locked'}
+              showPrice
+              showBubble={Boolean(formula) && showBubble && bubbleReady}
+              minimal
+            />
+          )}
+        </>
       )}
 
       {!hideMarketLink ? (

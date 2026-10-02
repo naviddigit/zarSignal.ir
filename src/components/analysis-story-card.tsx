@@ -30,7 +30,7 @@ export function AnalysisStoryCardButton({
   showPlanBadge?: boolean;
   testDataLabel?: string | null;
 }) {
-  const [template, setTemplate] = useState<StoryTemplateId>('dark_gold');
+  const [template, setTemplate] = useState<StoryTemplateId>('vault_dark');
   const [status, setStatus] = useState<'idle' | 'building' | 'ready' | 'error'>('idle');
   const [error, setError] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
