@@ -161,3 +161,25 @@ test('specialized plan is not sellable on inactive engine alone', () => {
   assert.match(offer.blockedReason!, /موتور تصمیم|تفاوت اجرایی/);
   assert.ok(offer.liveExtras.includes('دسترسی API') || offer.liveExtras.length >= 0);
 });
+
+test('story templates are named and USD gap is labeled honestly', () => {
+  const { STORY_TEMPLATES, STORY_TEMPLATE_LABELS } = require('../src/lib/analysis-story-templates') as typeof import('../src/lib/analysis-story-templates');
+  assert.deepEqual([...STORY_TEMPLATES], ['minimal_light', 'dark_gold', 'gold_silver']);
+  assert.match(STORY_TEMPLATE_LABELS.minimal_light, /مینیمال/);
+  const payload = buildStoryPublicPayload(sampleReport(), 'https://www.zarsignal.ir');
+  assert.ok(payload.metrics.some(m => /فاصلهٔ دلار بازار با دلار ضمنی طلا/.test(m.label)));
+  assert.doesNotMatch(payload.metrics.map(m => m.label).join(' '), /ارزش بنیادی|حباب مستقل دلار/);
+});
+
+test('master matrix does not invent V5.7 and ML stays unshipped', () => {
+  const { buildMasterCapabilityMatrix, canMarketOpportunityEngine } = require('../src/lib/master-capability-matrix') as typeof import('../src/lib/master-capability-matrix');
+  const { assessMlReadiness } = require('../src/lib/ml-readiness') as typeof import('../src/lib/ml-readiness');
+  const rows = buildMasterCapabilityMatrix();
+  assert.ok(rows.some(r => r.area.includes('V5.7') && r.status === 'absent'));
+  assert.ok(rows.some(r => r.area.includes('سکه') && r.status === 'absent'));
+  assert.equal(canMarketOpportunityEngine(), false);
+  const ml = assessMlReadiness();
+  assert.equal(ml.recommendation, 'do_not_ship');
+  assert.equal(ml.predictionTarget, null);
+  assert.ok(ml.notes.some(n => /امتیاز کاربران/.test(n)));
+});

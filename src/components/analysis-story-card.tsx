@@ -8,6 +8,11 @@ import {
   buildStoryPublicPayload,
 } from '@/lib/analysis-story-card';
 import { renderAnalysisStoryPng } from '@/lib/analysis-story-render';
+import {
+  STORY_TEMPLATES,
+  STORY_TEMPLATE_LABELS,
+  type StoryTemplateId,
+} from '@/lib/analysis-story-templates';
 import type { AccessLevel } from '@/lib/capabilities';
 
 export function AnalysisStoryCardButton({
@@ -25,12 +30,13 @@ export function AnalysisStoryCardButton({
   showPlanBadge?: boolean;
   testDataLabel?: string | null;
 }) {
+  const [template, setTemplate] = useState<StoryTemplateId>('dark_gold');
   const [status, setStatus] = useState<'idle' | 'building' | 'ready' | 'error'>('idle');
   const [error, setError] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
 
-  const build = useCallback(async () => {
+  const build = useCallback(async (nextTemplate: StoryTemplateId = template) => {
     setStatus('building');
     setError(null);
     try {
@@ -42,10 +48,8 @@ export function AnalysisStoryCardButton({
         testDataLabel,
       });
       assertStoryPayloadPublic(payload);
-      const blob = await renderAnalysisStoryPng(payload, {
-        dark: document.documentElement.dataset.theme !== 'light',
-      });
-      const nextFile = new File([blob], `zarsignal-story-${Date.now()}.png`, { type: 'image/png' });
+      const blob = await renderAnalysisStoryPng(payload, { template: nextTemplate });
+      const nextFile = new File([blob], `zarsignal-story-${nextTemplate}-${Date.now()}.png`, { type: 'image/png' });
       const url = URL.createObjectURL(blob);
       setPreviewUrl(prev => {
         if (prev) URL.revokeObjectURL(prev);
@@ -57,7 +61,7 @@ export function AnalysisStoryCardButton({
       setStatus('error');
       setError(err instanceof Error ? err.message : 'ساخت کارت ممکن نشد');
     }
-  }, [report, planLevel, planLabel, planStatus, showPlanBadge, testDataLabel]);
+  }, [report, planLevel, planLabel, planStatus, showPlanBadge, testDataLabel, template]);
 
   const download = useCallback(() => {
     if (!previewUrl || !file) return;
@@ -87,12 +91,35 @@ export function AnalysisStoryCardButton({
 
   return (
     <div className="market-view__story" data-follow-keep>
-      <button type="button" className="button small-button market-view__story-btn" onClick={() => void build()} disabled={status === 'building'}>
+      <div className="market-view__story-templates" role="group" aria-label="قالب استوری">
+        {STORY_TEMPLATES.map(id => (
+          <button
+            key={id}
+            type="button"
+            className={template === id ? 'is-active' : undefined}
+            aria-pressed={template === id}
+            data-follow-keep
+            onClick={() => {
+              setTemplate(id);
+              if (status === 'ready') void build(id);
+            }}
+          >
+            {STORY_TEMPLATE_LABELS[id]}
+          </button>
+        ))}
+      </div>
+      <button
+        type="button"
+        className="button small-button market-view__story-btn"
+        onClick={() => void build(template)}
+        disabled={status === 'building'}
+      >
         <ImageDown size={16} aria-hidden />
-        {status === 'building' ? 'در حال ساخت…' : 'ساخت کارت استوری'}
+        {status === 'building' ? 'در حال ساخت…' : 'پیش‌نمایش و ساخت PNG'}
       </button>
       <p className="market-view__share-note">
-        PNG واقعی ۱۰۸۰×۱۹۲۰ با QR قابل اسکن؛ فقط خلاصهٔ عمومی. انتشار مستقیم اینستاگرام وعده داده نمی‌شود.
+        سه قالب ۱۰۸۰×۱۹۲۰ · لوگوی واقعی · زمان داده · یک جملهٔ برداشت · حداکثر سه معیار · QR قابل اسکن.
+        اطلاعات حساب و گزارش خصوصی منتشر نمی‌شود.
       </p>
       {status === 'error' && error ? (
         <p className="market-view__feedback-status is-error" role="alert">{error}</p>
@@ -100,7 +127,7 @@ export function AnalysisStoryCardButton({
       {status === 'ready' && previewUrl ? (
         <div className="market-view__story-result">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={previewUrl} alt="پیش‌نمایش کارت استوری زرسیگنال" width={180} height={320} />
+          <img src={previewUrl} alt={`پیش‌نمایش استوری ${STORY_TEMPLATE_LABELS[template]}`} width={180} height={320} />
           <div className="market-view__engagement-actions">
             <button type="button" className="button small-button" onClick={download}>دانلود PNG</button>
             <button type="button" className="button small-button" onClick={() => void shareFile()}>

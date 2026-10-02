@@ -6,10 +6,16 @@ import {
   STORY_WIDTH,
   type StoryPublicPayload,
   type StoryMetricTone,
+  type StoryPublicMetric,
 } from '@/lib/analysis-story-card';
+import {
+  storyPalette,
+  type StoryTemplateId,
+} from '@/lib/analysis-story-templates';
 
 const FONT_URL = '/fonts/Vazirmatn.woff2';
 const FONT_FAMILY = 'Vazirmatn';
+const LOGO_URL = '/icons/app-192.png';
 
 let fontReady: Promise<void> | null = null;
 
@@ -23,17 +29,17 @@ export async function ensureStoryFont(): Promise<void> {
       document.fonts.add(loaded);
       await document.fonts.ready;
     } catch {
-      // Fall back to system fonts already used by the site.
+      /* system font fallback */
     }
   })();
   return fontReady;
 }
 
-function toneColor(tone: StoryMetricTone, dark: boolean) {
-  if (tone === 'below') return dark ? '#4dd8e7' : '#0e7490';
-  if (tone === 'above') return dark ? '#f0a35a' : '#c2410c';
-  if (tone === 'equal') return dark ? '#bdc8d8' : '#334155';
-  return dark ? '#8795a8' : '#64748b';
+function toneColor(tone: StoryMetricTone, template: StoryTemplateId) {
+  if (tone === 'below') return template === 'minimal_light' ? '#0e7490' : '#4dd8e7';
+  if (tone === 'above') return template === 'minimal_light' ? '#c2410c' : '#f0a35a';
+  if (tone === 'equal') return template === 'minimal_light' ? '#334155' : '#bdc8d8';
+  return template === 'minimal_light' ? '#64748b' : '#8795a8';
 }
 
 function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] {
@@ -42,9 +48,8 @@ function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number)
   let current = '';
   for (const word of words) {
     const next = current ? `${current} ${word}` : word;
-    if (ctx.measureText(next).width <= maxWidth) {
-      current = next;
-    } else {
+    if (ctx.measureText(next).width <= maxWidth) current = next;
+    else {
       if (current) lines.push(current);
       current = word;
     }
@@ -53,128 +58,181 @@ function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number)
   return lines.length ? lines : [text];
 }
 
+function pickMetrics(payload: StoryPublicPayload, template: StoryTemplateId): StoryPublicMetric[] {
+  if (template !== 'gold_silver') return payload.metrics.slice(0, 3);
+  const gold = payload.metrics.find(m => /طلا/.test(m.label));
+  const silver = payload.metrics.find(m => /نقره/.test(m.label));
+  const picked = [gold, silver].filter(Boolean) as StoryPublicMetric[];
+  if (picked.length) return picked.slice(0, 2);
+  return payload.metrics.slice(0, 2);
+}
+
 export async function renderAnalysisStoryPng(
   payload: StoryPublicPayload,
-  options?: { dark?: boolean },
+  options?: { template?: StoryTemplateId; dark?: boolean },
 ): Promise<Blob> {
   await ensureStoryFont();
-  const dark = options?.dark ?? true;
+  const template: StoryTemplateId = options?.template
+    ?? (options?.dark === false ? 'minimal_light' : 'dark_gold');
+  const palette = storyPalette(template);
   const canvas = document.createElement('canvas');
   canvas.width = STORY_WIDTH;
   canvas.height = STORY_HEIGHT;
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('canvas_unavailable');
 
-  // Safe margins ≈ 80px (Instagram-safe zone)
   const pad = 80;
   const contentW = STORY_WIDTH - pad * 2;
+  const metrics = pickMetrics(payload, template);
 
-  ctx.fillStyle = dark ? '#080c13' : '#f5f7fa';
+  ctx.fillStyle = palette.bg;
   ctx.fillRect(0, 0, STORY_WIDTH, STORY_HEIGHT);
 
-  // Soft brand glow (not the watermark blur layer)
-  const glow = ctx.createRadialGradient(STORY_WIDTH * 0.7, 120, 40, STORY_WIDTH * 0.7, 200, 520);
-  glow.addColorStop(0, dark ? '#f0c56822' : '#b4530914');
-  glow.addColorStop(1, 'transparent');
-  ctx.fillStyle = glow;
-  ctx.fillRect(0, 0, STORY_WIDTH, 700);
+  if (template !== 'minimal_light') {
+    const glow = ctx.createRadialGradient(STORY_WIDTH * 0.72, 160, 40, STORY_WIDTH * 0.72, 240, 560);
+    glow.addColorStop(0, '#f0c56828');
+    glow.addColorStop(1, 'transparent');
+    ctx.fillStyle = glow;
+    ctx.fillRect(0, 0, STORY_WIDTH, 760);
+  }
 
   ctx.textAlign = 'right';
   ctx.direction = 'rtl';
 
-  let y = pad + 20;
-  ctx.fillStyle = dark ? '#f0c568' : '#b45309';
-  ctx.font = `800 42px ${FONT_FAMILY}, Tahoma, sans-serif`;
-  ctx.fillText(payload.brand, STORY_WIDTH - pad, y);
-
-  y += 70;
-  ctx.fillStyle = dark ? '#f4f7fb' : '#0f172a';
-  ctx.font = `800 54px ${FONT_FAMILY}, Tahoma, sans-serif`;
-  for (const line of wrapText(ctx, payload.title, contentW).slice(0, 3)) {
-    ctx.fillText(line, STORY_WIDTH - pad, y);
-    y += 68;
+  let y = pad;
+  // Real logo mark + brand
+  try {
+    const logo = await loadImage(LOGO_URL);
+    const logoSize = 72;
+    ctx.drawImage(logo, STORY_WIDTH - pad - logoSize, y, logoSize, logoSize);
+    ctx.fillStyle = palette.accent;
+    ctx.font = `800 40px ${FONT_FAMILY}, Tahoma, sans-serif`;
+    ctx.fillText(payload.brand, STORY_WIDTH - pad - logoSize - 18, y + 50);
+    y += logoSize + 36;
+  } catch {
+    ctx.fillStyle = palette.accent;
+    ctx.font = `800 42px ${FONT_FAMILY}, Tahoma, sans-serif`;
+    ctx.fillText(payload.brand, STORY_WIDTH - pad, y + 40);
+    y += 70;
   }
 
-  y += 18;
-  ctx.fillStyle = dark ? '#8795a8' : '#64748b';
+  ctx.fillStyle = palette.text;
+  ctx.font = `800 52px ${FONT_FAMILY}, Tahoma, sans-serif`;
+  for (const line of wrapText(ctx, payload.title, contentW).slice(0, 3)) {
+    ctx.fillText(line, STORY_WIDTH - pad, y);
+    y += 64;
+  }
+
+  y += 12;
+  ctx.fillStyle = palette.muted;
   ctx.font = `600 28px ${FONT_FAMILY}, Tahoma, sans-serif`;
   ctx.fillText(payload.observedLabel, STORY_WIDTH - pad, y);
 
   if (payload.planBadge) {
-    y += 48;
-    ctx.fillStyle = dark ? '#f0c568' : '#b45309';
+    y += 44;
+    ctx.fillStyle = palette.accent;
     ctx.font = `700 26px ${FONT_FAMILY}, Tahoma, sans-serif`;
     ctx.fillText(payload.planBadge, STORY_WIDTH - pad, y);
   }
 
-  y += 70;
-  ctx.fillStyle = dark ? '#bdc8d8' : '#334155';
+  y += 56;
+  ctx.fillStyle = palette.text;
   ctx.font = `700 34px ${FONT_FAMILY}, Tahoma, sans-serif`;
   for (const line of wrapText(ctx, payload.takeaway, contentW).slice(0, 5)) {
     ctx.fillText(line, STORY_WIDTH - pad, y);
-    y += 48;
+    y += 46;
   }
 
-  y += 36;
-  for (const metric of payload.metrics) {
-    const boxH = 118;
-    ctx.fillStyle = dark ? '#101722' : '#ffffff';
-    ctx.strokeStyle = dark ? '#263345' : '#d8e0ea';
-    ctx.lineWidth = 2;
-    roundRect(ctx, pad, y, contentW, boxH, 24);
-    ctx.fill();
-    ctx.stroke();
-
-    ctx.fillStyle = dark ? '#bdc8d8' : '#334155';
-    ctx.font = `700 28px ${FONT_FAMILY}, Tahoma, sans-serif`;
-    ctx.fillText(metric.label, STORY_WIDTH - pad - 28, y + 42);
-
-    ctx.fillStyle = toneColor(metric.tone, dark);
-    ctx.font = `800 40px ${FONT_FAMILY}, Tahoma, sans-serif`;
-    ctx.fillText(metric.value, STORY_WIDTH - pad - 28, y + 92);
-
-    ctx.fillStyle = dark ? '#8795a8' : '#64748b';
-    ctx.font = `600 24px ${FONT_FAMILY}, Tahoma, sans-serif`;
-    ctx.textAlign = 'left';
-    ctx.fillText(`${metric.meaning} · ${metric.unit}`, pad + 28, y + 70);
-    ctx.textAlign = 'right';
-    y += boxH + 18;
+  y += 28;
+  if (template === 'gold_silver' && metrics.length >= 2) {
+    const gap = 20;
+    const boxW = (contentW - gap) / 2;
+    const boxH = 220;
+    metrics.slice(0, 2).forEach((metric, index) => {
+      const x = index === 0 ? pad + boxW + gap : pad;
+      ctx.fillStyle = palette.card;
+      ctx.strokeStyle = palette.cardBorder;
+      ctx.lineWidth = 2;
+      roundRect(ctx, x, y, boxW, boxH, 22);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = palette.muted;
+      ctx.font = `700 26px ${FONT_FAMILY}, Tahoma, sans-serif`;
+      ctx.fillText(metric.label, x + boxW - 22, y + 48);
+      ctx.fillStyle = toneColor(metric.tone, template);
+      ctx.font = `800 44px ${FONT_FAMILY}, Tahoma, sans-serif`;
+      ctx.fillText(metric.value, x + boxW - 22, y + 118);
+      ctx.fillStyle = palette.muted;
+      ctx.font = `600 22px ${FONT_FAMILY}, Tahoma, sans-serif`;
+      const meaningLines = wrapText(ctx, metric.meaning, boxW - 40).slice(0, 2);
+      let my = y + 160;
+      for (const line of meaningLines) {
+        ctx.fillText(line, x + boxW - 22, my);
+        my += 28;
+      }
+    });
+    y += boxH + 28;
+  } else {
+    for (const metric of metrics) {
+      const boxH = template === 'minimal_light' ? 108 : 112;
+      ctx.fillStyle = palette.card;
+      ctx.strokeStyle = palette.cardBorder;
+      ctx.lineWidth = 2;
+      roundRect(ctx, pad, y, contentW, boxH, 22);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = palette.text;
+      ctx.font = `700 28px ${FONT_FAMILY}, Tahoma, sans-serif`;
+      ctx.fillText(metric.label, STORY_WIDTH - pad - 28, y + 40);
+      ctx.fillStyle = toneColor(metric.tone, template);
+      ctx.font = `800 38px ${FONT_FAMILY}, Tahoma, sans-serif`;
+      ctx.fillText(metric.value, STORY_WIDTH - pad - 28, y + 88);
+      ctx.fillStyle = palette.muted;
+      ctx.font = `600 22px ${FONT_FAMILY}, Tahoma, sans-serif`;
+      ctx.textAlign = 'left';
+      ctx.fillText(`${metric.meaning}`, pad + 28, y + 68);
+      ctx.textAlign = 'right';
+      y += boxH + 16;
+    }
   }
 
-  y = Math.max(y + 24, STORY_HEIGHT - 520);
-  ctx.fillStyle = dark ? '#f0c568' : '#b45309';
-  ctx.font = `800 32px ${FONT_FAMILY}, Tahoma, sans-serif`;
-  ctx.fillText(payload.disclaimer, STORY_WIDTH - pad, y);
+  // Pack disclaimer just below metrics — no forced empty mid-band.
+  y += 20;
+  ctx.fillStyle = palette.accent;
+  ctx.font = `800 30px ${FONT_FAMILY}, Tahoma, sans-serif`;
+  for (const line of wrapText(ctx, payload.disclaimer, contentW).slice(0, 2)) {
+    ctx.fillText(line, STORY_WIDTH - pad, y);
+    y += 40;
+  }
 
-  // QR + link in safe bottom zone
-  const qrSize = 220;
+  // QR + CTA in bottom safe zone
+  const qrSize = 200;
   const qrX = pad;
-  const qrY = STORY_HEIGHT - pad - qrSize - 40;
+  const qrY = Math.min(Math.max(y + 48, STORY_HEIGHT - pad - qrSize - 56), STORY_HEIGHT - pad - qrSize - 40);
   const qrDataUrl = await QRCode.toDataURL(payload.url, {
     errorCorrectionLevel: 'M',
     margin: 1,
     width: qrSize,
-    color: { dark: dark ? '#f4f7fb' : '#0f172a', light: dark ? '#080c13' : '#f5f7fa' },
+    color: { dark: palette.qrDark, light: palette.qrLight },
   });
   const qrImg = await loadImage(qrDataUrl);
   ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize);
 
-  ctx.fillStyle = dark ? '#f4f7fb' : '#0f172a';
-  ctx.font = `800 30px ${FONT_FAMILY}, Tahoma, sans-serif`;
-  ctx.fillText(payload.linkLabel, STORY_WIDTH - pad, qrY + 70);
-  ctx.fillStyle = dark ? '#8795a8' : '#64748b';
-  ctx.font = `600 24px ${FONT_FAMILY}, Tahoma, sans-serif`;
-  const urlLines = wrapText(ctx, payload.url.replace(/^https?:\/\//, ''), contentW - qrSize - 40).slice(0, 3);
-  let uy = qrY + 120;
-  for (const line of urlLines) {
+  ctx.fillStyle = palette.text;
+  ctx.font = `800 28px ${FONT_FAMILY}, Tahoma, sans-serif`;
+  ctx.fillText(payload.linkLabel, STORY_WIDTH - pad, qrY + 56);
+  ctx.fillStyle = palette.muted;
+  ctx.font = `600 22px ${FONT_FAMILY}, Tahoma, sans-serif`;
+  let uy = qrY + 100;
+  for (const line of wrapText(ctx, payload.url.replace(/^https?:\/\//, ''), contentW - qrSize - 36).slice(0, 3)) {
     ctx.fillText(line, STORY_WIDTH - pad, uy);
-    uy += 34;
+    uy += 30;
   }
 
   if (payload.testDataLabel) {
-    ctx.fillStyle = dark ? '#e8c547' : '#a16207';
+    ctx.fillStyle = palette.accent;
     ctx.font = `700 22px ${FONT_FAMILY}, Tahoma, sans-serif`;
-    ctx.fillText(payload.testDataLabel, STORY_WIDTH - pad, STORY_HEIGHT - pad + 8);
+    ctx.fillText(payload.testDataLabel, STORY_WIDTH - pad, STORY_HEIGHT - 36);
   }
 
   const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png'));
@@ -204,7 +262,7 @@ function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.onload = () => resolve(img);
-    img.onerror = () => reject(new Error('qr_image_failed'));
+    img.onerror = () => reject(new Error('image_failed'));
     img.src = src;
   });
 }

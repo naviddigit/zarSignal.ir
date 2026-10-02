@@ -991,6 +991,9 @@ html.ds-scroll-locked body{
 .market-view__watermark>span:last-child{font:800 clamp(28px,5vw,40px) Vazirmatn;letter-spacing:.02em}
 html[data-theme='light'] .market-view__watermark{opacity:.13;color:var(--text-primary);filter:blur(2px)}
 .market-view__story{display:grid;gap:8px;padding-top:8px}
+.market-view__story-templates{display:flex;flex-wrap:wrap;gap:6px}
+.market-view__story-templates button{min-height:36px;padding:6px 10px;border:1px solid var(--border-subtle);border-radius:999px;background:var(--surface-soft);font:600 12px Vazirmatn;color:var(--text-secondary);cursor:pointer}
+.market-view__story-templates button.is-active{border-color:color-mix(in srgb,var(--accent) 45%,var(--border-subtle));background:color-mix(in srgb,var(--accent) 12%,var(--surface-card));color:var(--text-primary)}
 .market-view__story-btn{min-height:44px;justify-content:center;gap:8px}
 .market-view__story-result{display:grid;gap:10px;justify-items:start}
 .market-view__story-result img{width:120px;height:auto;border:1px solid var(--border-subtle);border-radius:12px;background:var(--surface-soft)}

@@ -5,17 +5,59 @@ import { Select } from '@/components/ui/select';
 import { formatPrice, instruments, type Quote } from '@/lib/market';
 import { getSnapshot } from '@/server/quotes';
 import { formulaCatalog, getManagedFormulas, type FormulaKey, type ManagedFormula } from '@/server/formulas';
+import {
+  buildMasterCapabilityMatrix,
+  canMarketOpportunityEngine,
+} from '@/lib/master-capability-matrix';
+import { assessMlReadiness } from '@/lib/ml-readiness';
 import { saveFormula } from './actions';
 
 const statusLabel = { DRAFT: 'پیش‌نویس', REVIEW: 'در حال بررسی', APPROVED: 'تأییدشده', ARCHIVED: 'بایگانی' } as const;
+const presenceLabel = {
+  present: 'موجود',
+  partial: 'ناقص / جزئی',
+  absent: 'غایب',
+  source_required: 'SOURCE_REQUIRED',
+} as const;
 const date = (value: Date | null) => value ? new Intl.DateTimeFormat('fa-IR', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Tehran' }).format(value) : 'بدون تاریخ اجرا';
 
 export default async function AdminAnalysis({ searchParams }: { searchParams: Promise<{ ok?: string; error?: string }> }) {
   const [{ formulas, storage }, message, snapshot] = await Promise.all([getManagedFormulas(), searchParams, getSnapshot()]);
+  const masterMatrix = buildMasterCapabilityMatrix();
+  const ml = assessMlReadiness();
   return <>
     <header className="admin-title"><div><span className="eyebrow">FORMULA GOVERNANCE</span><h1>فرمول‌های طلا، نقره و دلار</h1><p>نسخه، ورودی‌ها، واحدها و نمونهٔ مرجع را ثبت کنید. هیچ فرمولی مستقیم و بدون بررسی اجرا نمی‌شود.</p></div><span className={`admin-badge ${storage === 'local' ? 'local' : 'connected'}`}>{storage === 'local' ? 'ذخیره محلی توسعه' : 'PostgreSQL متصل'}</span></header>
     {message.ok && <p className="admin-message is-ok">نسخهٔ جدید فرمول ذخیره شد.</p>}
     {message.error && <p className="form-error admin-message" role="alert">{message.error === 'duplicate' ? 'این شماره نسخه قبلاً ثبت شده است؛ نسخهٔ بعدی را وارد کنید.' : 'اطلاعات فرمول کامل یا معتبر نیست. فرمول تأییدشده باید تاریخ اجرا و نمونهٔ مرجع داشته باشد.'}</p>}
+
+    <section className="admin-card">
+      <h2>ماتریس تطبیق با Master (صادقانه)</h2>
+      <p>فایل Master V5.7 در مخزن نیست؛ قواعد مفقود از نمونهٔ چت حدس زده نمی‌شود. فرصت‌یابی مشتری: {canMarketOpportunityEngine() ? 'فعال' : 'وعده داده نمی‌شود (موتور غیرفعال).'}</p>
+      <div className="formula-live__grid">
+        {masterMatrix.map(row => (
+          <article key={row.area}>
+            <strong>{row.area}</strong>
+            <span>{presenceLabel[row.status]}</span>
+            <em>{row.note}</em>
+          </article>
+        ))}
+      </div>
+    </section>
+
+    <section className="admin-card">
+      <h2>وضعیت ماشین‌لرنینگ</h2>
+      <p><strong>توصیه:</strong> {ml.recommendation === 'do_not_ship' ? 'مدل به مشتری ارسال نشود' : 'فقط آزمایش آفلاین'}</p>
+      <ul>
+        <li>تاریخچه: {ml.historyAvailable}</li>
+        <li>{ml.dataQuality}</li>
+        <li>هدف پیش‌بینی: {ml.predictionTarget ?? 'تعریف نشده'}</li>
+        <li>برچسب نتیجه: {ml.outcomeLabels ?? 'تعریف نشده'}</li>
+        <li>{ml.temporalEval}</li>
+        <li>{ml.vsBaseline}</li>
+        {ml.notes.map(note => <li key={note}>{note}</li>)}
+      </ul>
+    </section>
+
     <aside className="formula-safety panel"><ShieldAlert size={21}/><div><strong>قیمت‌ها را اینجا دستی وارد نکنید.</strong><p>منابع موردنیاز را انتخاب کنید؛ مقدار خرید و فروش هر نماد هنگام محاسبه از آخرین snapshot بازار خوانده می‌شود. فقط خود فرمول، قواعد و نمونهٔ مرجع را مدیر ثبت می‌کند.</p></div></aside>
     <LiveInputs quotes={snapshot.quotes}/>
     <div className="formula-admin-grid">{(Object.keys(formulaCatalog) as FormulaKey[]).map(key => <FormulaCard key={key} formulaKey={key} formulas={formulas.filter(item => item.key === key)} quotes={snapshot.quotes}/>)}</div>
