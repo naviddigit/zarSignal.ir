@@ -9,9 +9,11 @@ import { MarketViewReportView } from '@/components/market-view-report';
 import { analysisTrial } from '@/server/analysis-trial';
 import { AnalysisTrialAccess } from '@/components/analysis-trial-access';
 import { AnalysisMarketSelect } from '@/components/analysis-market-select';
+import { LastVisitChanges } from '@/components/last-visit-changes';
 import { getWarningPolicy } from '@/server/time-reliability';
 import { timeReliability } from '@/lib/time-reliability';
 import { getAnalysisReadingSettings } from '@/server/analysis-reading-settings';
+import { resolveLastVisitChanges } from '@/server/last-visit';
 
 export const metadata: Metadata = {
   title: 'دید زرسیگنال به بازار',
@@ -30,9 +32,10 @@ export default async function MarketAnalysisPage({ searchParams }: { searchParam
   const fullAccess = entitlement ? hasCapability(entitlement.level, 'ANALYSIS_BASIC') : false;
   const report = await buildMarketViewReport(fullAccess ? 'full' : 'preview');
   const trial = await analysisTrial();
-  const [timePolicy, readingSettings] = await Promise.all([
+  const [timePolicy, readingSettings, lastVisit] = await Promise.all([
     getWarningPolicy(),
     getAnalysisReadingSettings(),
+    resolveLastVisitChanges(userId, report),
   ]);
 
   return (
@@ -51,6 +54,7 @@ export default async function MarketAnalysisPage({ searchParams }: { searchParam
       )}
 
       <AnalysisMarketSelect />
+      <LastVisitChanges changes={lastVisit.changes} baselineAt={lastVisit.baselineAt} />
       <MarketViewReportView
         initial={report}
         canRefresh
@@ -72,6 +76,7 @@ export default async function MarketAnalysisPage({ searchParams }: { searchParam
             <div className="home-quick-tools">
               <Link href="/markets">نرخ‌های تابلو</Link>
               <Link href="/calculator">ماشین‌حساب</Link>
+              <Link href="/alerts">هشدار تغییر بازار</Link>
               <Link href="/analysis/gold_melted">تحلیل تک‌بازار · طلا</Link>
               {!fullAccess ? <Link href="/pricing">دسترسی تحلیل کامل <ArrowUpLeft size={14} /></Link> : null}
             </div>

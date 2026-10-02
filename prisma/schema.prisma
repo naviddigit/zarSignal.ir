@@ -25,6 +25,9 @@ model User {
   analysisAcknowledgements AnalysisAcknowledgement[]
   analysisReads           AnalysisRead[]
   analysisFeedbacks       AnalysisFeedback[]
+  marketChangeAlerts      MarketChangeAlert[]
+  inAppNotifications      InAppNotification[]
+  marketVisitBaselines    UserMarketVisitBaseline[]
   accounts      Account[]
   sessions      Session[]
 
@@ -386,5 +389,86 @@ model AnalysisFeedback {
   updatedAt     DateTime @updatedAt
 
   @@unique([userId, reportId, schemaVersion])
+  @@index([userId, updatedAt])
+}
+
+/**
+ * Market-change alert (not a trade recommendation).
+ * Evaluated server-side after valid new quotes/bubbles — not browser-bound.
+ */
+model MarketChangeAlert {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /** PRICE_CROSS | GAP_PCT_CROSS | GOLD_SILVER_RELATIVE */
+  conditionType   String
+  /** Symbol or instrument key, e.g. GOLD_MELTED, GOLD_BUBBLE, SILVER_BUBBLE */
+  symbol          String
+  unit            String?
+  /** above | below | either */
+  direction       String
+  threshold       Decimal  @db.Decimal(24, 8)
+  channel         String   @default("IN_APP")
+  /** ACTIVE | CANCELLED | EXPIRED */
+  status          String   @default("ACTIVE")
+  /** true = waiting for condition to become true; false after fire until re-armed */
+  armed           Boolean  @default(true)
+  expiresAt       DateTime?
+  lastFiredAt     DateTime?
+  lastEvaluatedAt DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  events          MarketAlertEvent[]
+
+  @@index([status, armed, expiresAt])
+  @@index([userId, status])
+  @@index([conditionType, symbol])
+}
+
+/** Unique edge / delivery log for an alert fire. */
+model MarketAlertEvent {
+  id             String   @id @default(cuid())
+  alertId        String
+  alert          MarketChangeAlert @relation(fields: [alertId], references: [id], onDelete: Cascade)
+  /** Deterministic edge key — unique per alert to suppress repeats */
+  edgeKey        String
+  observedAt     DateTime
+  metricValue    Decimal  @db.Decimal(24, 8)
+  message        String   @db.VarChar(500)
+  deliveryStatus String   @default("RECORDED")
+  createdAt      DateTime @default(now())
+
+  @@unique([alertId, edgeKey])
+  @@index([createdAt])
+}
+
+model InAppNotification {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  body      String    @db.VarChar(800)
+  href      String?
+  kind      String    @default("MARKET_CHANGE")
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([userId, readAt])
+}
+
+/** Stored baseline for «از آخرین بازدید شما» — real metrics only, never invented. */
+model UserMarketVisitBaseline {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /** overall | GOLD_MELTED | … */
+  scope       String
+  observedAt  DateTime
+  metricsJson Json
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([userId, scope])
   @@index([userId, updatedAt])
 }

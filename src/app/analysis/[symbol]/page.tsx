@@ -14,7 +14,9 @@ import { MarketViewReportView } from '@/components/market-view-report';
 import { AnalysisTrialAccess } from '@/components/analysis-trial-access';
 import { AnalysisMarketSelect } from '@/components/analysis-market-select';
 import { ChartWorkspace } from '@/components/chart-workspace';
+import { LastVisitChanges } from '@/components/last-visit-changes';
 import { getAnalysisReadingSettings } from '@/server/analysis-reading-settings';
+import { resolveLastVisitChanges } from '@/server/last-visit';
 
 export const dynamic = 'force-dynamic';
 
@@ -42,6 +44,7 @@ export default async function AnalysisPage({ params, searchParams }: {
     analysisTrial(),
     getAnalysisReadingSettings(),
   ]);
+  const lastVisit = await resolveLastVisitChanges(session?.user?.id, report);
   const path = `/analysis/${symbol}`;
 
   return (
@@ -56,6 +59,7 @@ export default async function AnalysisPage({ params, searchParams }: {
       <p className="market-view__meta" role="status">
         {reliability === 'WARNING' ? 'تحلیل خارج از بازه استاندارد' : 'در بازه استاندارد تحلیل'} · زمان تهران
       </p>
+      <LastVisitChanges changes={lastVisit.changes} baselineAt={lastVisit.baselineAt} />
       <MarketViewReportView
         initial={report}
         canRefresh
@@ -87,6 +91,7 @@ export default async function AnalysisPage({ params, searchParams }: {
             </details>
             <div className="home-quick-tools">
               <Link href="/calculator">محاسبهٔ معامله</Link>
+              <Link href="/alerts">هشدار تغییر بازار</Link>
               <Link href={`/markets/${symbol}`}>قیمت و مشخصات {asset.short}</Link>
               <Link href="/methodology">روش محاسبه</Link>
             </div>

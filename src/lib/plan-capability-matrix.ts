@@ -25,7 +25,7 @@ const NOTES: Partial<Record<Capability, string>> = {
   CONFIDENCE: 'شاخص اطمینان بدون قرارداد اجرایی عرضه نمی‌شود.',
   GAP_TREND: 'روند Gap به گزارش وصل نشده؛ تاریخچهٔ نمودار جداست.',
   IMPLIED_USD: 'دلار ضمنی در حباب/ماشین‌حساب هست؛ بستهٔ تصمیم کامل نیست.',
-  BASIC_ALERTS: 'coming_soon — هنوز کانال اعلان عمومی ندارد.',
+  BASIC_ALERTS: 'اعلان داخل سایت برای عبور قیمت/اختلاف فعال است؛ Push و SMS نیازمند اتصال سرویس‌اند.',
   ADVANCED_ALERTS: 'بدون موتور تأییدشده قابل فروش نیست.',
   CALCULATOR_ADVANCED: 'coming_soon.',
   ADVANCED_CHART: 'coming_soon.',

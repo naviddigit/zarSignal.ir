@@ -32,10 +32,20 @@ export async function runApprovedMarketIngestion(signal?: AbortSignal) {
     throw new Error(errors.map(item => `${item.source}: ${item.message}`).join(' | ') || 'ingestion_failed');
   }
 
+  // Server-side market-change alert evaluation after valid new data (not browser-bound).
+  let alerts: { evaluated: number; fired: number; rearmed: number; skipped: string | null } | null = null;
+  try {
+    const { evaluateMarketChangeAlerts } = await import('@/server/market-change-alerts');
+    alerts = await evaluateMarketChangeAlerts();
+  } catch {
+    alerts = null;
+  }
+
   return {
     ok: true,
     results,
     errors,
     count: results.reduce((sum, item) => sum + item.count, 0),
+    alerts,
   };
 }

@@ -160,8 +160,11 @@ export function AnalysisEngagementPanel({
   return (
     <section className="market-view__engagement" aria-label="شمارش مطالعه، بازخورد و اشتراک">
       {signedIn && readCount != null ? (
-        <p className="market-view__read-count" role="status">
-          تاکنون {new Intl.NumberFormat('fa-IR').format(readCount)} گزارش متفاوت خوانده‌اید.
+        <p className="market-view__read-chip" role="status">
+          <span className="market-view__chip is-reads">
+            {new Intl.NumberFormat('fa-IR').format(readCount)} گزارش خوانده‌شده
+          </span>
+          <span className="market-view__read-chip-title">شمارندهٔ مطالعه</span>
         </p>
       ) : null}
       {signedIn && readError ? (

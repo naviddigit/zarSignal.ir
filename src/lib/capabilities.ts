@@ -43,7 +43,7 @@ export const CAPABILITY_META: Record<Capability, {
   GAP_TREND: { label: 'روند Gap', status: 'source_required' },
   ADVANCED_CHART: { label: 'نمودار حرفه‌ای', status: 'coming_soon' },
   ANALYSIS_MARKERS: { label: 'نشانگر روی چارت', status: 'source_required' },
-  BASIC_ALERTS: { label: 'هشدار قیمت', status: 'coming_soon' },
+  BASIC_ALERTS: { label: 'هشدار تغییر بازار', status: 'live' },
   ADVANCED_ALERTS: { label: 'هشدار حرفه‌ای', status: 'source_required' },
   FUTURE_GOLD: { label: 'طلای فردایی', status: 'source_required' },
   ACCOUNTING: { label: 'حسابداری معاملات', status: 'source_required' },

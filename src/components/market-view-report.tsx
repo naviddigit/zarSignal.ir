@@ -99,9 +99,30 @@ function ResultCard({ report }: { report: MarketViewReport }) {
     ? `${formatFaPercent(valuation.percent)}٪`
     : null;
   const showUnknownRef = valuation?.stance === 'unknown' && !isOverall;
+  const dataChip = report.dataFreshness === 'ok' ? 'داده · تازه'
+    : report.dataFreshness === 'stale' ? 'داده · قدیمی'
+    : report.dataFreshness === 'mixed' ? 'داده · ترکیبی'
+    : 'داده · ناموجود';
+  const valuationChip = valuation
+    ? valuation.stance === 'mixed' ? 'دید ارزشی · مقایسه‌ای'
+      : valuation.stance === 'below' ? 'دید ارزشی · پایین‌تر از مرجع'
+      : valuation.stance === 'above' ? 'دید ارزشی · بالاتر از مرجع'
+      : valuation.stance === 'equal' ? 'دید ارزشی · برابر مرجع'
+      : 'دید ارزشی · نامشخص'
+    : 'دید ارزشی · ناموجود';
+  const trendChip = report.trend.status === 'ready'
+    ? `روند · ${report.trend.label}`
+    : `روند · ${report.trend.label}`;
+  const decisionChip = `تصمیم · ${decision.title}`;
 
   return (
     <section className={`market-view__result ${decisionTone(decision.kind)}`} aria-label="کارت نتیجه">
+      <div className="market-view__result-chips" role="list" aria-label="نشانه‌های گزارش">
+        <span className="market-view__chip is-data" role="listitem">{dataChip}</span>
+        <span className="market-view__chip is-valuation" role="listitem">{valuationChip}</span>
+        <span className="market-view__chip is-trend" role="listitem">{trendChip}</span>
+        <span className="market-view__chip is-decision" role="listitem">{decisionChip}</span>
+      </div>
       <p className="market-view__result-market">{marketName}</p>
       {valuation ? (
         <div className={`market-view__result-value ${valuationTone(valuation.stance)}`}>
@@ -127,6 +148,7 @@ function ResultCard({ report }: { report: MarketViewReport }) {
               </p>
             )}
             <p className="market-view__result-trend">
+              <span>روند: </span>
               <bdi className={metricClass(report.trend.status === 'ready' ? 'neutral' : 'missing')}>
                 {report.trend.label}
               </bdi>
