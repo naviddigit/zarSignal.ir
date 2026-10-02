@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { ArrowUpLeft } from 'lucide-react';
+import { ArrowUpLeft, ChevronDown } from 'lucide-react';
 import { auth } from '@/auth';
 import { instruments } from '@/lib/market';
 import { hasCapability } from '@/lib/capabilities';
@@ -69,7 +69,14 @@ export default async function AnalysisPage({ params, searchParams }: {
               <AnalysisTrialAccess trial={trial} symbol={symbol} error={query.trial} compact />
             )}
             <details className="market-view__details is-compact">
-              <summary>بررسی نمودار و تاریخچهٔ {asset.short}</summary>
+              <summary>
+                <span className="market-view__details-title">بررسی نمودار و تاریخچهٔ {asset.short}</span>
+                <span className="market-view__details-action">
+                  <span className="market-view__details-closed">مشاهده جزئیات</span>
+                  <span className="market-view__details-open">بستن جزئیات</span>
+                  <ChevronDown className="market-view__details-chevron" size={18} strokeWidth={2.2} aria-hidden />
+                </span>
+              </summary>
               <ChartWorkspace symbol={asset.symbol} />
             </details>
             <div className="home-quick-tools">

@@ -47,7 +47,7 @@ test('narrative layers stay distinct: view reason meaning result', () => {
     row({ id: 'usd', marketLabel: 'دلار آزاد بازار', status: 'ok', diffPercent: 0.05, marketPriceLabel: '۲۵۰٬۰۰۰ تومان / دلار', referenceLabel: '۲۴۹٬۰۰۰ تومان / دلار' }),
     row({ id: 'silver', marketLabel: 'نقره ۹۹۹', status: 'ok', diffPercent: 0.4, marketPriceLabel: '۵۰۰٬۰۰۰ تومان / گرم', referenceLabel: '۴۹۸٬۰۰۰ تومان / گرم' }),
   ], 'ok');
-  assert.match(prose.summaryLines[0], /طلای ۱۸ عیار|پایین‌تر/);
+  assert.match(prose.summaryLines[0], /طلا پایین‌تر و نقره بالاتر|طلا.*نقره/);
   assert.doesNotMatch(prose.summaryLines[0], /مشتق از مظنه/);
   assert.match(prose.marketSays, /تومان|مرجع|اختلاف/);
   assert.doesNotMatch(prose.marketSays, /اونس جهانی و دلار بازار می‌گذاریم/);
@@ -60,12 +60,26 @@ test('narrative layers stay distinct: view reason meaning result', () => {
   assert.equal(prose.decision.kind, 'analysis_inactive');
   assert.equal(prose.decision.tradeAction, null);
   assert.ok(prose.decision.valuation);
-  assert.match(prose.decision.valuation!.detail, /٪/);
-  assert.match(prose.decision.valuation!.title, /طلا/);
-  assert.equal(prose.decision.valuation!.marketLabel.length > 0, true);
-  assert.ok(prose.decision.valuation!.percent != null);
+  assert.equal(prose.decision.valuation!.marketLabel, 'بازار');
+  assert.equal(prose.decision.valuation!.percent, null);
+  assert.match(prose.decision.valuation!.title, /مقایسه‌ای/);
   assert.match(prose.decision.reason, /موتور تصمیم|فعال نیست/);
   assert.doesNotMatch(prose.decision.title, /در انتظار تأیید شرایط/);
+});
+
+test('overall market summary compares gold and silver without crowning max abs gap', () => {
+  const prose = composeMarketViewProse([
+    row({ id: 'gold', marketLabel: 'طلا', status: 'ok', diffPercent: -0.67, marketPriceLabel: '1', referenceLabel: '2' }),
+    row({ id: 'silver', marketLabel: 'نقره', status: 'ok', diffPercent: 0.75, marketPriceLabel: '1', referenceLabel: '2' }),
+  ], 'ok');
+  assert.equal(
+    prose.summaryLines[0],
+    'طلا پایین‌تر و نقره بالاتر از مرجع محاسباتی است؛ در این مقایسه، طلا اضافه‌قیمت کمتری دارد.',
+  );
+  assert.doesNotMatch(prose.summaryLines[0], /۰٫۷۵٪|خرید|سود تضمینی/);
+  assert.equal(prose.decision.valuation!.marketLabel, 'بازار');
+  assert.equal(prose.decision.valuation!.percent, null);
+  assert.match(prose.decision.valuation!.detail, /طلا پایین‌تر و نقره بالاتر/);
 });
 
 test('gold silver parity stays in meaning without inventing executable swap', () => {
@@ -201,8 +215,9 @@ test('same snapshot supports overall and focused reports, preview redacts full p
   assert.equal(overall.decision.kind, 'analysis_inactive');
   assert.equal(overall.decision.tradeAction, null);
   assert.ok(overall.decision.valuation);
-  assert.match(overall.decision.valuation!.detail, /برداشت مقایسه‌ای بازار/);
-  assert.match(overall.decision.valuation!.title, /·/);
+  assert.match(overall.decision.valuation!.detail, /مرجع محاسباتی|پایین‌تر|بالاتر/);
+  assert.match(overall.decision.valuation!.title, /مقایسه‌ای|بازار/);
+  assert.equal(overall.decision.valuation!.marketLabel, 'بازار');
   assert.ok(overall.valuationMarks.length);
   const silver = marketViewReportFromSnapshot(snapshot, 'full', 'SILVER_999');
   assert.deepEqual(silver.evidence.map(row => row.id), ['silver']);

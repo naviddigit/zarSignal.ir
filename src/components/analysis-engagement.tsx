@@ -153,7 +153,7 @@ export function AnalysisEngagementPanel({
     <section className="market-view__engagement" aria-label="شمارش مطالعه، بازخورد و اشتراک">
       {signedIn && readCount != null ? (
         <p className="market-view__read-count" role="status">
-          این {new Intl.NumberFormat('fa-IR').format(readCount)}‌اُمین تحلیل متفاوتی است که در حساب شما خوانده‌اید.
+          تاکنون {new Intl.NumberFormat('fa-IR').format(readCount)} گزارش متفاوت خوانده‌اید.
         </p>
       ) : null}
       {signedIn && readError ? (
@@ -168,7 +168,7 @@ export function AnalysisEngagementPanel({
             void submitFeedback();
           }}
         >
-          <p className="market-view__feedback-prompt" id="analysis-feedback-label">
+          <p className="market-view__feedback-prompt" id="analysis-feedback-label" data-follow-anchor>
             این تحلیل چقدر برایتان روشن و مفید بود؟
           </p>
           <div className="market-view__rating" role="group" aria-labelledby="analysis-feedback-label">
@@ -235,7 +235,7 @@ export function AnalysisEngagementPanel({
           ) : null}
         </form>
       ) : (
-        <div className="market-view__share">
+        <div className="market-view__share" data-follow-anchor>
           <button type="button" className="button small-button market-view__share-btn" onClick={() => void shareSummary()}>
             {shareStatus === 'copied' ? <Copy size={16} aria-hidden /> : <Share2 size={16} aria-hidden />}
             اشتراک خلاصهٔ عمومی

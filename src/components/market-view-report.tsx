@@ -12,7 +12,7 @@ import {
   type RefObject,
 } from 'react';
 import Link from 'next/link';
-import { Activity, ArrowUpLeft, RefreshCw } from 'lucide-react';
+import { Activity, ArrowUpLeft, ChevronDown, RefreshCw } from 'lucide-react';
 import type { MarketViewDecision, MarketViewReport } from '@/lib/market-view-report';
 import { formatFaPercent, formatTehranStamp } from '@/lib/market-view-report';
 import {
@@ -185,6 +185,7 @@ function useReadingFollow(
   enabled: boolean,
   anchorRef: RefObject<HTMLElement | null>,
   reportKey: string,
+  reducedMotion: boolean,
 ) {
   const [following, setFollowing] = useState(true);
   const followingRef = useRef(true);
@@ -202,9 +203,14 @@ function useReadingFollow(
     lastY.current = window.scrollY;
   }, [reportKey, setFollow]);
 
-  const align = useCallback(() => {
-    if (!followingRef.current || !anchorRef.current) return;
-    const rect = anchorRef.current.getBoundingClientRect();
+  const align = useCallback((smooth: boolean) => {
+    if (reducedMotion || !followingRef.current || !anchorRef.current) return;
+    const root = anchorRef.current;
+    const nested = root.matches('[data-follow-anchor]')
+      ? root
+      : root.querySelector('[data-follow-anchor]');
+    const target = (nested instanceof HTMLElement ? nested : root);
+    const rect = target.getBoundingClientRect();
     const topPad = 88;
     const bottomPad = window.matchMedia('(max-width: 720px)').matches ? 96 : 32;
     let delta = 0;
@@ -215,23 +221,23 @@ function useReadingFollow(
     }
     if (Math.abs(delta) < 4) return;
     programmatic.current = true;
-    window.scrollBy({ top: delta, behavior: 'auto' });
+    window.scrollBy({ top: delta, behavior: smooth ? 'smooth' : 'auto' });
     lastY.current = window.scrollY;
-    window.setTimeout(() => { programmatic.current = false; }, 80);
-  }, [anchorRef]);
+    window.setTimeout(() => { programmatic.current = false; }, smooth ? 320 : 80);
+  }, [anchorRef, reducedMotion]);
 
-  const scheduleAlign = useCallback(() => {
-    if (!enabled || !followingRef.current) return;
+  const scheduleAlign = useCallback((smooth = false) => {
+    if (!enabled || reducedMotion || !followingRef.current) return;
     if (raf.current != null) return;
     raf.current = window.requestAnimationFrame(() => {
       raf.current = null;
-      align();
+      align(smooth);
     });
-  }, [align, enabled]);
+  }, [align, enabled, reducedMotion]);
 
   useEffect(() => {
     if (!enabled) return;
-    scheduleAlign();
+    scheduleAlign(false);
   }, [enabled, scheduleAlign]);
 
   useEffect(() => {
@@ -252,6 +258,7 @@ function useReadingFollow(
       const target = event.target as HTMLElement | null;
       if (!target) return;
       if (target.closest('[data-follow-resume]')) return;
+      // Mounting/revealing controls is not interaction; only real pointer on controls stops follow.
       if (target.closest('button, a, input, textarea, select, summary, [role="button"]')) {
         if (followingRef.current) setFollow(false);
       }
@@ -269,10 +276,26 @@ function useReadingFollow(
 
   const resume = useCallback(() => {
     setFollow(true);
-    scheduleAlign();
+    scheduleAlign(true);
   }, [scheduleAlign, setFollow]);
 
   return { following, resume, scheduleAlign };
+}
+
+function DetailsToggle({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <details className="market-view__details is-compact">
+      <summary>
+        <span className="market-view__details-title">{title}</span>
+        <span className="market-view__details-action">
+          <span className="market-view__details-closed">مشاهده جزئیات</span>
+          <span className="market-view__details-open">بستن جزئیات</span>
+          <ChevronDown className="market-view__details-chevron" size={18} strokeWidth={2.2} aria-hidden />
+        </span>
+      </summary>
+      {children}
+    </details>
+  );
 }
 
 function NarrativeBlock({
@@ -289,7 +312,7 @@ function NarrativeBlock({
   typing: boolean;
   ready: boolean;
   totalGraphemes: number;
-  endRef: RefObject<HTMLSpanElement | null>;
+  endRef: RefObject<HTMLElement | null>;
   attachEndRef: boolean;
 }) {
   const bodies = visibleBodiesAt(sections, shown);
@@ -362,8 +385,7 @@ type PlanItem =
 
 function EvidenceTable({ report }: { report: MarketViewReport }) {
   return (
-    <details className="market-view__details is-compact">
-      <summary>جدول شواهد و اختلاف با مرجع</summary>
+    <DetailsToggle title="جدول شواهد و اختلاف با مرجع">
       <div className="market-view__table-wrap">
         <table className="market-view__table" role="table">
           <thead>
@@ -393,7 +415,7 @@ function EvidenceTable({ report }: { report: MarketViewReport }) {
           </tbody>
         </table>
       </div>
-    </details>
+    </DetailsToggle>
   );
 }
 
@@ -425,35 +447,16 @@ function buildRevealPlan(
   });
 
   if (report.evidence.length > 0) {
-    items.push({
-      id: 'evidence-intro',
-      kind: 'type',
-      sections: [{
-        id: 'evidence-intro',
-        title: 'شواهد',
-        body: `در ادامه قیمت بازار، مرجع محاسباتی و اختلاف درصدی برای ${new Intl.NumberFormat('fa-IR').format(report.evidence.length)} ردیف آمده است. جدول عددی پس از این توضیح نمایش داده می‌شود.`,
-      }],
-    });
     items.push({ id: 'evidence-table', kind: 'fade', node: <EvidenceTable report={report} /> });
   }
 
   items.push({
-    id: 'limits-intro',
-    kind: 'type',
-    sections: [{
-      id: 'limits-intro',
-      title: 'اعتبار داده و محدودیت‌ها',
-      body: 'محدودیت‌های داده و مواردی که هنوز برای تصمیم معامله تأیید نشده‌اند در جزئیات جمع‌شونده آمده‌اند.',
-    }],
-  });
-  items.push({
     id: 'limits-details',
     kind: 'fade',
     node: (
-      <details className="market-view__details is-compact">
-        <summary>جزئیات اعتبار داده و محدودیت‌ها</summary>
+      <DetailsToggle title="اعتبار داده و محدودیت‌ها">
         <ul className="market-view__list">{report.unconfirmed.map(item => <li key={item}>{item}</li>)}</ul>
-      </details>
+      </DetailsToggle>
     ),
   });
 
@@ -470,20 +473,10 @@ function buildRevealPlan(
   }
 
   items.push({
-    id: 'formula-intro',
-    kind: 'type',
-    sections: [{
-      id: 'formula-intro',
-      title: 'فرمول و نسخه',
-      body: 'مرجع هر بازار، یادداشت واحد و نسخهٔ فرمول در جزئیات جمع‌شونده آمده است.',
-    }],
-  });
-  items.push({
     id: 'formula-details',
     kind: 'fade',
     node: (
-      <details className="market-view__details is-compact">
-        <summary>جزئیات فرمول و نسخه</summary>
+      <DetailsToggle title="فرمول و نسخه">
         <ul className="market-view__list">
           {report.evidence.map(row => (
             <li key={row.id}>{row.marketLabel}: {row.referenceBasis}. {row.unitNote}</li>
@@ -492,7 +485,7 @@ function buildRevealPlan(
         </ul>
         <p className="market-view__disclaimer">{report.details.disclaimer}</p>
         <p className="market-view__meta">شناسه گزارش: <bdi dir="ltr">{report.reportId}</bdi></p>
-      </details>
+      </DetailsToggle>
     ),
   });
 
@@ -506,8 +499,6 @@ function buildRevealPlan(
     node: <AnalysisEngagementPanel report={report} signedIn={signedIn} />,
   });
 
-  // Confirmation-watch CTA is intentionally omitted: canOfferConfirmationWatch is false
-  // until an approved evaluable engine exists for the symbol.
   void canOfferConfirmationWatch(report.symbol);
 
   return {
@@ -534,7 +525,7 @@ export function MarketViewReportView({
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const reduced = usePrefersReducedMotion();
-  const endRef = useRef<HTMLSpanElement | null>(null);
+  const endRef = useRef<HTMLElement | null>(null);
 
   const reportKey = `${report.snapshotFingerprint}:${report.symbol ?? 'all'}:${report.access}`;
   const { items: plan } = useMemo(
@@ -608,14 +599,14 @@ export function MarketViewReportView({
   }, [activeIndex, activeStep, reduced, plan.length, advance, clearFade, reportKey]);
 
   const followEnabled = activeIndex < plan.length && !reduced;
-  const { following, resume, scheduleAlign } = useReadingFollow(followEnabled, endRef, reportKey);
+  const { following, resume, scheduleAlign } = useReadingFollow(followEnabled, endRef, reportKey, reduced);
 
   useEffect(() => {
-    if (typing) scheduleAlign();
+    if (typing) scheduleAlign(false);
   }, [shown, typing, scheduleAlign]);
 
   useEffect(() => {
-    if (activeStep?.kind === 'fade') scheduleAlign();
+    if (activeStep?.kind === 'fade') scheduleAlign(true);
   }, [activeIndex, activeStep?.kind, scheduleAlign]);
 
   const applyLatest = useCallback(async () => {
@@ -758,9 +749,22 @@ export function MarketViewReportView({
                 />
               );
             }
+            const activeFade = isRevealStepActive(index, activeIndex, reduced);
             return (
               <RevealItem key={item.id}>
-                {item.node}
+                <div
+                  ref={
+                    activeFade
+                      ? (node: HTMLDivElement | null) => {
+                          endRef.current = node;
+                        }
+                      : undefined
+                  }
+                  className="market-view__follow-target"
+                  data-follow-step={item.id}
+                >
+                  {item.node}
+                </div>
               </RevealItem>
             );
           })}

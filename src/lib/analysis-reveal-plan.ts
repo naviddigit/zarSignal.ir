@@ -1,4 +1,4 @@
-/** Ordered reveal plan for market-view — type steps then fade controls, never grouped boxes. */
+/** Ordered reveal plan for market-view — no trivial typed intros before details. */
 
 import type { MarketViewReport } from '@/lib/market-view-report';
 import type { RevealPlanStep } from '@/lib/analysis-reveal';
@@ -9,15 +9,12 @@ export function buildAnalysisRevealSteps(report: MarketViewReport): RevealPlanSt
     { id: 'outcome', kind: 'fade' },
   ];
   if (report.evidence.length > 0) {
-    steps.push({ id: 'evidence-intro', kind: 'type' });
     steps.push({ id: 'evidence-table', kind: 'fade' });
   }
-  steps.push({ id: 'limits-intro', kind: 'type' });
   steps.push({ id: 'limits-details', kind: 'fade' });
   if (report.changeFromPrior) {
     steps.push({ id: 'prior-intro', kind: 'type' });
   }
-  steps.push({ id: 'formula-intro', kind: 'type' });
   steps.push({ id: 'formula-details', kind: 'fade' });
   steps.push({ id: 'page-extras', kind: 'fade' });
   steps.push({ id: 'engagement', kind: 'fade' });

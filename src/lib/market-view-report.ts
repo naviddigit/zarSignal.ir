@@ -161,46 +161,94 @@ export function buildValuationMarks(
     });
 }
 
+function buildOverallComparativeView(usable: MarketViewEvidenceRow[]): {
+  view: string;
+  stance: MarketViewValuationSummary['stance'];
+} {
+  const gold = usable.find(row => row.id === 'gold');
+  const silver = usable.find(row => row.id === 'silver');
+  const usd = usable.find(row => row.id === 'usd');
+
+  const phrase = (row: MarketViewEvidenceRow | undefined, label: string) => {
+    if (!row || row.diffPercent == null || !Number.isFinite(row.diffPercent)) return null;
+    const direction = stance(row.diffPercent);
+    if (direction === 'none') return null;
+    if (direction === 'equal') return `${label} برابر`;
+    return `${label} ${direction === 'below' ? 'پایین‌تر' : 'بالاتر'}`;
+  };
+
+  if (gold && silver) {
+    const g = phrase(gold, 'طلا');
+    const s = phrase(silver, 'نقره');
+    if (g && s) {
+      const gDir = stance(gold.diffPercent);
+      const sDir = stance(silver.diffPercent);
+      let view = `${g} و ${s} از مرجع محاسباتی است`;
+      if (gDir === 'below' && (sDir === 'above' || sDir === 'equal')) {
+        view += '؛ در این مقایسه، طلا اضافه‌قیمت کمتری دارد.';
+      } else if (sDir === 'below' && (gDir === 'above' || gDir === 'equal')) {
+        view += '؛ در این مقایسه، نقره اضافه‌قیمت کمتری دارد.';
+      } else if (gDir === 'above' && sDir === 'above') {
+        view += '؛ هر دو بالاتر از مرجع‌اند و این به‌معنای توصیهٔ خرید نیست.';
+      } else if (gDir === 'below' && sDir === 'below') {
+        view += '؛ هر دو پایین‌تر از مرجع‌اند و این به‌معنای سود تضمینی نیست.';
+      } else {
+        view += '.';
+      }
+      const mixed = gDir !== sDir && gDir !== 'equal' && sDir !== 'equal' && gDir !== 'none' && sDir !== 'none';
+      return { view, stance: mixed ? 'unknown' : (gDir === 'none' ? 'unknown' : gDir === 'equal' ? 'equal' : gDir) };
+    }
+  }
+
+  const parts = [phrase(gold, 'طلا'), phrase(silver, 'نقره'), phrase(usd, 'دلار آزاد')].filter(Boolean);
+  if (parts.length >= 2) {
+    return {
+      view: `${parts.join(' و ')} از مرجع محاسباتی است؛ این مقایسه توصیهٔ خرید یا فروش نیست.`,
+      stance: 'unknown',
+    };
+  }
+  if (parts.length === 1) {
+    const row = gold ?? silver ?? usd!;
+    const direction = stance(row.diffPercent);
+    const name = shortMarketLabel(row.id, null);
+    const pct = formatFaMoney(Math.abs(row.diffPercent!), 2);
+    if (direction === 'equal') {
+      return { view: `${name} با مرجع محاسباتی برابر است.`, stance: 'equal' };
+    }
+    return {
+      view: `${name} الان ${pct}٪ ${direction === 'below' ? 'پایین‌تر از' : 'بالاتر از'} مرجع محاسباتی است.`,
+      stance: direction === 'none' ? 'unknown' : direction,
+    };
+  }
+  return {
+    view: 'الان اختلاف معتبری میان قیمت بازار و مرجع محاسباتی دیده نمی‌شود.',
+    stance: 'unknown',
+  };
+}
+
 function buildValuationSummary(
   usable: MarketViewEvidenceRow[],
   symbol?: Symbol | null,
 ): MarketViewValuationSummary | null {
   if (!usable.length) return null;
+
+  // Overall market: comparative sentence — never crown max |diffPercent| as the headline asset.
+  if (!symbol && usable.length > 1) {
+    const comparative = buildOverallComparativeView(usable);
+    return {
+      stance: comparative.stance,
+      title: 'برداشت مقایسه‌ای بازار',
+      detail: comparative.view,
+      marketLabel: 'بازار',
+      percent: null,
+    };
+  }
+
   const independent = usable.filter(row => row.id !== 'usd');
   const focus = [...independent].sort((a, b) => Math.abs(b.diffPercent!) - Math.abs(a.diffPercent!))[0] ?? usable[0];
   const direction = stance(focus.diffPercent);
   const name = shortMarketLabel(focus.id, symbol);
   const percent = focus.diffPercent != null && Number.isFinite(focus.diffPercent) ? focus.diffPercent : null;
-
-  // Overall market: comparative takeaway with named assets — not a vague "below reference".
-  if (!symbol && usable.length > 1) {
-    const parts = usable
-      .filter(row => row.id !== 'coin')
-      .map(row => {
-        const rowName = shortMarketLabel(row.id, symbol);
-        const rowDir = stance(row.diffPercent);
-        if (rowDir === 'none' || row.diffPercent == null) return null;
-        if (rowDir === 'equal') return `${rowName} برابر مرجع`;
-        return `${rowName} ${formatFaMoney(Math.abs(row.diffPercent), 2)}٪ ${rowDir === 'below' ? 'پایین‌تر' : 'بالاتر'}`;
-      })
-      .filter((part): part is string => Boolean(part));
-    if (direction === 'none') {
-      return {
-        stance: 'unknown',
-        title: `${name} · مرجع نامشخص`,
-        detail: parts.length ? `برداشت مقایسه‌ای بازار: ${parts.join('؛ ')}.` : `برای ${name} اختلاف معتبر با مرجع در دسترس نیست.`,
-        marketLabel: name,
-        percent: null,
-      };
-    }
-    return {
-      stance: direction === 'equal' ? 'equal' : direction,
-      title: `${name} · ${stanceLabel(direction)}`,
-      detail: `برداشت مقایسه‌ای بازار: ${parts.join('؛ ')}.`,
-      marketLabel: name,
-      percent,
-    };
-  }
 
   if (direction === 'none') {
     return {
@@ -386,22 +434,30 @@ export function composeMarketViewProse(
   }
 
   const independent = usable.filter(row => row.id !== 'usd');
-  const dominant = [...independent].sort((a, b) => Math.abs(b.diffPercent!) - Math.abs(a.diffPercent!))[0] ?? usable[0];
   const gold = usable.find(row => row.id === 'gold');
   const silver = usable.find(row => row.id === 'silver');
   const usd = usable.find(row => row.id === 'usd');
-  const name = shortMarketLabel(dominant.id, symbol);
-  const direction = stance(dominant.diffPercent);
-  const pct = formatFaMoney(Math.abs(dominant.diffPercent!), 2);
 
-  // الف) دید فعلی — یک جمله نتیجهٔ ارزشی
-  const view = direction === 'equal'
-    ? `${name} با مرجع محاسباتی برابر است.`
-    : `${name} الان ${pct}٪ ${direction === 'below' ? 'پایین‌تر از' : 'بالاتر از'} مرجع محاسباتی است.`;
+  // الف) دید فعلی — تک‌نماد روی همان نماد؛ کل بازار مقایسه‌ای بدون برجسته‌کردن max |diff|
+  let view: string;
+  let reasonFocus = independent[0] ?? usable[0]!;
+  if (!symbol && usable.length > 1) {
+    view = buildOverallComparativeView(usable).view;
+    reasonFocus = gold ?? silver ?? usable[0]!;
+  } else {
+    const focus = [...independent].sort((a, b) => Math.abs(b.diffPercent!) - Math.abs(a.diffPercent!))[0] ?? usable[0]!;
+    reasonFocus = focus;
+    const name = shortMarketLabel(focus.id, symbol);
+    const direction = stance(focus.diffPercent);
+    const pct = formatFaMoney(Math.abs(focus.diffPercent!), 2);
+    view = direction === 'equal'
+      ? `${name} با مرجع محاسباتی برابر است.`
+      : `${name} الان ${pct}٪ ${direction === 'below' ? 'پایین‌تر از' : 'بالاتر از'} مرجع محاسباتی است.`;
+  }
 
   // ب) دلیل — قیمت، مرجع، اختلاف با واحد
   const reasonParts = usable.map(row => reasonSentence(row, symbol));
-  if (dominant.id === 'gold' || symbol === 'GOLD_18K' || symbol === 'GOLD_MELTED') {
+  if (reasonFocus.id === 'gold' || symbol === 'GOLD_18K' || symbol === 'GOLD_MELTED') {
     reasonParts.push(goldBasisNote(symbol));
   }
   const reason = reasonParts.join(' ');
