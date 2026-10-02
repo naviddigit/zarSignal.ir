@@ -2,6 +2,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { LockKeyhole, RefreshCw, ArrowUpLeft } from 'lucide-react';
 import { calculatorCatalog, type CalculatorOperation, type CalculatorResult } from '@/lib/calculator-catalog';
+import {
+  decideCalculatorModuleAccess,
+  type CalculatorAccessPolicy,
+} from '@/lib/calculator-access';
+import type { AccessLevel } from '@/lib/capabilities';
 import { isStale, type Quote, type Snapshot } from '@/lib/market';
 import { formatNumericInput, sanitizeNumericInput } from '@/lib/numeric-input';
 import { fetchJson } from '@/lib/fetch-json';
@@ -64,8 +69,8 @@ const popularByProduct: Record<Product, PopularPick[]> = {
   ],
 };
 const number = (value: number) => new Intl.NumberFormat('en-US', { maximumFractionDigits: 4 }).format(value);
-const isLocalTool = (tool: Tool): tool is LocalTool => tool === 'weight' || tool === 'purity';
-const isOperation = (tool: Tool): tool is CalculatorOperation => !isLocalTool(tool) && tool in calculatorCatalog;
+const isLocalTool = (tool: string): tool is LocalTool => tool === 'weight' || tool === 'purity';
+const isOperation = (tool: string): tool is CalculatorOperation => !isLocalTool(tool) && tool in calculatorCatalog;
 
 function midQuote(quote: Quote) {
   const mid = (Number(quote.buy) + Number(quote.sell)) / 2;
@@ -102,7 +107,19 @@ function prefill(operation: CalculatorOperation, snapshot: Snapshot): Record<str
   return Object.fromEntries(calculatorCatalog[operation].fields.map(field => [field.key, liveEntry(field, snapshot)]));
 }
 
-export function ProfessionalCalculator({ snapshot }: { snapshot: Snapshot }) {
+export function ProfessionalCalculator({
+  snapshot,
+  accessPolicy,
+  accessAvailable = true,
+  accessLevel = 'FREE',
+  statusLabel = 'رایگان',
+}: {
+  snapshot: Snapshot;
+  accessPolicy: CalculatorAccessPolicy;
+  accessAvailable?: boolean;
+  accessLevel?: AccessLevel;
+  statusLabel?: string | null;
+}) {
   const [product, setProduct] = useState<Product>('gold');
   const [tool, setTool] = useState<Tool>(DEFAULT_TOOL);
   const [weightAmount, setWeightAmount] = useState('3.5');
@@ -122,6 +139,13 @@ export function ProfessionalCalculator({ snapshot }: { snapshot: Snapshot }) {
     if (cueTimer.current) window.clearTimeout(cueTimer.current);
   }, []);
 
+  function moduleAccess(op: CalculatorOperation) {
+    return decideCalculatorModuleAccess(op, accessPolicy, accessLevel, {
+      statusLabel,
+      settingsAvailable: accessAvailable,
+    });
+  }
+
   function flashKeypadCue() {
     setKeypadCue(false);
     requestAnimationFrame(() => {
@@ -133,8 +157,14 @@ export function ProfessionalCalculator({ snapshot }: { snapshot: Snapshot }) {
 
   const available = toolsByProduct[product];
   const operation = isOperation(tool) ? tool : null;
-  const spec = operation ? calculatorCatalog[operation] : null;
-  const popular = popularByProduct[product];
+  const operationGate = operation ? moduleAccess(operation) : null;
+  const operationAllowed = !operation || operationGate?.ok === true;
+  const spec = operation && operationAllowed ? calculatorCatalog[operation] : null;
+  const popular = popularByProduct[product].map(item => {
+    if (!isOperation(item.id)) return item;
+    const decision = moduleAccess(item.id);
+    return { ...item, locked: item.locked || !decision.ok };
+  });
 
   function invalidate() {
     request.current?.abort();
@@ -148,6 +178,17 @@ export function ProfessionalCalculator({ snapshot }: { snapshot: Snapshot }) {
   function choose(next: Tool, forProduct: Product = product) {
     const allowed = toolsByProduct[forProduct];
     if (!allowed.includes(next)) return;
+    if (isOperation(next)) {
+      const gate = moduleAccess(next);
+      if (!gate.ok) {
+        setError(gate.message);
+        setTool(next);
+        setActiveField('');
+        setResult(null);
+        setResultOpen(false);
+        return;
+      }
+    }
     invalidate();
     setTool(next);
     if (isLocalTool(next)) {
@@ -212,6 +253,11 @@ export function ProfessionalCalculator({ snapshot }: { snapshot: Snapshot }) {
   async function calculate(event: React.FormEvent) {
     event.preventDefault();
     if (!operation) return;
+    const gate = moduleAccess(operation);
+    if (!gate.ok) {
+      setError(gate.message);
+      return;
+    }
     // Do not wipe inputs / live availability — only cancel prior request.
     request.current?.abort();
     const controller = new AbortController();
@@ -223,6 +269,7 @@ export function ProfessionalCalculator({ snapshot }: { snapshot: Snapshot }) {
       const response = await fetch('/api/public/calculator/professional', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
         signal: controller.signal,
         body: JSON.stringify({
           operation,
@@ -277,6 +324,12 @@ export function ProfessionalCalculator({ snapshot }: { snapshot: Snapshot }) {
           <WeightConvertWidget amount={weightAmount} onAmountChange={setWeightAmount} />
         ) : tool === 'purity' ? (
           <PurityConvertWidget amount={purityAmount} onAmountChange={setPurityAmount} />
+        ) : operation && !operationAllowed ? (
+          <div className="calc-tool-panel calc-tool-panel--locked">
+            <LockKeyhole size={22} />
+            <strong>دسترسی لازم است</strong>
+            <p>{operationGate && !operationGate.ok ? operationGate.message : 'این محاسبه برای پلن فعلی شما فعال نیست.'}</p>
+          </div>
         ) : spec ? (
           <form className="calc-tool-panel" onSubmit={calculate}>
             <div className="calc-tool-panel__toolbar">

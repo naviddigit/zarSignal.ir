@@ -12,6 +12,7 @@ import {
   type MarketViewEvidenceRow,
   type MarketViewReport,
 } from '@/lib/market-view-report';
+import { explainEvidenceStatus, USD_GAP_PUBLIC_LABEL } from '@/lib/evidence-status-reason';
 
 function fingerprint(snapshot: Snapshot, bubbles: ReturnType<typeof computeLiveBubbles>) {
   const payload = JSON.stringify({
@@ -39,6 +40,17 @@ function buildEvidence(bubbles: ReturnType<typeof computeLiveBubbles>, snapshot:
   const silverOk = silver && (silver.status === 'ok' || silver.status === 'stale') && silver.percent != null;
   const usdOk = usd && (usd.status === 'ok' || usd.status === 'stale') && usd.percent != null;
 
+  const goldStatus = gold?.status === 'blocked' ? 'blocked' as const
+    : gold?.status === 'stale' ? 'stale' as const
+    : goldOk ? 'ok' as const : 'unavailable' as const;
+  const usdStatus = usd?.status === 'blocked' ? 'blocked' as const
+    : usd?.status === 'stale' ? 'stale' as const
+    : usdOk ? 'ok' as const : 'unavailable' as const;
+  const silverStatus = silver?.status === 'blocked' ? 'blocked' as const
+    : silver?.status === 'stale' ? 'stale' as const
+    : silverOk ? 'ok' as const : 'unavailable' as const;
+  const coinHasPrice = coinPrice != null && coinPrice > 0;
+
   return [
     {
       id: 'gold',
@@ -48,8 +60,13 @@ function buildEvidence(bubbles: ReturnType<typeof computeLiveBubbles>, snapshot:
       referenceBasis: 'ارزش محاسباتی از اونس جهانی × دلار بازار × ۰٫۷۵',
       diffPercent: goldOk ? gold!.percent : null,
       unitNote: 'مظنه آب‌شده به گرم ۱۸ تبدیل شده؛ با مثقال خام مقایسه نمی‌شود',
-      status: gold?.status === 'blocked' ? 'blocked' : gold?.status === 'stale' ? 'stale' : goldOk ? 'ok' : 'unavailable',
-      statusReason: goldOk ? null : (gold?.reason ?? 'در دسترس نیست'),
+      status: goldStatus,
+      statusReason: explainEvidenceStatus({
+        id: 'gold',
+        status: goldStatus,
+        rawReason: gold?.reason,
+        hasMarketPrice: goldOk || (gold?.marketPrice != null && gold.marketPrice > 0),
+      }),
       formulaVersion: gold?.formulaVersion ?? FORMULA_VERSION,
       impliedUsdLabel: goldOk ? moneyLabel(usd?.theoretical, 'تومان') : null,
     },
@@ -60,9 +77,14 @@ function buildEvidence(bubbles: ReturnType<typeof computeLiveBubbles>, snapshot:
       referenceLabel: usdOk ? moneyLabel(usd!.theoretical, 'تومان / دلار') : null,
       referenceBasis: 'دلار ضمنی طلا (از گرم ۱۸ و اونس) — نه درهم و نه نرخ صرافی اجباری',
       diffPercent: usdOk ? usd!.percent : null,
-      unitNote: 'فاصلهٔ دلار بازار با دلار ضمنی طلا؛ ارزش بنیادی دلار نیست',
-      status: usd?.status === 'blocked' ? 'blocked' : usd?.status === 'stale' ? 'stale' : usdOk ? 'ok' : 'unavailable',
-      statusReason: usdOk ? null : (usd?.reason ?? 'در دسترس نیست'),
+      unitNote: `${USD_GAP_PUBLIC_LABEL}؛ ارزش بنیادی یا حباب مستقل دلار نیست`,
+      status: usdStatus,
+      statusReason: explainEvidenceStatus({
+        id: 'usd',
+        status: usdStatus,
+        rawReason: usd?.reason,
+        hasMarketPrice: usdOk || (usd?.marketPrice != null && usd.marketPrice > 0),
+      }),
       formulaVersion: usd?.formulaVersion ?? FORMULA_VERSION,
     },
     {
@@ -73,21 +95,31 @@ function buildEvidence(bubbles: ReturnType<typeof computeLiveBubbles>, snapshot:
       referenceBasis: 'V5.4-SILVER.1 · اونس نقره × دلار × ۰٫۹۹۹ / ۳۱٫۱۰۳۴۷۶۸',
       diffPercent: silverOk ? silver!.percent : null,
       unitNote: 'قیمت بازار نقره ۹۹۹ مستقیم گرم است؛ مقسوم‌علیه مظنه ندارد',
-      status: silver?.status === 'blocked' ? 'blocked' : silver?.status === 'stale' ? 'stale' : silverOk ? 'ok' : 'unavailable',
-      statusReason: silverOk ? null : (silver?.reason ?? 'در دسترس نیست'),
+      status: silverStatus,
+      statusReason: explainEvidenceStatus({
+        id: 'silver',
+        status: silverStatus,
+        rawReason: silver?.reason,
+        hasMarketPrice: silverOk || (silver?.marketPrice != null && silver.marketPrice > 0),
+      }),
       formulaVersion: silver?.formulaVersion ?? SILVER_FORMULA_VERSION,
       impliedUsdLabel: silverOk ? moneyLabel(silver?.usdImplied, 'تومان') : null,
     },
     {
       id: 'coin',
       marketLabel: 'سکه',
-      marketPriceLabel: coinPrice != null && coinPrice > 0 ? moneyLabel(coinPrice, 'تومان / عدد') : null,
+      marketPriceLabel: coinHasPrice ? moneyLabel(coinPrice, 'تومان / عدد') : null,
       referenceLabel: null,
       referenceBasis: 'مبنای ارزش و حباب سکه در مشخصات محصول تأیید نشده است',
       diffPercent: null,
       unitNote: 'SPEC_BLOCKER · بدون فرمول قطعی منتشر نمی‌شود',
       status: 'blocked',
-      statusReason: 'حباب سکه در موتور تأییدشده فعال نیست',
+      statusReason: explainEvidenceStatus({
+        id: 'coin',
+        status: 'blocked',
+        rawReason: 'reference_inactive',
+        hasMarketPrice: coinHasPrice,
+      }),
       formulaVersion: null,
     },
   ];

@@ -58,14 +58,15 @@ export function flattenNarrativeGraphemes(sections: NarrativeSection[]): {
   return { graphemes, ends };
 }
 
-/** Characters per second: ~50 baseline, sped up so long reports finish within maxMs. */
-export function typingCharsPerSecond(totalGraphemes: number, maxMs = 12_000, baseline = 50) {
-  if (totalGraphemes <= 0) return baseline;
-  const needed = Math.ceil(totalGraphemes / (maxMs / 1000));
-  return Math.max(baseline, Math.min(needed, 160));
+/**
+ * Typing speed is the explicit base CPS from admin settings.
+ * Length-based hidden acceleration is removed — long reports simply take longer at the configured rate.
+ */
+export function typingCharsPerSecond(_totalGraphemes?: number, _maxMs?: number, baseline = 45) {
+  return baseline > 0 ? baseline : 45;
 }
 
-export function typingIntervalMs(totalGraphemes: number, maxMs = 12_000, baseline = 50) {
+export function typingIntervalMs(totalGraphemes: number, maxMs = 12_000, baseline = 45) {
   const cps = typingCharsPerSecond(totalGraphemes, maxMs, baseline);
   return Math.max(16, Math.round(1000 / cps));
 }
@@ -76,7 +77,7 @@ export function graphemesForElapsed(
   totalGraphemes: number,
   speed: number,
   maxMs = 12_000,
-  baseline = 50,
+  baseline = 45,
 ) {
   if (totalGraphemes <= 0 || elapsedMs <= 0) return 0;
   const cps = typingCharsPerSecond(totalGraphemes, maxMs, baseline) * Math.max(0.25, speed);

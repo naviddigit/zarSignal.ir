@@ -11,6 +11,7 @@ import { AnalysisTrialAccess } from '@/components/analysis-trial-access';
 import { AnalysisMarketSelect } from '@/components/analysis-market-select';
 import { getWarningPolicy } from '@/server/time-reliability';
 import { timeReliability } from '@/lib/time-reliability';
+import { getAnalysisReadingSettings } from '@/server/analysis-reading-settings';
 
 export const metadata: Metadata = {
   title: 'دید زرسیگنال به بازار',
@@ -29,7 +30,10 @@ export default async function MarketAnalysisPage({ searchParams }: { searchParam
   const fullAccess = entitlement ? hasCapability(entitlement.level, 'ANALYSIS_BASIC') : false;
   const report = await buildMarketViewReport(fullAccess ? 'full' : 'preview');
   const trial = await analysisTrial();
-  const timePolicy = await getWarningPolicy();
+  const [timePolicy, readingSettings] = await Promise.all([
+    getWarningPolicy(),
+    getAnalysisReadingSettings(),
+  ]);
 
   return (
     <main id="main" className="shell content-page analysis-page market-view-page">
@@ -54,6 +58,7 @@ export default async function MarketAnalysisPage({ searchParams }: { searchParam
         planLevel={entitlement?.level ?? null}
         planLabel={entitlement?.planLabel ?? null}
         planStatus={entitlement?.statusLabel ?? null}
+        readingSettings={readingSettings}
         trialCta={!fullAccess ? (
           <Link className="button" href={`/login?next=${encodeURIComponent('/analysis')}`}>
             ورود / شروع آزمایش <ArrowUpLeft size={15} />

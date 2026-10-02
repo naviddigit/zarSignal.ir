@@ -14,6 +14,7 @@ import { MarketViewReportView } from '@/components/market-view-report';
 import { AnalysisTrialAccess } from '@/components/analysis-trial-access';
 import { AnalysisMarketSelect } from '@/components/analysis-market-select';
 import { ChartWorkspace } from '@/components/chart-workspace';
+import { getAnalysisReadingSettings } from '@/server/analysis-reading-settings';
 
 export const dynamic = 'force-dynamic';
 
@@ -36,9 +37,10 @@ export default async function AnalysisPage({ params, searchParams }: {
   const session = await auth().catch(() => null);
   const entitlement = session?.user?.id ? await resolveAccountEntitlement(session.user.id) : null;
   const fullAccess = entitlement ? hasCapability(entitlement.level, 'ANALYSIS_BASIC') : false;
-  const [report, trial] = await Promise.all([
+  const [report, trial, readingSettings] = await Promise.all([
     buildMarketViewReport(fullAccess ? 'full' : 'preview', asset.symbol),
     analysisTrial(),
+    getAnalysisReadingSettings(),
   ]);
   const path = `/analysis/${symbol}`;
 
@@ -61,6 +63,7 @@ export default async function AnalysisPage({ params, searchParams }: {
         planLevel={entitlement?.level ?? null}
         planLabel={entitlement?.planLabel ?? null}
         planStatus={entitlement?.statusLabel ?? null}
+        readingSettings={readingSettings}
         trialCta={!fullAccess ? (
           <Link className="button" href={`/login?next=${encodeURIComponent(path)}`}>
             ورود / شروع آزمایش <ArrowUpLeft size={15} />

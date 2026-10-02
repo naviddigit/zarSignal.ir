@@ -200,8 +200,8 @@ test('grapheme typing mid-progress shows a correct prefix of one paragraph', () 
   assert.equal(onlyFirst[0], sections[0]!.body);
   assert.equal(onlyFirst[1], '');
   assert.equal(onlyFirst[2], '');
-  assert.ok(typingCharsPerSecond(graphemes.length) >= 40);
-  assert.ok(typingCharsPerSecond(graphemes.length) <= 160);
+  assert.ok(typingCharsPerSecond(graphemes.length, 12_000, 45) === 45);
+  assert.ok(typingCharsPerSecond(graphemes.length, 12_000, 50) === 50);
 });
 
 test('2x typing advances about twice as many graphemes for the same elapsed time', () => {

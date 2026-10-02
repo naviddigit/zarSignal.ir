@@ -20,7 +20,6 @@ import {
   flattenNarrativeGraphemes,
   readStoredTypeSpeed,
   storeTypeSpeed,
-  typingCharsPerSecond,
   visibleAtomsAt,
   type AnalysisTypeSpeed,
   type MetricTone,
@@ -28,14 +27,18 @@ import {
   type NarrativeSection,
 } from '@/lib/market-view-typing';
 import {
-  REVEAL_FADE_MS,
   isRevealStepActive,
   isRevealStepMounted,
   type RevealPlanStep,
 } from '@/lib/analysis-reveal';
+import {
+  defaultAnalysisReadingSettings,
+  effectiveTypingCps,
+  readingSpeedLabel,
+  type AnalysisReadingSettings,
+} from '@/lib/analysis-reading-settings';
 import { canOfferConfirmationWatch } from '@/lib/analysis-engine-status';
 import { AnalysisEngagementPanel } from '@/components/analysis-engagement';
-import { freshnessLabel } from '@/lib/bubbles';
 
 function freshnessText(report: MarketViewReport) {
   if (report.dataFreshness === 'ok') return 'تازه';
@@ -163,6 +166,7 @@ function useGraphemeTyping(
   reducedMotion: boolean,
   enabled: boolean,
   speed: AnalysisTypeSpeed,
+  reading: AnalysisReadingSettings,
   onComplete: () => void,
 ) {
   const [shown, setShown] = useState(0);
@@ -174,10 +178,12 @@ function useGraphemeTyping(
   const keyRef = useRef(stepKey);
   const completedRef = useRef(false);
   const speedRef = useRef(speed);
+  const readingRef = useRef(reading);
   const progressRef = useRef(0);
   const onCompleteRef = useRef(onComplete);
   onCompleteRef.current = onComplete;
   speedRef.current = speed;
+  readingRef.current = reading;
 
   const clearTimers = useCallback(() => {
     for (const id of timers.current) window.clearTimeout(id);
@@ -214,12 +220,13 @@ function useGraphemeTyping(
     setTyping(true);
     setReady(true);
     let last = performance.now();
-    const baseCps = typingCharsPerSecond(totalGraphemes);
     const step = (now: number) => {
       if (keyRef.current !== stepKey) return;
       const dt = Math.max(0, (now - last) / 1000);
       last = now;
-      progressRef.current += dt * baseCps * speedRef.current;
+      // Effective CPS from settings + 1×/2×; speedRef so mid-type changes do not restart.
+      const cps = effectiveTypingCps(readingRef.current, speedRef.current);
+      progressRef.current += dt * cps;
       const next = Math.min(totalGraphemes, Math.floor(progressRef.current));
       if (next !== shownRef.current) {
         shownRef.current = next;
@@ -240,7 +247,7 @@ function useGraphemeTyping(
       raf.current = window.requestAnimationFrame(step);
     }, 280));
     return () => clearTimers();
-    // speed is read via speedRef so mid-type changes continue from the same grapheme
+    // reading/speed are read via refs so mid-type admin/user changes continue from the same grapheme
   }, [stepKey, totalGraphemes, reducedMotion, enabled, clearTimers]);
 
   return { shown, typing, ready, totalGraphemes };
@@ -258,11 +265,20 @@ function useTypeSpeed(): [AnalysisTypeSpeed, (next: AnalysisTypeSpeed) => void] 
   return [speed, update];
 }
 
+function resolveFollowTarget(root: HTMLElement | null): HTMLElement | null {
+  if (!root) return null;
+  if (root.matches('[data-follow-anchor]')) return root;
+  const nested = root.querySelector('[data-follow-anchor]');
+  return nested instanceof HTMLElement ? nested : root;
+}
+
 function useReadingFollow(
   enabled: boolean,
   anchorRef: RefObject<HTMLElement | null>,
   reportKey: string,
   reducedMotion: boolean,
+  /** Rebind ResizeObserver whenever the active DOM follow target changes. */
+  targetKey: string,
 ) {
   const [following, setFollowing] = useState(true);
   const followingRef = useRef(true);
@@ -271,7 +287,7 @@ function useReadingFollow(
   const raf = useRef<number | null>(null);
   const settleTimer = useRef<number | null>(null);
   const lastAlignH = useRef(0);
-  const roAligns = useRef(0);
+  const observedEl = useRef<HTMLElement | null>(null);
 
   const setFollow = useCallback((next: boolean) => {
     followingRef.current = next;
@@ -282,16 +298,13 @@ function useReadingFollow(
     setFollow(true);
     lastY.current = window.scrollY;
     lastAlignH.current = 0;
-    roAligns.current = 0;
+    observedEl.current = null;
   }, [reportKey, setFollow]);
 
   const align = useCallback((smooth: boolean) => {
-    if (reducedMotion || !followingRef.current || !anchorRef.current) return;
-    const root = anchorRef.current;
-    const nested = root.matches('[data-follow-anchor]')
-      ? root
-      : root.querySelector('[data-follow-anchor]');
-    const target = (nested instanceof HTMLElement ? nested : root);
+    if (reducedMotion || !followingRef.current) return;
+    const target = resolveFollowTarget(anchorRef.current);
+    if (!target) return;
     const rect = target.getBoundingClientRect();
     const topPad = 88;
     const bottomPad = window.matchMedia('(max-width: 720px)').matches ? 96 : 32;
@@ -323,31 +336,50 @@ function useReadingFollow(
     scheduleAlign(false);
   }, [enabled, scheduleAlign]);
 
-  // Re-align when the active follow target's height settles (e.g. feedback panel mounts).
-  // Cap + height threshold prevents infinite smooth-scroll ↔ ResizeObserver loops that freeze tooling.
+  // Observe the *active* follow target; reconnect when targetKey changes.
+  // Loop prevention: ignore while programmatic, debounce, height threshold — no global align cap.
   useEffect(() => {
     if (!enabled || reducedMotion) return;
-    const node = anchorRef.current;
-    if (!node || typeof ResizeObserver === 'undefined') return;
-    const ro = new ResizeObserver(entries => {
-      if (!followingRef.current) return;
-      const h = entries[0]?.contentRect.height ?? 0;
-      if (Math.abs(h - lastAlignH.current) < 8) return;
-      if (roAligns.current >= 6) return;
-      if (settleTimer.current != null) window.clearTimeout(settleTimer.current);
-      settleTimer.current = window.setTimeout(() => {
-        if (!followingRef.current) return;
-        lastAlignH.current = h;
-        roAligns.current += 1;
-        scheduleAlign(false);
-      }, 120);
-    });
-    ro.observe(node);
+    if (typeof ResizeObserver === 'undefined') return;
+
+    let ro: ResizeObserver | null = null;
+    let cancelled = false;
+
+    const bind = () => {
+      if (cancelled) return;
+      const target = resolveFollowTarget(anchorRef.current);
+      if (!target) return;
+      if (observedEl.current === target && ro) return;
+      ro?.disconnect();
+      observedEl.current = target;
+      lastAlignH.current = target.getBoundingClientRect().height;
+      ro = new ResizeObserver(entries => {
+        if (!followingRef.current || programmatic.current) return;
+        const h = entries[0]?.contentRect.height ?? 0;
+        if (Math.abs(h - lastAlignH.current) < 8) return;
+        if (settleTimer.current != null) window.clearTimeout(settleTimer.current);
+        settleTimer.current = window.setTimeout(() => {
+          if (!followingRef.current || programmatic.current) return;
+          lastAlignH.current = h;
+          scheduleAlign(false);
+        }, 120);
+      });
+      ro.observe(target);
+      scheduleAlign(false);
+    };
+
+    // Callback refs may assign after paint; retry once next frame.
+    bind();
+    const retry = window.requestAnimationFrame(bind);
+
     return () => {
-      ro.disconnect();
+      cancelled = true;
+      window.cancelAnimationFrame(retry);
+      ro?.disconnect();
+      observedEl.current = null;
       if (settleTimer.current != null) window.clearTimeout(settleTimer.current);
     };
-  }, [anchorRef, enabled, reducedMotion, scheduleAlign, reportKey]);
+  }, [anchorRef, enabled, reducedMotion, scheduleAlign, reportKey, targetKey]);
 
   useEffect(() => {
     const onScroll = () => {
@@ -356,6 +388,7 @@ function useReadingFollow(
         return;
       }
       const y = window.scrollY;
+      // Only intentional upward scroll breaks follow — not programmatic auto-align.
       if (y + 2 < lastY.current && followingRef.current) setFollow(false);
       lastY.current = y;
     };
@@ -389,7 +422,6 @@ function useReadingFollow(
 
   const resume = useCallback(() => {
     setFollow(true);
-    roAligns.current = 0;
     scheduleAlign(true);
   }, [scheduleAlign, setFollow]);
 
@@ -458,14 +490,16 @@ function NarrativeBlock({
           const isActive = typing && index === active && body.length < section.body.length;
           if (!started && index > 0) return null;
           return (
-            <section key={section.id} className="market-view__block market-view__typed is-in">
+            <section
+              key={section.id}
+              className="market-view__block market-view__typed is-in"
+              ref={attachEndRef && index === active ? endRef : undefined}
+              data-follow-anchor={attachEndRef && index === active ? '' : undefined}
+            >
               <h2>{section.title}</h2>
               <p>
                 {renderAtoms(atoms)}
                 {isActive ? <span className="market-view__caret" aria-hidden="true" /> : null}
-                {attachEndRef && index === active ? (
-                  <span ref={endRef} className="market-view__read-anchor" aria-hidden="true" />
-                ) : null}
               </p>
             </section>
           );
@@ -510,25 +544,33 @@ function EvidenceTable({ report }: { report: MarketViewReport }) {
                   : row.diffPercent! > 0
                     ? 'above'
                     : 'neutral';
+              const reason = row.statusReason;
+              const missingLabel = reason ?? 'قیمت موجود نیست';
               return (
                 <tr key={row.id} className={row.status !== 'ok' ? 'is-muted' : undefined}>
                   <th scope="row"><strong>{row.marketLabel}</strong></th>
                   <td data-label="قیمت بازار">
                     {row.marketPriceLabel
                       ? <bdi className={metricClass('neutral')}>{row.marketPriceLabel}</bdi>
-                      : <bdi className={metricClass('missing')}>در دسترس نیست</bdi>}
+                      : <bdi className={metricClass('missing')}>{missingLabel}</bdi>}
                   </td>
                   <td data-label="مرجع محاسباتی">
                     {row.referenceLabel
                       ? <bdi className={metricClass('neutral')}>{row.referenceLabel}</bdi>
-                      : <bdi className={metricClass('missing')}>در دسترس نیست</bdi>}
+                      : <bdi className={metricClass('missing')}>
+                          {row.id === 'coin' && row.marketPriceLabel
+                            ? 'مرجع محاسباتی سکه فعلاً فعال نیست'
+                            : reason && /مرجع|فعال نیست/.test(reason)
+                              ? reason
+                              : 'مرجع محاسباتی فعال نیست'}
+                        </bdi>}
                   </td>
                   <td data-label="اختلاف">
                     {row.diffPercent != null
                       ? <bdi className={metricClass(tone)}>{formatFaPercent(row.diffPercent)}٪</bdi>
-                      : <bdi className={metricClass('missing')}>در دسترس نیست</bdi>}
-                    {row.status !== 'ok' ? (
-                      <small>{freshnessLabel(row.status === 'blocked' ? 'blocked' : row.status === 'stale' ? 'stale' : 'unavailable')}</small>
+                      : <bdi className={metricClass('missing')}>{missingLabel}</bdi>}
+                    {row.status !== 'ok' && reason ? (
+                      <small>{reason}</small>
                     ) : null}
                   </td>
                 </tr>
@@ -651,6 +693,7 @@ export function MarketViewReportView({
   planLevel = null,
   planLabel = null,
   planStatus = null,
+  readingSettings = defaultAnalysisReadingSettings,
 }: {
   initial: MarketViewReport;
   canRefresh: boolean;
@@ -660,6 +703,7 @@ export function MarketViewReportView({
   planLevel?: import('@/lib/capabilities').AccessLevel | null;
   planLabel?: string | null;
   planStatus?: 'فعال' | 'آزمایشی' | 'رایگان' | 'در انتظار پرداخت' | null;
+  readingSettings?: AnalysisReadingSettings;
 }) {
   const [report, setReport] = useState(initial);
   const [pendingFingerprint, setPendingFingerprint] = useState<string | null>(null);
@@ -668,6 +712,7 @@ export function MarketViewReportView({
   const reduced = usePrefersReducedMotion();
   const [typeSpeed, setTypeSpeed] = useTypeSpeed();
   const endRef = useRef<HTMLElement | null>(null);
+  const reading = readingSettings;
 
   const reportKey = `${report.snapshotFingerprint}:${report.symbol ?? 'all'}:${report.access}`;
   const { items: plan } = useMemo(
@@ -728,10 +773,11 @@ export function MarketViewReportView({
     reduced,
     typingEnabled,
     typeSpeed,
+    reading,
     onTypeComplete,
   );
 
-  // Fade steps advance only after their own fade window — not an estimate of prior text length.
+  // Fade steps advance after the admin-configured section appear delay.
   useEffect(() => {
     clearFade();
     if (reduced) {
@@ -741,13 +787,21 @@ export function MarketViewReportView({
     if (!activeStep || activeStep.kind !== 'fade') return;
     fadeTimer.current = window.setTimeout(() => {
       advance();
-    }, REVEAL_FADE_MS);
+    }, reading.sectionAppearMs);
     return () => clearFade();
-  }, [activeIndex, activeStep, reduced, plan.length, advance, clearFade, reportKey]);
+  }, [activeIndex, activeStep, reduced, plan.length, advance, clearFade, reportKey, reading.sectionAppearMs]);
 
-  // Keep follow alive after the last fade so feedback can settle into view.
+  // Keep follow alive after the last fade so feedback / scores can settle into view.
   const followEnabled = !reduced;
-  const { following, resume, scheduleAlign } = useReadingFollow(followEnabled, endRef, reportKey, reduced);
+  const revealDone = activeIndex >= plan.length;
+  const followTargetKey = `${reportKey}:${activeIndex}:${activeStep?.id ?? 'done'}:${revealDone ? 'done' : 'run'}`;
+  const { following, resume, scheduleAlign } = useReadingFollow(
+    followEnabled,
+    endRef,
+    reportKey,
+    reduced,
+    followTargetKey,
+  );
 
   useEffect(() => {
     if (typing) scheduleAlign(false);
@@ -844,12 +898,13 @@ export function MarketViewReportView({
           ) : null}
         </p>
         {!reduced ? (
-          <div className="market-view__speed" role="group" aria-label="سرعت نمایش" data-follow-keep>
-            <span>سرعت نمایش:</span>
+          <div className="market-view__speed" role="group" aria-label={readingSpeedLabel(reading, typeSpeed)} data-follow-keep>
+            <span>{readingSpeedLabel(reading, typeSpeed)}</span>
             <button
               type="button"
               className={typeSpeed === 1 ? 'is-active' : undefined}
               aria-pressed={typeSpeed === 1}
+              title={`${Math.round(effectiveTypingCps(reading, 1))} نویسه/ثانیه`}
               data-follow-keep
               onClick={() => setTypeSpeed(1)}
             >
@@ -859,6 +914,7 @@ export function MarketViewReportView({
               type="button"
               className={typeSpeed === 2 ? 'is-active' : undefined}
               aria-pressed={typeSpeed === 2}
+              title={`${Math.round(effectiveTypingCps(reading, 2))} نویسه/ثانیه`}
               data-follow-keep
               onClick={() => setTypeSpeed(2)}
             >
@@ -923,11 +979,11 @@ export function MarketViewReportView({
               );
             }
             const activeFade = isRevealStepActive(index, activeIndex, reduced);
-            const revealDone = activeIndex >= plan.length;
-            // Keep follow target on engagement after the last fade advances so feedback can settle.
+            const stepRevealDone = activeIndex >= plan.length;
+            // Keep follow target on engagement after the last fade advances so feedback/scores settle.
             const keepEngagementFollow = item.id === 'engagement'
               && following
-              && (activeFade || revealDone || activeIndex > index);
+              && (activeFade || stepRevealDone || activeIndex > index);
             const attachFadeFollow = activeFade || keepEngagementFollow;
             return (
               <RevealItem key={item.id}>

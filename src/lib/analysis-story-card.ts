@@ -73,7 +73,7 @@ export function buildStoryPublicPayload(
     .map(row => {
       const tone = toneFor(row.diffPercent);
       return {
-        label: row.id === 'gold' ? 'طلا' : row.id === 'silver' ? 'نقره ۹۹۹' : row.id === 'usd' ? 'دلار آزاد' : row.marketLabel,
+        label: row.id === 'gold' ? 'طلا' : row.id === 'silver' ? 'نقره ۹۹۹' : row.id === 'usd' ? 'فاصلهٔ دلار بازار با دلار ضمنی طلا' : row.marketLabel,
         value: `${formatFaPercent(row.diffPercent!)}٪`,
         unit: 'اختلاف با مرجع',
         tone,
