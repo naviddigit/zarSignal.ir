@@ -270,6 +270,8 @@ function useReadingFollow(
   const lastY = useRef(0);
   const raf = useRef<number | null>(null);
   const settleTimer = useRef<number | null>(null);
+  const lastAlignH = useRef(0);
+  const roAligns = useRef(0);
 
   const setFollow = useCallback((next: boolean) => {
     followingRef.current = next;
@@ -279,6 +281,8 @@ function useReadingFollow(
   useEffect(() => {
     setFollow(true);
     lastY.current = window.scrollY;
+    lastAlignH.current = 0;
+    roAligns.current = 0;
   }, [reportKey, setFollow]);
 
   const align = useCallback((smooth: boolean) => {
@@ -299,6 +303,7 @@ function useReadingFollow(
     }
     if (Math.abs(delta) < 4) return;
     programmatic.current = true;
+    // Resize-driven settles use auto to avoid smooth-scroll ↔ layout feedback loops.
     window.scrollBy({ top: delta, behavior: smooth && !reducedMotion ? 'smooth' : 'auto' });
     lastY.current = window.scrollY;
     window.setTimeout(() => { programmatic.current = false; }, smooth && !reducedMotion ? 320 : 80);
@@ -319,16 +324,23 @@ function useReadingFollow(
   }, [enabled, scheduleAlign]);
 
   // Re-align when the active follow target's height settles (e.g. feedback panel mounts).
+  // Cap + height threshold prevents infinite smooth-scroll ↔ ResizeObserver loops that freeze tooling.
   useEffect(() => {
     if (!enabled || reducedMotion) return;
     const node = anchorRef.current;
     if (!node || typeof ResizeObserver === 'undefined') return;
-    const ro = new ResizeObserver(() => {
+    const ro = new ResizeObserver(entries => {
       if (!followingRef.current) return;
+      const h = entries[0]?.contentRect.height ?? 0;
+      if (Math.abs(h - lastAlignH.current) < 8) return;
+      if (roAligns.current >= 6) return;
       if (settleTimer.current != null) window.clearTimeout(settleTimer.current);
       settleTimer.current = window.setTimeout(() => {
-        scheduleAlign(true);
-      }, 60);
+        if (!followingRef.current) return;
+        lastAlignH.current = h;
+        roAligns.current += 1;
+        scheduleAlign(false);
+      }, 120);
     });
     ro.observe(node);
     return () => {
@@ -377,6 +389,7 @@ function useReadingFollow(
 
   const resume = useCallback(() => {
     setFollow(true);
+    roAligns.current = 0;
     scheduleAlign(true);
   }, [scheduleAlign, setFollow]);
 
