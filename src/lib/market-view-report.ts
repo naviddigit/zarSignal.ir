@@ -666,4 +666,9 @@ export function buildAnalysisNarrativeSections(report: MarketViewReport): Narrat
   return sections;
 }
 
-
+/** Brief mode: view + reason only (and preview gate) — denser mobile reading. */
+export function buildBriefAnalysisNarrativeSections(report: MarketViewReport): NarrativeSection[] {
+  const full = buildAnalysisNarrativeSections(report);
+  const keep = new Set(['view', 'reason', 'gate']);
+  return full.filter(section => keep.has(section.id));
+}

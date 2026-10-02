@@ -39,7 +39,7 @@ export default async function MarketAnalysisPage({ searchParams }: { searchParam
   ]);
 
   return (
-    <main id="main" className="shell content-page analysis-page market-view-page">
+    <main id="main" className="shell content-page analysis-page market-view-page is-tidy">
       <nav className="chart-breadcrumb" aria-label="مسیر">
         <Link href="/">خانه</Link>
         <span>/</span>
@@ -69,20 +69,18 @@ export default async function MarketAnalysisPage({ searchParams }: { searchParam
           </Link>
         ) : null}
         pageExtras={(
-          <>
-            {(!fullAccess || entitlement?.statusLabel === 'آزمایشی') && (
-              <AnalysisTrialAccess trial={trial} error={query.trial} compact />
-            )}
-            <div className="home-quick-tools">
-              <Link href="/markets">نرخ‌های تابلو</Link>
-              <Link href="/calculator">ماشین‌حساب</Link>
-              <Link href="/alerts">هشدار تغییر بازار</Link>
-              <Link href="/analysis/gold_melted">تحلیل تک‌بازار · طلا</Link>
-              {!fullAccess ? <Link href="/pricing">دسترسی تحلیل کامل <ArrowUpLeft size={14} /></Link> : null}
-            </div>
-          </>
+          (!fullAccess || entitlement?.statusLabel === 'آزمایشی') ? (
+            <AnalysisTrialAccess trial={trial} error={query.trial} compact />
+          ) : null
         )}
       />
+      <nav className="analysis-page__tools" aria-label="ابزارهای مرتبط">
+        <Link href="/markets">نرخ‌ها</Link>
+        <Link href="/calculator">محاسبه</Link>
+        <Link href="/alerts">هشدار</Link>
+        <Link href="/analysis/gold_melted">طلا</Link>
+        {!fullAccess ? <Link href="/pricing">دسترسی کامل</Link> : null}
+      </nav>
     </main>
   );
 }

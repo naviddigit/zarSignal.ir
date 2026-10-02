@@ -118,8 +118,7 @@ export function AnalysisStoryCardButton({
         {status === 'building' ? 'در حال ساخت…' : 'پیش‌نمایش و ساخت PNG'}
       </button>
       <p className="market-view__share-note">
-        سه قالب ۱۰۸۰×۱۹۲۰ · لوگوی واقعی · زمان داده · یک جملهٔ برداشت · حداکثر سه معیار · QR قابل اسکن.
-        اطلاعات حساب و گزارش خصوصی منتشر نمی‌شود.
+        قالب استوری ۱۰۸۰×۱۹۲۰ · بدون دادهٔ خصوصی حساب.
       </p>
       {status === 'error' && error ? (
         <p className="market-view__feedback-status is-error" role="alert">{error}</p>

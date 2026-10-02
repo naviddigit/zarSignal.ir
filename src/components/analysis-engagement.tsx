@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Check, Copy, Share2 } from 'lucide-react';
+import { Check, Copy, Share2, Star } from 'lucide-react';
 import type { MarketViewReport } from '@/lib/market-view-report';
 import { buildPublicShareSummary } from '@/lib/analysis-share';
 import { AnalysisStoryCardButton } from '@/components/analysis-story-card';
@@ -25,6 +25,7 @@ export function AnalysisEngagementPanel({
   const [readCount, setReadCount] = useState<number | null>(null);
   const [readError, setReadError] = useState<string | null>(null);
   const [rating, setRating] = useState<number | null>(null);
+  const [hover, setHover] = useState<number | null>(null);
   const [comment, setComment] = useState('');
   const [editing, setEditing] = useState(false);
   const [hasSaved, setHasSaved] = useState(false);
@@ -38,6 +39,7 @@ export function AnalysisEngagementPanel({
 
   const engagementKey = `${report.reportId}:${report.schemaVersion}`;
   const collapsed = hasSaved && !editing;
+  const displayRating = hover ?? rating;
 
   useEffect(() => {
     if (!signedIn) {
@@ -186,13 +188,12 @@ export function AnalysisEngagementPanel({
   }, [report]);
 
   return (
-    <section className="market-view__engagement" aria-label="شمارش مطالعه، بازخورد و اشتراک">
+    <section className="market-view__engagement is-tidy" aria-label="بازخورد و اشتراک">
       {signedIn && readCount != null ? (
         <p className="market-view__read-chip" role="status">
           <span className="market-view__chip is-reads">
             {new Intl.NumberFormat('fa-IR').format(readCount)} گزارش خوانده‌شده
           </span>
-          <span className="market-view__read-chip-title">شمارندهٔ مطالعه</span>
         </p>
       ) : null}
       {signedIn && readError ? (
@@ -206,8 +207,21 @@ export function AnalysisEngagementPanel({
               <p className="market-view__feedback-status is-ok">
                 <Check size={16} aria-hidden />
                 بازخورد شما ثبت شد
-                {rating != null ? ` · امتیاز ${new Intl.NumberFormat('fa-IR').format(rating)} از ۵` : ''}
               </p>
+              <div className="market-view__stars is-readonly" aria-label={`امتیاز ${rating} از ۵`}>
+                {RATING_LABELS.map((_, index) => {
+                  const value = index + 1;
+                  return (
+                    <Star
+                      key={value}
+                      size={22}
+                      className={rating != null && value <= rating ? 'is-on' : undefined}
+                      fill={rating != null && value <= rating ? 'currentColor' : 'none'}
+                      aria-hidden
+                    />
+                  );
+                })}
+              </div>
               <button
                 type="button"
                 className="button small-button market-view__feedback-edit"
@@ -229,24 +243,33 @@ export function AnalysisEngagementPanel({
               <p className="market-view__feedback-prompt" id="analysis-feedback-label" data-follow-anchor>
                 این تحلیل چقدر برایتان روشن و مفید بود؟
               </p>
-              <div className="market-view__rating" role="group" aria-labelledby="analysis-feedback-label">
+              <div
+                className="market-view__stars"
+                role="radiogroup"
+                aria-labelledby="analysis-feedback-label"
+                onMouseLeave={() => setHover(null)}
+              >
                 {RATING_LABELS.map((label, index) => {
                   const value = index + 1;
+                  const on = displayRating != null && value <= displayRating;
                   return (
-                    <label key={value} className={`market-view__rating-option${rating === value ? ' is-selected' : ''}`}>
-                      <input
-                        type="radio"
-                        name="analysis-rating"
-                        value={value}
-                        checked={rating === value}
-                        onChange={() => {
-                          setRating(value);
-                          setFeedbackStatus('idle');
-                        }}
-                      />
-                      <span aria-hidden="true">{new Intl.NumberFormat('fa-IR').format(value)}</span>
-                      <span className="visually-hidden">{value} از ۵ — {label}</span>
-                    </label>
+                    <button
+                      key={value}
+                      type="button"
+                      role="radio"
+                      aria-checked={rating === value}
+                      aria-label={`${value} از ۵ — ${label}`}
+                      className={on ? 'is-on' : undefined}
+                      onMouseEnter={() => setHover(value)}
+                      onFocus={() => setHover(value)}
+                      onBlur={() => setHover(null)}
+                      onClick={() => {
+                        setRating(value);
+                        setFeedbackStatus('idle');
+                      }}
+                    >
+                      <Star size={28} fill={on ? 'currentColor' : 'none'} aria-hidden />
+                    </button>
                   );
                 })}
               </div>
@@ -278,7 +301,7 @@ export function AnalysisEngagementPanel({
                 ) : null}
                 <button type="button" className="button small-button market-view__share-btn" onClick={() => void shareSummary()}>
                   {shareStatus === 'copied' ? <Copy size={16} aria-hidden /> : <Share2 size={16} aria-hidden />}
-                  اشتراک خلاصه
+                  اشتراک
                 </button>
               </div>
               {feedbackStatus === 'error' && feedbackError ? (
@@ -288,40 +311,29 @@ export function AnalysisEngagementPanel({
                 <p className="market-view__feedback-status" role="status">
                   بازخورد جدید تا{' '}
                   {new Intl.DateTimeFormat('fa-IR', { timeZone: 'Asia/Tehran', dateStyle: 'short', timeStyle: 'short' }).format(new Date(nextAllowedAt))}
-                  {' '}مجاز نیست؛ ویرایش همین گزارش محدود نیست.
+                  {' '}مجاز نیست.
                 </p>
               ) : null}
             </form>
           )}
-          {shareStatus === 'shared' ? (
-            <p className="market-view__feedback-status is-ok" role="status"><Check size={14} aria-hidden /> خلاصه ارسال شد.</p>
-          ) : null}
-          {shareStatus === 'copied' ? (
-            <p className="market-view__feedback-status is-ok" role="status">خلاصه در حافظه کپی شد.</p>
-          ) : null}
-          {shareStatus === 'error' && shareError ? (
-            <p className="market-view__feedback-status is-error" role="alert">{shareError}</p>
-          ) : null}
         </div>
       ) : (
         <div className="market-view__share" data-follow-anchor>
           <button type="button" className="button small-button market-view__share-btn" onClick={() => void shareSummary()}>
             {shareStatus === 'copied' ? <Copy size={16} aria-hidden /> : <Share2 size={16} aria-hidden />}
-            اشتراک خلاصهٔ عمومی
+            اشتراک خلاصه
           </button>
-          <p className="market-view__share-note">
-            فقط نماد، زمان داده، دید ارزشی کوتاه و لینک عمومی — بدون متن کامل و بدون پارامتر درخواست.
-          </p>
-          {shareStatus === 'shared' || shareStatus === 'copied' ? (
-            <p className="market-view__feedback-status is-ok" role="status">
-              {shareStatus === 'shared' ? 'خلاصه ارسال شد.' : 'خلاصه در حافظه کپی شد.'}
-            </p>
-          ) : null}
-          {shareStatus === 'error' && shareError ? (
-            <p className="market-view__feedback-status is-error" role="alert">{shareError}</p>
-          ) : null}
         </div>
       )}
+
+      {shareStatus === 'shared' || shareStatus === 'copied' ? (
+        <p className="market-view__feedback-status is-ok" role="status">
+          {shareStatus === 'shared' ? 'خلاصه ارسال شد.' : 'خلاصه در حافظه کپی شد.'}
+        </p>
+      ) : null}
+      {shareStatus === 'error' && shareError ? (
+        <p className="market-view__feedback-status is-error" role="alert">{shareError}</p>
+      ) : null}
 
       <AnalysisStoryCardButton
         report={report}

@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { ArrowUpLeft, ChevronDown } from 'lucide-react';
+import { ArrowUpLeft } from 'lucide-react';
 import { auth } from '@/auth';
 import { instruments } from '@/lib/market';
 import { hasCapability } from '@/lib/capabilities';
@@ -48,7 +48,7 @@ export default async function AnalysisPage({ params, searchParams }: {
   const path = `/analysis/${symbol}`;
 
   return (
-    <main id="main" className="shell content-page analysis-page market-view-page">
+    <main id="main" className="shell content-page analysis-page market-view-page is-tidy">
       <nav className="chart-breadcrumb" aria-label="مسیر">
         <Link href="/">خانه</Link>
         <span>/</span>
@@ -56,8 +56,8 @@ export default async function AnalysisPage({ params, searchParams }: {
         <span>/ {asset.name}</span>
       </nav>
       <AnalysisMarketSelect current={asset.symbol} />
-      <p className="market-view__meta" role="status">
-        {reliability === 'WARNING' ? 'تحلیل خارج از بازه استاندارد' : 'در بازه استاندارد تحلیل'} · زمان تهران
+      <p className="market-view__meta analysis-page__status" role="status">
+        {reliability === 'WARNING' ? 'خارج از بازه استاندارد' : 'بازه استاندارد'} · تهران
       </p>
       <LastVisitChanges changes={lastVisit.changes} baselineAt={lastVisit.baselineAt} />
       <MarketViewReportView
@@ -74,30 +74,20 @@ export default async function AnalysisPage({ params, searchParams }: {
           </Link>
         ) : null}
         pageExtras={(
-          <>
-            {(!fullAccess || entitlement?.statusLabel === 'آزمایشی') && (
-              <AnalysisTrialAccess trial={trial} symbol={symbol} error={query.trial} compact />
-            )}
-            <details className="market-view__details is-compact">
-              <summary>
-                <span className="market-view__details-title">بررسی نمودار و تاریخچهٔ {asset.short}</span>
-                <span className="market-view__details-action">
-                  <span className="market-view__details-closed">مشاهده جزئیات</span>
-                  <span className="market-view__details-open">بستن جزئیات</span>
-                  <ChevronDown className="market-view__details-chevron" size={18} strokeWidth={2.2} aria-hidden />
-                </span>
-              </summary>
-              <ChartWorkspace symbol={asset.symbol} />
-            </details>
-            <div className="home-quick-tools">
-              <Link href="/calculator">محاسبهٔ معامله</Link>
-              <Link href="/alerts">هشدار تغییر بازار</Link>
-              <Link href={`/markets/${symbol}`}>قیمت و مشخصات {asset.short}</Link>
-              <Link href="/methodology">روش محاسبه</Link>
-            </div>
-          </>
+          (!fullAccess || entitlement?.statusLabel === 'آزمایشی') ? (
+            <AnalysisTrialAccess trial={trial} symbol={symbol} error={query.trial} compact />
+          ) : null
         )}
       />
+      <section className="analysis-page__chart" aria-label="نمودار قیمت">
+        <ChartWorkspace symbol={asset.symbol} compact hideMarketLink />
+      </section>
+      <nav className="analysis-page__tools" aria-label="ابزارهای مرتبط">
+        <Link href="/calculator">محاسبه</Link>
+        <Link href="/alerts">هشدار</Link>
+        <Link href={`/markets/${symbol}`}>قیمت</Link>
+        <Link href="/methodology">روش</Link>
+      </nav>
     </main>
   );
 }

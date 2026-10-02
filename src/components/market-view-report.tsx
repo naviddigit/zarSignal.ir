@@ -13,8 +13,8 @@ import {
 } from 'react';
 import Link from 'next/link';
 import { Activity, ArrowUpLeft, ChevronDown, RefreshCw } from 'lucide-react';
+import { buildAnalysisNarrativeSections, buildBriefAnalysisNarrativeSections, formatFaPercent, formatTehranStamp } from '@/lib/market-view-report';
 import type { MarketViewDecision, MarketViewReport, MarketViewValuationStance } from '@/lib/market-view-report';
-import { buildAnalysisNarrativeSections, formatFaPercent, formatTehranStamp } from '@/lib/market-view-report';
 import {
   activeSectionIndex,
   flattenNarrativeGraphemes,
@@ -535,8 +535,10 @@ function RevealItem({ children }: { children: ReactNode }) {
   return <div className="market-view__reveal is-in">{children}</div>;
 }
 
-function buildMainNarrative(report: MarketViewReport): NarrativeSection[] {
-  return buildAnalysisNarrativeSections(report);
+function buildMainNarrative(report: MarketViewReport, density: 'brief' | 'full'): NarrativeSection[] {
+  return density === 'brief'
+    ? buildBriefAnalysisNarrativeSections(report)
+    : buildAnalysisNarrativeSections(report);
 }
 
 type PlanItem =
@@ -615,10 +617,11 @@ function buildRevealPlan(
     label: string | null;
     status: 'فعال' | 'آزمایشی' | 'رایگان' | 'در انتظار پرداخت' | 'تعلیق‌شده' | null;
   },
+  density: 'brief' | 'full' = 'full',
 ): { items: PlanItem[]; meta: RevealPlanStep[] } {
   const items: PlanItem[] = [];
 
-  items.push({ id: 'narrative', kind: 'type', sections: buildMainNarrative(report) });
+  items.push({ id: 'narrative', kind: 'type', sections: buildMainNarrative(report, density) });
 
   items.push({
     id: 'outcome',
@@ -637,21 +640,23 @@ function buildRevealPlan(
     ),
   });
 
-  if (report.evidence.length > 0) {
+  if (density === 'full' && report.evidence.length > 0) {
     items.push({ id: 'evidence-table', kind: 'fade', node: <EvidenceTable report={report} /> });
   }
 
-  items.push({
-    id: 'limits-details',
-    kind: 'fade',
-    node: (
-      <DetailsToggle title="اعتبار داده و محدودیت‌ها">
-        <ul className="market-view__list">{report.unconfirmed.map(item => <li key={item}>{item}</li>)}</ul>
-      </DetailsToggle>
-    ),
-  });
+  if (density === 'full') {
+    items.push({
+      id: 'limits-details',
+      kind: 'fade',
+      node: (
+        <DetailsToggle title="اعتبار داده و محدودیت‌ها">
+          <ul className="market-view__list">{report.unconfirmed.map(item => <li key={item}>{item}</li>)}</ul>
+        </DetailsToggle>
+      ),
+    });
+  }
 
-  if (report.changeFromPrior) {
+  if (density === 'full' && report.changeFromPrior) {
     items.push({
       id: 'prior-intro',
       kind: 'type',
@@ -663,22 +668,24 @@ function buildRevealPlan(
     });
   }
 
-  items.push({
-    id: 'formula-details',
-    kind: 'fade',
-    node: (
-      <DetailsToggle title="فرمول و نسخه">
-        <ul className="market-view__list">
-          {report.evidence.map(row => (
-            <li key={row.id}>{row.marketLabel}: {row.referenceBasis}. {row.unitNote}</li>
-          ))}
-          {report.details.formulaNotes.map(note => <li key={note}>{note}</li>)}
-        </ul>
-        <p className="market-view__disclaimer">{report.details.disclaimer}</p>
-        <p className="market-view__meta">شناسه گزارش: <bdi dir="ltr">{report.reportId}</bdi></p>
-      </DetailsToggle>
-    ),
-  });
+  if (density === 'full') {
+    items.push({
+      id: 'formula-details',
+      kind: 'fade',
+      node: (
+        <DetailsToggle title="فرمول و نسخه">
+          <ul className="market-view__list">
+            {report.evidence.map(row => (
+              <li key={row.id}>{row.marketLabel}: {row.referenceBasis}. {row.unitNote}</li>
+            ))}
+            {report.details.formulaNotes.map(note => <li key={note}>{note}</li>)}
+          </ul>
+          <p className="market-view__disclaimer">{report.details.disclaimer}</p>
+          <p className="market-view__meta">شناسه گزارش: <bdi dir="ltr">{report.reportId}</bdi></p>
+        </DetailsToggle>
+      ),
+    });
+  }
 
   if (pageExtras) {
     items.push({ id: 'page-extras', kind: 'fade', node: <div className="market-view__page-extras">{pageExtras}</div> });
@@ -734,19 +741,20 @@ export function MarketViewReportView({
   const [unchangedNote, setUnchangedNote] = useState<string | null>(null);
   const [cooldownUntil, setCooldownUntil] = useState<number | null>(null);
   const [cooldownLeft, setCooldownLeft] = useState(0);
+  const [density, setDensity] = useState<'brief' | 'full'>('full');
   const reduced = usePrefersReducedMotion();
   const [typeSpeed, setTypeSpeed] = useTypeSpeed();
   const endRef = useRef<HTMLElement | null>(null);
   const reading = readingSettings;
 
-  const reportKey = `${report.snapshotFingerprint}:${report.symbol ?? 'all'}:${report.access}`;
+  const reportKey = `${report.snapshotFingerprint}:${report.symbol ?? 'all'}:${report.access}:${density}`;
   const { items: plan } = useMemo(
     () => buildRevealPlan(report, trialCta, pageExtras, signedIn, {
       level: planLevel,
       label: planLabel,
       status: planStatus,
-    }),
-    [report, trialCta, pageExtras, signedIn, planLevel, planLabel, planStatus],
+    }, density),
+    [report, trialCta, pageExtras, signedIn, planLevel, planLabel, planStatus, density],
   );
 
   const [activeIndex, setActiveIndex] = useState(0);
@@ -965,28 +973,50 @@ export function MarketViewReportView({
           ) : null}
         </p>
         {!reduced ? (
-          <div className="market-view__speed" role="group" aria-label={readingSpeedLabel(reading, typeSpeed)} data-follow-keep>
-            <span>{readingSpeedLabel(reading, typeSpeed)}</span>
-            <button
-              type="button"
-              className={typeSpeed === 1 ? 'is-active' : undefined}
-              aria-pressed={typeSpeed === 1}
-              title={`${Math.round(effectiveTypingCps(reading, 1))} نویسه/ثانیه`}
-              data-follow-keep
-              onClick={() => setTypeSpeed(1)}
-            >
-              ۱×
-            </button>
-            <button
-              type="button"
-              className={typeSpeed === 2 ? 'is-active' : undefined}
-              aria-pressed={typeSpeed === 2}
-              title={`${Math.round(effectiveTypingCps(reading, 2))} نویسه/ثانیه`}
-              data-follow-keep
-              onClick={() => setTypeSpeed(2)}
-            >
-              ۲×
-            </button>
+          <div className="market-view__controls" data-follow-keep>
+            <div className="market-view__density" role="group" aria-label="حجم متن">
+              <button
+                type="button"
+                className={density === 'brief' ? 'is-active' : undefined}
+                aria-pressed={density === 'brief'}
+                data-follow-keep
+                onClick={() => setDensity('brief')}
+              >
+                مختصر
+              </button>
+              <button
+                type="button"
+                className={density === 'full' ? 'is-active' : undefined}
+                aria-pressed={density === 'full'}
+                data-follow-keep
+                onClick={() => setDensity('full')}
+              >
+                کامل
+              </button>
+            </div>
+            <div className="market-view__speed" role="group" aria-label={readingSpeedLabel(reading, typeSpeed)} data-follow-keep>
+              <span>{readingSpeedLabel(reading, typeSpeed)}</span>
+              <button
+                type="button"
+                className={typeSpeed === 1 ? 'is-active' : undefined}
+                aria-pressed={typeSpeed === 1}
+                title={`${Math.round(effectiveTypingCps(reading, 1))} نویسه/ثانیه`}
+                data-follow-keep
+                onClick={() => setTypeSpeed(1)}
+              >
+                ۱×
+              </button>
+              <button
+                type="button"
+                className={typeSpeed === 2 ? 'is-active' : undefined}
+                aria-pressed={typeSpeed === 2}
+                title={`${Math.round(effectiveTypingCps(reading, 2))} نویسه/ثانیه`}
+                data-follow-keep
+                onClick={() => setTypeSpeed(2)}
+              >
+                ۲×
+              </button>
+            </div>
           </div>
         ) : null}
         {report.currentQuote ? (
@@ -1047,10 +1077,12 @@ export function MarketViewReportView({
             }
             const activeFade = isRevealStepActive(index, activeIndex, reduced);
             const stepRevealDone = activeIndex >= plan.length;
-            // Keep follow target on engagement after the last fade advances so feedback/scores settle.
+            // Follow engagement only while that step is active — not after the report is done
+            // (avoids trapping scroll mid-page over chart/tools below).
             const keepEngagementFollow = item.id === 'engagement'
               && following
-              && (activeFade || stepRevealDone || activeIndex > index);
+              && activeFade
+              && !stepRevealDone;
             const attachFadeFollow = activeFade || keepEngagementFollow;
             return (
               <RevealItem key={item.id}>
@@ -1073,7 +1105,7 @@ export function MarketViewReportView({
         </div>
       </div>
 
-      {!following && followEnabled ? (
+      {!following && followEnabled && !done ? (
         <button
           type="button"
           className="market-view__follow-resume"
