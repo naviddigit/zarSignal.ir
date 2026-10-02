@@ -259,17 +259,19 @@ export function MarketAlertsClient({ canManage }: { canManage: boolean }) {
         ) : (
           <ul className="alerts-list">
             {alerts.map(a => (
-              <li key={a.id}>
-                <strong>{CONDITION_LABEL[a.conditionType] ?? a.conditionType}</strong>
-                <p>
-                  {a.symbol} · {DIR_LABEL[a.direction] ?? a.direction} {a.threshold}
-                  {a.unit ? ` · واحد ${a.unit}` : ''}
-                  {' · '}{a.armed ? 'آماده' : 'منتظر بازآماده‌شدن'}
-                  {' · '}{a.status}
-                </p>
+              <li key={a.id} className="alerts-list__item">
+                <div className="alerts-list__body">
+                  <strong>{CONDITION_LABEL[a.conditionType] ?? a.conditionType}</strong>
+                  <p>
+                    {a.symbol} · {DIR_LABEL[a.direction] ?? a.direction} {a.threshold}
+                    {a.unit ? ` · واحد ${a.unit}` : ''}
+                    {' · '}{a.armed ? 'آماده' : 'منتظر بازآماده‌شدن'}
+                    {' · '}{a.status}
+                  </p>
+                </div>
                 {a.status === 'ACTIVE' ? (
-                  <button type="button" className="text-link" onClick={() => void cancelAlert(a.id)}>
-                    <Trash2 size={14} aria-hidden /> لغو هشدار
+                  <button type="button" className="alerts-list__cancel" onClick={() => void cancelAlert(a.id)}>
+                    <Trash2 size={14} aria-hidden /> لغو
                   </button>
                 ) : null}
               </li>

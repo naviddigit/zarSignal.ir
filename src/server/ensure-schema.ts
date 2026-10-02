@@ -264,11 +264,28 @@ async function markMigration(name: string) {
   );
 }
 
+/** Ensure SubscriptionStatus includes SUSPENDED (production may have marked the migration without applying it). */
+export async function ensureSubscriptionStatusEnum() {
+  await db.$executeRawUnsafe(`
+    DO $$ BEGIN
+      IF NOT EXISTS (
+        SELECT 1
+        FROM pg_enum e
+        JOIN pg_type t ON t.oid = e.enumtypid
+        WHERE t.typname = 'SubscriptionStatus' AND e.enumlabel = 'SUSPENDED'
+      ) THEN
+        ALTER TYPE "SubscriptionStatus" ADD VALUE 'SUSPENDED';
+      END IF;
+    END $$;
+  `);
+}
+
 /** Idempotent production schema recovery when migrate-on-build is unavailable. */
 export async function ensureHistorySchema() {
   for (const statement of statements) {
     await db.$executeRawUnsafe(statement);
   }
+  await ensureSubscriptionStatusEnum().catch(() => undefined);
   for (const name of migrationMarkers) {
     await markMigration(name).catch(() => undefined);
   }

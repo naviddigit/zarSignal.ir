@@ -33,6 +33,16 @@ function parseMutation(form: FormData): CustomerAccessMutation {
   };
 }
 
+function mapCustomerError(error: unknown): string {
+  const raw = error instanceof Error ? error.message : String(error ?? '');
+  if (/22P02|invalid input value for enum|SubscriptionStatus|SUSPENDED/i.test(raw)) {
+    return 'اسکیما وضعیت اشتراک ناقص بود؛ دوباره «ذخیره تغییر» را بزنید. اگر تکرار شد، چند ثانیه صبر کنید و یک‌بار دیگر تلاش کنید.';
+  }
+  if (/unauthorized/i.test(raw)) return 'نشست ادمین منقضی شده؛ دوباره وارد شوید.';
+  if (raw && !/prisma|ConnectorError|PostgresError|invocation/i.test(raw)) return raw;
+  return 'ذخیرهٔ تغییر ممکن نشد. اتصال پایگاه‌داده را بررسی کنید و دوباره تلاش کنید.';
+}
+
 export async function previewCustomerAction(
   _prev: CustomerActionState | null,
   form: FormData,
@@ -51,7 +61,7 @@ export async function previewCustomerAction(
       message: 'پیش‌نمایش آماده است؛ هنوز ذخیره نشده.',
     };
   } catch (error) {
-    return { ok: false, error: error instanceof Error ? error.message : 'پیش‌نمایش ممکن نشد.' };
+    return { ok: false, error: mapCustomerError(error) };
   }
 }
 
@@ -92,7 +102,7 @@ export async function applyCustomerAction(
       },
     };
   } catch (error) {
-    return { ok: false, error: error instanceof Error ? error.message : 'ذخیرهٔ تغییر ممکن نشد.' };
+    return { ok: false, error: mapCustomerError(error) };
   }
 }
 

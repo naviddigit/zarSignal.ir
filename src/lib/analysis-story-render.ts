@@ -377,7 +377,7 @@ async function drawQrBand(
   ctx.fillText(payload.url.replace(/^https?:\/\//, ''), CX, ty);
 }
 
-function drawBottomBand(
+function drawFooterStack(
   ctx: CanvasRenderingContext2D,
   y: number,
   contentW: number,
@@ -386,56 +386,49 @@ function drawBottomBand(
   template: StoryTemplateId,
   palette: StoryPalette,
 ) {
-  const bottom = STORY_HEIGHT - PAD;
-  const panelH = Math.max(220, bottom - y);
-  roundRect(ctx, PAD, y, contentW, panelH, 28);
-  ctx.fillStyle = palette.card;
-  ctx.fill();
-  ctx.strokeStyle = palette.cardBorder;
-  ctx.lineWidth = 2;
-  ctx.stroke();
+  // Content-sized stack — never stretch a hollow card to the canvas bottom.
+  let ty = y;
 
-  let ty = y + 40;
   ctx.fillStyle = palette.text;
   ctx.font = `700 28px ${FONT_FAMILY}, Tahoma, sans-serif`;
-  for (const line of wrapText(ctx, payload.takeaway, contentW - 40).slice(0, 3)) {
+  for (const line of wrapText(ctx, payload.takeaway, contentW).slice(0, 3)) {
     ctx.fillText(line, CX, ty);
     ty += 38;
   }
-  ty += 18;
+  ty += 16;
 
   if (template !== 'dual_metal' && rest.length) {
     const gap = 12;
     const n = Math.min(2, rest.length);
-    const chipW = (contentW - 40 - gap * (n - 1)) / n;
-    const chipH = 96;
+    const chipW = (contentW - gap * (n - 1)) / n;
+    const chipH = 100;
     rest.slice(0, n).forEach((metric, i) => {
-      const x = PAD + 20 + i * (chipW + gap);
+      const x = PAD + i * (chipW + gap);
       roundRect(ctx, x, ty, chipW, chipH, 18);
-      ctx.fillStyle = `${palette.accent}10`;
+      ctx.fillStyle = palette.card;
       ctx.fill();
       ctx.strokeStyle = palette.cardBorder;
-      ctx.lineWidth = 1.5;
+      ctx.lineWidth = 2;
       ctx.stroke();
       ctx.fillStyle = palette.muted;
       ctx.font = `700 18px ${FONT_FAMILY}, Tahoma, sans-serif`;
-      ctx.fillText(metric.label, x + chipW / 2, ty + 34);
+      ctx.fillText(metric.label, x + chipW / 2, ty + 36);
       ctx.fillStyle = toneColor(metric.tone, template);
       ctx.font = `800 34px ${FONT_FAMILY}, Tahoma, sans-serif`;
-      ctx.fillText(metric.value, x + chipW / 2, ty + 74);
+      ctx.fillText(metric.value, x + chipW / 2, ty + 76);
     });
-    ty += chipH + 24;
+    ty += chipH + 20;
   }
 
   ctx.font = `700 22px ${FONT_FAMILY}, Tahoma, sans-serif`;
-  const disc = wrapText(ctx, payload.disclaimer, contentW - 64).slice(0, 1)[0] ?? payload.disclaimer;
-  const discW = Math.min(contentW - 40, ctx.measureText(disc).width + 56);
-  const discY = Math.min(ty, bottom - 70);
-  roundRect(ctx, CX - discW / 2, discY, discW, 50, 999);
+  const disc = wrapText(ctx, payload.disclaimer, contentW - 48).slice(0, 1)[0] ?? payload.disclaimer;
+  const discW = Math.min(contentW, ctx.measureText(disc).width + 56);
+  roundRect(ctx, CX - discW / 2, ty, discW, 50, 999);
   ctx.fillStyle = `${palette.accent}24`;
   ctx.fill();
   ctx.fillStyle = palette.accent;
-  ctx.fillText(disc, CX, discY + 32);
+  ctx.fillText(disc, CX, ty + 32);
+  return ty + 50;
 }
 
 export async function renderAnalysisStoryPng(
@@ -461,19 +454,19 @@ export async function renderAnalysisStoryPng(
   ctx.direction = 'rtl';
   ctx.textBaseline = 'alphabetic';
 
-  // Fixed bands so middle never collapses into empty void:
-  // header ~ top, hero, QR mid, bottom stack.
   const headerEnd = await drawBrandHeader(ctx, payload, palette, contentW);
-  const heroH = template === 'dual_metal' ? 360 : 400;
-  const heroY = Math.max(headerEnd, 250);
+  const heroH = template === 'dual_metal' ? 380 : 420;
+  const heroY = Math.max(headerEnd, 240);
   drawHeroPanel(ctx, heroY, contentW, heroH, template, palette, metrics);
 
-  const qrH = 320;
-  const qrY = heroY + heroH + 28;
-  await drawQrBand(ctx, qrY, qrH, contentW, payload, palette, template);
+  // Mid: takeaway + chips + disclaimer (content-height only)
+  const midY = heroY + heroH + 32;
+  const afterMid = drawFooterStack(ctx, midY, contentW, payload, rest, template, palette);
 
-  const bottomY = qrY + qrH + 36;
-  drawBottomBand(ctx, bottomY, contentW, payload, rest, template, palette);
+  // Lower-middle QR card — sized to content, sits above safe bottom margin
+  const qrH = 300;
+  const qrY = Math.min(Math.max(afterMid + 28, STORY_HEIGHT * 0.58), STORY_HEIGHT - PAD - qrH - 24);
+  await drawQrBand(ctx, qrY, qrH, contentW, payload, palette, template);
 
   if (payload.testDataLabel) {
     ctx.fillStyle = palette.accent;

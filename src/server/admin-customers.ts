@@ -2,7 +2,7 @@ import { db } from '@/lib/db';
 import { withDeadline } from '@/lib/with-deadline';
 import { accessLevelFromPlan, accessLevelLabel, type AccessLevel } from '@/lib/capabilities';
 import { resolveAccountEntitlement } from '@/server/account-entitlement';
-import { ensureHistorySchema } from '@/server/ensure-schema';
+import { ensureHistorySchema, ensureSubscriptionStatusEnum } from '@/server/ensure-schema';
 import { trialProduct } from '@/server/analysis-trial';
 
 export type CustomerListItem = {
@@ -183,6 +183,7 @@ export async function applyCustomerAccessChange(actor: string, mutation: Custome
     throw new Error('دلیل تغییر حداقل ۳ نویسه لازم است.');
   }
   await ensureHistorySchema();
+  await ensureSubscriptionStatusEnum();
   const entitlementBefore = await resolveAccountEntitlement(mutation.userId);
   const plans = await db.plan.findMany({ where: { active: true, webAvailable: true }, select: { slug: true, title: true } });
   const plan = mutation.planSlug ? plans.find(p => p.slug === mutation.planSlug) : null;
@@ -192,22 +193,24 @@ export async function applyCustomerAccessChange(actor: string, mutation: Custome
 
   const result = await db.$transaction(async tx => {
     const now = new Date();
+    // Do not put SUSPENDED in this filter until the enum value is guaranteed on the
+    // live Postgres type. ACTIVE+PENDING is enough for plan/gift/cancel mutations.
     const commercial = await tx.subscription.findMany({
       where: {
         userId: mutation.userId,
-        status: { in: ['ACTIVE', 'PENDING', 'SUSPENDED'] },
+        status: { in: ['ACTIVE', 'PENDING'] },
         NOT: { product: trialProduct },
       },
       orderBy: { startsAt: 'desc' },
     });
 
-    let active = commercial.find(s => s.status === 'ACTIVE' || s.status === 'SUSPENDED') ?? commercial[0] ?? null;
+    let active = commercial.find(s => s.status === 'ACTIVE') ?? commercial[0] ?? null;
 
     if (mutation.action === 'set_plan' && plan) {
       // Expire other commercial actives, then upsert one ACTIVE row.
       for (const row of commercial) {
         if (active && row.id === active.id) continue;
-        if (row.status === 'ACTIVE' || row.status === 'SUSPENDED' || row.status === 'PENDING') {
+        if (row.status === 'ACTIVE' || row.status === 'PENDING') {
           await tx.subscription.update({
             where: { id: row.id },
             data: { status: 'CANCELED', expiresAt: now },
@@ -270,10 +273,18 @@ export async function applyCustomerAccessChange(actor: string, mutation: Custome
       });
     } else if (mutation.action === 'suspend') {
       if (!active) throw new Error('اشتراک فعالی برای تعلیق وجود ندارد.');
-      active = await tx.subscription.update({
-        where: { id: active.id },
-        data: { status: 'SUSPENDED' },
-      });
+      try {
+        active = await tx.subscription.update({
+          where: { id: active.id },
+          data: { status: 'SUSPENDED' },
+        });
+      } catch (error) {
+        const raw = error instanceof Error ? error.message : String(error);
+        if (/22P02|SUSPENDED|invalid input value for enum/i.test(raw)) {
+          throw new Error('وضعیت تعلیق روی پایگاه‌داده هنوز فعال نیست. یک‌بار دیگر تلاش کنید یا از لغو استفاده کنید.');
+        }
+        throw error;
+      }
     } else if (mutation.action === 'cancel') {
       if (!active) throw new Error('اشتراک فعالی برای لغو وجود ندارد.');
       active = await tx.subscription.update({
