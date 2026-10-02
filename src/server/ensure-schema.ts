@@ -233,6 +233,14 @@ const statements = [
         FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
     END IF;
   END $$`,
+  // Production recoveries previously marked the feedback migration applied without
+  // running this enum alter — customer access then crashes on SUSPENDED queries.
+  `DO $$ BEGIN
+    ALTER TYPE "SubscriptionStatus" ADD VALUE IF NOT EXISTS 'SUSPENDED';
+  EXCEPTION
+    WHEN duplicate_object THEN NULL;
+    WHEN undefined_object THEN NULL;
+  END $$`,
 ] as const;
 
 const migrationMarkers = [

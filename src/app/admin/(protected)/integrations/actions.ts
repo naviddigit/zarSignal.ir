@@ -31,7 +31,10 @@ function mapError(error: unknown): string {
   if (/secret.*required|client secret/i.test(raw)) {
     return 'برای فعال‌سازی ورود Google، Client Secret لازم است (یا Secret قبلی را حفظ کنید).';
   }
-  if (/P1001|Can't reach|connection/i.test(raw)) {
+  if (/22P02|invalid input value for enum|SubscriptionStatus/i.test(raw)) {
+    return 'اسکیما پایگاه‌داده ناقص است (وضعیت اشتراک). یک‌بار صفحه را تازه کنید؛ در صورت تکرار، مهاجرت Production را بررسی کنید.';
+  }
+  if (/P1001|Can't reach database|ECONNREFUSED|ETIMEDOUT|Connection reset|connection timed out/i.test(raw)) {
     return 'اتصال پایگاه داده برقرار نیست؛ ذخیره انجام نشد و کلید قبلی دست‌نخورده ماند.';
   }
   if (/اتصال ناشناخته/.test(raw)) return raw;

@@ -309,9 +309,11 @@ export function ProfessionalCalculator({
             key={key}
             aria-pressed={product === key}
             disabled={lockedProducts.includes(key)}
+            className={lockedProducts.includes(key) ? 'is-locked' : undefined}
             onClick={() => chooseProduct(key)}
           >
             {label}
+            {lockedProducts.includes(key) ? <LockKeyhole size={12} aria-hidden /> : null}
           </button>
         ))}
       </div>

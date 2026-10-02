@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import {
   ArrowLeftRight, Banknote, ChartNoAxesColumn, CircleDollarSign, Coins, Delete,
-  Gem, Info, Menu, Percent, Scale, X,
+  Gem, Info, LockKeyhole, Menu, Percent, Scale, X,
 } from 'lucide-react';
 import { convertWeight, convertPurityPrice, weightUnits, purityOptions, type WeightUnit, type Purity } from '@/lib/calculator-conversions';
 import { formatNumericInput, sanitizeNumericInput } from '@/lib/numeric-input';
@@ -88,6 +88,7 @@ export function CalculatorProductTiles({
           >
             <span className="calc-product-tiles__icon"><Icon size={18} strokeWidth={1.8} /></span>
             <small>{item.label}</small>
+            {isLocked ? <LockKeyhole className="calc-lock-badge" size={12} aria-hidden /> : null}
           </button>
         );
       })}
@@ -226,11 +227,16 @@ export function CalculatorPopularRow({
             <button
               key={item.id}
               type="button"
-              className={active === item.id ? 'is-on' : ''}
+              className={`${active === item.id ? 'is-on' : ''}${item.locked ? ' is-locked' : ''}`.trim()}
               disabled={item.locked}
+              title={item.locked ? 'نیاز به اشتراک — به‌زودی / پلن بالاتر' : undefined}
+              aria-label={item.locked ? `${item.label} · قفل` : item.label}
               onClick={() => onPick(item.id)}
             >
-              <span><Icon size={16} strokeWidth={1.9} /></span>
+              <span className="calc-popular__icon">
+                <Icon size={16} strokeWidth={1.9} />
+                {item.locked ? <LockKeyhole className="calc-lock-badge" size={11} aria-hidden /> : null}
+              </span>
               <small>{item.label}</small>
             </button>
           );
