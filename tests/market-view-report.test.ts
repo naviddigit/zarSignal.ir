@@ -58,7 +58,7 @@ test('narrative layers stay distinct: view reason meaning result', () => {
   assert.ok(prose.reading);
   assert.match(prose.reading!, /نسبت|مجوز خرید یا فروش نیست|اضافه‌قیمت|دلار ضمنی|هم‌خوان/);
   assert.ok(prose.conclusion);
-  assert.match(prose.conclusion!, /فعال نیست/);
+  assert.match(prose.conclusion!, /مقایسهٔ ارزش|سیگنال خرید و فروش هنوز/);
   assert.doesNotMatch(prose.conclusion!, /۲٫۴۰٪/);
   assert.doesNotMatch(prose.reading! + prose.conclusion!, /در موتور محصول موجود نیست|اعلان خودکار/);
   assert.equal(prose.decision.kind, 'analysis_inactive');
@@ -68,7 +68,7 @@ test('narrative layers stay distinct: view reason meaning result', () => {
   assert.equal(prose.decision.valuation!.percent, null);
   assert.equal(prose.decision.valuation!.stance, 'mixed');
   assert.match(prose.decision.valuation!.title, /مقایسه‌ای/);
-  assert.match(prose.decision.reason, /موتور تصمیم|فعال نیست/);
+  assert.match(prose.decision.reason, /مقایسهٔ ارزش|سیگنال خرید و فروش هنوز/);
   assert.doesNotMatch(prose.decision.title, /در انتظار تأیید شرایط/);
 });
 
@@ -134,7 +134,7 @@ test('decision card never invents BUY/SELL/HOLD or awaiting-confirmation from bu
   ], 'ok', null);
   assert.equal(pending.kind, 'analysis_inactive');
   assert.equal(pending.tradeAction, null);
-  assert.match(pending.reason, /فعال نیست/);
+  assert.match(pending.reason, /مقایسهٔ ارزش بازار|سیگنال خرید و فروش هنوز/);
   assert.doesNotMatch(pending.title, /در انتظار تأیید شرایط/);
   assert.doesNotMatch(pending.reason, /اعلان|منتظر فرصت|HOLD/);
 });

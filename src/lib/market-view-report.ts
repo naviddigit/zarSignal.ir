@@ -75,6 +75,17 @@ export type MarketViewValuationMark = {
   percentLabel: string | null;
 };
 
+export type MarketViewTrendStatus = 'ready' | 'not_computed' | 'unavailable';
+
+/** Price trend vs history — never invent from bubble sign alone. */
+export type MarketViewTrend = {
+  status: MarketViewTrendStatus;
+  /** Short public label shown on the result card. */
+  label: string;
+  /** Optional basis note when status is ready (range + method). */
+  detail: string | null;
+};
+
 export type MarketViewReport = {
   schemaVersion: '1.0';
   reportId: string;
@@ -94,12 +105,26 @@ export type MarketViewReport = {
   conclusion: string | null;
   decision: MarketViewDecision;
   valuationMarks: MarketViewValuationMark[];
+  /** Structured trend from an approved history path — not bubble direction. */
+  trend: MarketViewTrend;
   changeFromPrior: string | null;
   details: {
     formulaNotes: string[];
     disclaimer: string;
   };
 };
+
+/** Honest default while GAP_TREND / history trend is not wired into this report. */
+export function buildMarketViewTrend(_args?: {
+  historyConnected?: boolean;
+}): MarketViewTrend {
+  // Capability GAP_TREND is SOURCE_REQUIRED; no approved computation is attached to market-view yet.
+  return {
+    status: 'not_computed',
+    label: 'روند قیمت در این گزارش محاسبه نشده است',
+    detail: null,
+  };
+}
 
 export function formatFaPercent(value: number, digits = 2) {
   return new Intl.NumberFormat('fa-IR', {
@@ -381,9 +406,9 @@ export function buildMarketViewDecision(
   return {
     kind: 'analysis_inactive',
     tradeAction: null,
-    title: 'موتور تصمیم فعال نیست',
-    reason: 'موتور تصمیم معاملاتی تأییدشده برای این نماد فعال نیست.',
-    changeConditions: 'وضعیت خرید/فروش/نگهداری فقط پس از فعال‌شدن موتور تأییدشده نمایش داده می‌شود.',
+    title: 'بدون سیگنال معامله',
+    reason: 'این گزارش مقایسهٔ ارزش بازار است؛ سیگنال خرید و فروش هنوز ارائه نمی‌شود.',
+    changeConditions: 'جزئیات فنی موتور تصمیم در بخش روش و محدودیت‌ها آمده است.',
     valuation,
   };
 }
@@ -431,7 +456,7 @@ export function composeMarketViewProse(
   if (freshness === 'stale' || freshness === 'mixed') {
     unconfirmed.unshift('بخشی از داده‌ها قدیمی است؛ این گزارش روند تازه نیست.');
   }
-  unconfirmed.push('روند قیمت از تاریخچهٔ معتبر در این گزارش ارزیابی نشده است.');
+  unconfirmed.push('روند قیمت در این گزارش محاسبه نشده است (مسیر GAP_TREND هنوز به گزارش وصل نیست).');
 
   const decision = buildMarketViewDecision(evidence, freshness, options?.engineTrade ?? null, symbol);
 

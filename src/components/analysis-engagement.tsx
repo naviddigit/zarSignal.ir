@@ -4,15 +4,23 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Check, Copy, Share2 } from 'lucide-react';
 import type { MarketViewReport } from '@/lib/market-view-report';
 import { buildPublicShareSummary } from '@/lib/analysis-share';
+import { AnalysisStoryCardButton } from '@/components/analysis-story-card';
+import type { AccessLevel } from '@/lib/capabilities';
 
 const RATING_LABELS = ['خیلی ضعیف', 'ضعیف', 'قابل قبول', 'روشن', 'بسیار مفید'] as const;
 
 export function AnalysisEngagementPanel({
   report,
   signedIn,
+  planLevel = null,
+  planLabel = null,
+  planStatus = null,
 }: {
   report: MarketViewReport;
   signedIn: boolean;
+  planLevel?: AccessLevel | null;
+  planLabel?: string | null;
+  planStatus?: 'فعال' | 'آزمایشی' | 'رایگان' | 'در انتظار پرداخت' | null;
 }) {
   const [readCount, setReadCount] = useState<number | null>(null);
   const [readError, setReadError] = useState<string | null>(null);
@@ -253,6 +261,14 @@ export function AnalysisEngagementPanel({
           ) : null}
         </div>
       )}
+
+      <AnalysisStoryCardButton
+        report={report}
+        planLevel={planLevel}
+        planLabel={planLabel}
+        planStatus={planStatus}
+        showPlanBadge={false}
+      />
     </section>
   );
 }

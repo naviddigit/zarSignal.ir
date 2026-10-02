@@ -58,6 +58,9 @@ export default async function AnalysisPage({ params, searchParams }: {
         initial={report}
         canRefresh
         signedIn={Boolean(session?.user?.id)}
+        planLevel={entitlement?.level ?? null}
+        planLabel={entitlement?.planLabel ?? null}
+        planStatus={entitlement?.statusLabel ?? null}
         trialCta={!fullAccess ? (
           <Link className="button" href={`/login?next=${encodeURIComponent(path)}`}>
             ورود / شروع آزمایش <ArrowUpLeft size={15} />

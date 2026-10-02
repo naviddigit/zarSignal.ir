@@ -6,6 +6,7 @@ import { MAZANEH_TO_18K_VERSION } from '@/server/mazaneh-to-18k';
 import { instruments, formatPrice, isStale, type Snapshot, type Symbol } from '@/lib/market';
 import {
   composeMarketViewProse,
+  buildMarketViewTrend,
   formatFaMoney,
   type MarketViewAccess,
   type MarketViewEvidenceRow,
@@ -173,6 +174,7 @@ export function marketViewReportFromSnapshot(snapshot: Snapshot, access: MarketV
     conclusion: prose.conclusion,
     decision: prose.decision,
     valuationMarks: prose.valuationMarks,
+    trend: buildMarketViewTrend(),
     changeFromPrior: null,
     details: {
       formulaNotes: [

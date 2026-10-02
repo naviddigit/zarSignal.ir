@@ -51,6 +51,9 @@ export default async function MarketAnalysisPage({ searchParams }: { searchParam
         initial={report}
         canRefresh
         signedIn={Boolean(userId)}
+        planLevel={entitlement?.level ?? null}
+        planLabel={entitlement?.planLabel ?? null}
+        planStatus={entitlement?.statusLabel ?? null}
         trialCta={!fullAccess ? (
           <Link className="button" href={`/login?next=${encodeURIComponent('/analysis')}`}>
             ورود / شروع آزمایش <ArrowUpLeft size={15} />

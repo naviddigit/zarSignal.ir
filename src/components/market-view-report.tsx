@@ -124,8 +124,10 @@ function ResultCard({ report }: { report: MarketViewReport }) {
               </p>
             )}
             <p className="market-view__result-trend">
-              <bdi className={metricClass('missing')}>روند قابل ارزیابی نیست</bdi>
-              <span> · بدون تاریخچهٔ معتبر با بازه و مبنای مشخص</span>
+              <bdi className={metricClass(report.trend.status === 'ready' ? 'neutral' : 'missing')}>
+                {report.trend.label}
+              </bdi>
+              {report.trend.detail ? <span> · {report.trend.detail}</span> : null}
             </p>
           </div>
         </div>
@@ -267,6 +269,7 @@ function useReadingFollow(
   const programmatic = useRef(false);
   const lastY = useRef(0);
   const raf = useRef<number | null>(null);
+  const settleTimer = useRef<number | null>(null);
 
   const setFollow = useCallback((next: boolean) => {
     followingRef.current = next;
@@ -296,9 +299,9 @@ function useReadingFollow(
     }
     if (Math.abs(delta) < 4) return;
     programmatic.current = true;
-    window.scrollBy({ top: delta, behavior: smooth ? 'smooth' : 'auto' });
+    window.scrollBy({ top: delta, behavior: smooth && !reducedMotion ? 'smooth' : 'auto' });
     lastY.current = window.scrollY;
-    window.setTimeout(() => { programmatic.current = false; }, smooth ? 320 : 80);
+    window.setTimeout(() => { programmatic.current = false; }, smooth && !reducedMotion ? 320 : 80);
   }, [anchorRef, reducedMotion]);
 
   const scheduleAlign = useCallback((smooth = false) => {
@@ -314,6 +317,25 @@ function useReadingFollow(
     if (!enabled) return;
     scheduleAlign(false);
   }, [enabled, scheduleAlign]);
+
+  // Re-align when the active follow target's height settles (e.g. feedback panel mounts).
+  useEffect(() => {
+    if (!enabled || reducedMotion) return;
+    const node = anchorRef.current;
+    if (!node || typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(() => {
+      if (!followingRef.current) return;
+      if (settleTimer.current != null) window.clearTimeout(settleTimer.current);
+      settleTimer.current = window.setTimeout(() => {
+        scheduleAlign(true);
+      }, 60);
+    });
+    ro.observe(node);
+    return () => {
+      ro.disconnect();
+      if (settleTimer.current != null) window.clearTimeout(settleTimer.current);
+    };
+  }, [anchorRef, enabled, reducedMotion, scheduleAlign, reportKey]);
 
   useEffect(() => {
     const onScroll = () => {
@@ -332,8 +354,12 @@ function useReadingFollow(
     const onPointer = (event: Event) => {
       const target = event.target as HTMLElement | null;
       if (!target) return;
-      if (target.closest('[data-follow-resume]')) return;
-      // Mounting/revealing controls is not interaction; only real pointer on controls stops follow.
+      if (target.closest('[data-follow-resume],[data-follow-keep]')) return;
+      // Feedback form interaction stops follow; mounting the form does not.
+      if (target.closest('.market-view__feedback button, .market-view__feedback input, .market-view__feedback textarea, .market-view__feedback label')) {
+        if (followingRef.current) setFollow(false);
+        return;
+      }
       if (target.closest('button, a, input, textarea, select, summary, [role="button"]')) {
         if (followingRef.current) setFollow(false);
       }
@@ -507,6 +533,11 @@ function buildRevealPlan(
   trialCta: ReactNode | undefined,
   pageExtras: ReactNode | undefined,
   signedIn: boolean,
+  plan?: {
+    level: import('@/lib/capabilities').AccessLevel | null;
+    label: string | null;
+    status: 'فعال' | 'آزمایشی' | 'رایگان' | 'در انتظار پرداخت' | null;
+  },
 ): { items: PlanItem[]; meta: RevealPlanStep[] } {
   const items: PlanItem[] = [];
 
@@ -579,7 +610,15 @@ function buildRevealPlan(
   items.push({
     id: 'engagement',
     kind: 'fade',
-    node: <AnalysisEngagementPanel report={report} signedIn={signedIn} />,
+    node: (
+      <AnalysisEngagementPanel
+        report={report}
+        signedIn={signedIn}
+        planLevel={plan?.level ?? null}
+        planLabel={plan?.label ?? null}
+        planStatus={plan?.status ?? null}
+      />
+    ),
   });
 
   void canOfferConfirmationWatch(report.symbol);
@@ -596,12 +635,18 @@ export function MarketViewReportView({
   trialCta,
   pageExtras,
   signedIn = false,
+  planLevel = null,
+  planLabel = null,
+  planStatus = null,
 }: {
   initial: MarketViewReport;
   canRefresh: boolean;
   trialCta?: ReactNode;
   pageExtras?: ReactNode;
   signedIn?: boolean;
+  planLevel?: import('@/lib/capabilities').AccessLevel | null;
+  planLabel?: string | null;
+  planStatus?: 'فعال' | 'آزمایشی' | 'رایگان' | 'در انتظار پرداخت' | null;
 }) {
   const [report, setReport] = useState(initial);
   const [pendingFingerprint, setPendingFingerprint] = useState<string | null>(null);
@@ -613,8 +658,12 @@ export function MarketViewReportView({
 
   const reportKey = `${report.snapshotFingerprint}:${report.symbol ?? 'all'}:${report.access}`;
   const { items: plan } = useMemo(
-    () => buildRevealPlan(report, trialCta, pageExtras, signedIn),
-    [report, trialCta, pageExtras, signedIn],
+    () => buildRevealPlan(report, trialCta, pageExtras, signedIn, {
+      level: planLevel,
+      label: planLabel,
+      status: planStatus,
+    }),
+    [report, trialCta, pageExtras, signedIn, planLevel, planLabel, planStatus],
   );
 
   const [activeIndex, setActiveIndex] = useState(0);
@@ -683,7 +732,8 @@ export function MarketViewReportView({
     return () => clearFade();
   }, [activeIndex, activeStep, reduced, plan.length, advance, clearFade, reportKey]);
 
-  const followEnabled = activeIndex < plan.length && !reduced;
+  // Keep follow alive after the last fade so feedback can settle into view.
+  const followEnabled = !reduced;
   const { following, resume, scheduleAlign } = useReadingFollow(followEnabled, endRef, reportKey, reduced);
 
   useEffect(() => {
@@ -781,12 +831,13 @@ export function MarketViewReportView({
           ) : null}
         </p>
         {!reduced ? (
-          <div className="market-view__speed" role="group" aria-label="سرعت نمایش">
+          <div className="market-view__speed" role="group" aria-label="سرعت نمایش" data-follow-keep>
             <span>سرعت نمایش:</span>
             <button
               type="button"
               className={typeSpeed === 1 ? 'is-active' : undefined}
               aria-pressed={typeSpeed === 1}
+              data-follow-keep
               onClick={() => setTypeSpeed(1)}
             >
               ۱×
@@ -795,6 +846,7 @@ export function MarketViewReportView({
               type="button"
               className={typeSpeed === 2 ? 'is-active' : undefined}
               aria-pressed={typeSpeed === 2}
+              data-follow-keep
               onClick={() => setTypeSpeed(2)}
             >
               ۲×
@@ -858,11 +910,17 @@ export function MarketViewReportView({
               );
             }
             const activeFade = isRevealStepActive(index, activeIndex, reduced);
+            const revealDone = activeIndex >= plan.length;
+            // Keep follow target on engagement after the last fade advances so feedback can settle.
+            const keepEngagementFollow = item.id === 'engagement'
+              && following
+              && (activeFade || revealDone || activeIndex > index);
+            const attachFadeFollow = activeFade || keepEngagementFollow;
             return (
               <RevealItem key={item.id}>
                 <div
                   ref={
-                    activeFade
+                    attachFadeFollow
                       ? (node: HTMLDivElement | null) => {
                           endRef.current = node;
                         }

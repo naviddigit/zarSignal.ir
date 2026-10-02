@@ -36,6 +36,11 @@ function sampleReport(partial?: Partial<MarketViewReport>): MarketViewReport {
       },
     },
     valuationMarks: [],
+    trend: {
+      status: 'not_computed',
+      label: 'روند قیمت در این گزارش محاسبه نشده است',
+      detail: null,
+    },
     changeFromPrior: null,
     details: { formulaNotes: [], disclaimer: 'سلب مسئولیت' },
     ...partial,
