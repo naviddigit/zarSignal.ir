@@ -30,7 +30,11 @@ export type MarketViewDecisionKind =
   | 'buy'
   | 'sell'
   | 'hold'
+  /** Engine is active and evaluating, but stated market conditions are not yet met. */
   | 'needs_confirmation'
+  /** Approved trading analysis is not wired/active for this symbol. */
+  | 'analysis_inactive'
+  /** Missing, blocked, or too-stale inputs for a reliable comparison/decision. */
   | 'insufficient_data';
 
 export type MarketViewValuationSummary = {
@@ -229,12 +233,14 @@ function buildValuationSummary(
 /**
  * Decision card state. BUY/SELL/HOLD only when tradeAction is non-null from a real engine.
  * There is no approved V5.4 decision engine in source today — engineTrade stays null in production.
+ * `engineAwaiting` is only for a live engine that explicitly reports unmet conditions (never inferred from bubbles).
  */
 export function buildMarketViewDecision(
   evidence: MarketViewEvidenceRow[],
   freshness: MarketViewReport['dataFreshness'],
   engineTrade: MarketViewTradeAction | null = null,
   symbol?: Symbol | null,
+  engineAwaiting: { reason: string; changeConditions: string } | null = null,
 ): MarketViewDecision {
   const usable = freshness === 'unavailable' ? [] : evidence.filter(row =>
     (row.status === 'ok' || row.status === 'stale') && row.diffPercent != null && Number.isFinite(row.diffPercent));
@@ -271,34 +277,47 @@ export function buildMarketViewDecision(
     };
   }
 
+  // Only an active engine may claim "awaiting confirmation of conditions".
+  if (engineAwaiting) {
+    return {
+      kind: 'needs_confirmation',
+      tradeAction: null,
+      title: 'در انتظار تأیید شرایط',
+      reason: engineAwaiting.reason,
+      changeConditions: engineAwaiting.changeConditions,
+      valuation,
+    };
+  }
+
   if (!usable.length) {
     return {
       kind: 'insufficient_data',
       tradeAction: null,
       title: 'داده کافی نیست',
       reason: 'قیمت بازار یا ورودی‌های مرجع برای یک مقایسهٔ معتبر در دسترس نیست.',
-      changeConditions: 'پس از رسیدن قیمت و مرجع هم‌زمان معتبر، دید ارزشی و وضعیت تصمیم همین‌جا به‌روز می‌شود.',
+      changeConditions: 'پس از رسیدن قیمت و مرجع هم‌زمان معتبر، دید ارزشی همین‌جا به‌روز می‌شود.',
       valuation: null,
     };
   }
 
   if (freshness === 'stale' || freshness === 'mixed') {
     return {
-      kind: 'needs_confirmation',
+      kind: 'insufficient_data',
       tradeAction: null,
-      title: 'نیاز به تأیید',
-      reason: 'قیمت با مرجع مقایسه شده، اما بخشی از داده قدیمی است؛ برای تصمیم معامله به دادهٔ تازه‌تر و نرخ قابل اجرا نیاز است.',
-      changeConditions: 'با تازه‌شدن ورودی‌ها و در دسترس بودن روند هم‌زمان و نرخ واقعی خرید و فروش، این وضعیت بازبینی می‌شود.',
+      title: 'داده قدیمی است',
+      reason: 'قیمت با مرجع مقایسه شده، اما بخشی از داده قدیمی است؛ برای تصمیم معامله به دادهٔ تازه‌تر نیاز است.',
+      changeConditions: 'با تازه‌شدن ورودی‌ها، دید ارزشی بازبینی می‌شود. این وضعیت به‌معنای انتظار خودکار برای فرصت معامله نیست.',
       valuation,
     };
   }
 
+  // Usable bubble gap exists, but no approved trading engine is active for this symbol.
   return {
-    kind: 'needs_confirmation',
+    kind: 'analysis_inactive',
     tradeAction: null,
-    title: 'نیاز به تأیید',
-    reason: 'قیمت با مرجع مقایسه شده، اما روند و نرخ قابل اجرای معامله هنوز تأیید نشده‌اند.',
-    changeConditions: 'با در دسترس بودن روند هم‌زمان تأییدشده، نرخ واقعی خرید و فروش و هزینهٔ معامله، وضعیت تصمیم بازبینی می‌شود؛ تا آن زمان سیگنال خرید، فروش یا نگهداری صادر نمی‌شود.',
+    title: 'تحلیل معاملاتی فعال نیست',
+    reason: 'اختلاف با مرجع محاسباتی موجود است، اما موتور تصمیم تأییدشده برای این نماد در محصول فعال نیست؛ سیستم خودکار منتظر فرصت معامله نیست.',
+    changeConditions: 'پس از اتصال موتور تصمیم تأییدشده با قواعد قابل ارزیابی، وضعیت تصمیم همین‌جا نمایش داده می‌شود.',
     valuation,
   };
 }
@@ -432,9 +451,11 @@ export function composeMarketViewProse(
   const meaning = meaningParts.join(' ');
 
   // د) نتیجه — وضعیت تصمیم و محدودیت (بدون تکرار درصد دید فعلی)
-  const result = decision.kind === 'needs_confirmation'
-    ? `${decision.reason} این وضعیت به‌معنای نگهداری (HOLD) یا روند خنثی نیست.`
-    : decision.reason;
+  const result = decision.kind === 'analysis_inactive'
+    ? `${decision.reason} این وضعیت به‌معنای نگهداری (HOLD) یا انتظار خودکار برای فرصت نیست.`
+    : decision.kind === 'needs_confirmation'
+      ? `${decision.reason}`
+      : decision.reason;
 
   const teaser = symbol
     ? 'برداشت و نتیجهٔ کامل این نماد با دسترسی تحلیل باز می‌شود.'

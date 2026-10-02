@@ -22,7 +22,7 @@ function sampleReport(partial?: Partial<MarketViewReport>): MarketViewReport {
     unconfirmed: ['محدودیت خصوصی'],
     conclusion: 'نتیجه کامل خصوصی',
     decision: {
-      kind: 'needs_confirmation',
+      kind: 'analysis_inactive',
       tradeAction: null,
       title: 'نیاز به تأیید',
       reason: 'دلیل کوتاه',

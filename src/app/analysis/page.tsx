@@ -59,7 +59,7 @@ export default async function MarketAnalysisPage({ searchParams }: { searchParam
         pageExtras={(
           <>
             {(!fullAccess || entitlement?.statusLabel === 'آزمایشی') && (
-              <AnalysisTrialAccess trial={trial} error={query.trial} />
+              <AnalysisTrialAccess trial={trial} error={query.trial} compact />
             )}
             <div className="home-quick-tools">
               <Link href="/markets">نرخ‌های تابلو</Link>

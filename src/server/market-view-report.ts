@@ -200,7 +200,7 @@ export function marketViewReportFromSnapshot(snapshot: Snapshot, access: MarketV
     decision: prose.decision.kind === 'insufficient_data'
       ? prose.decision
       : {
-          kind: 'needs_confirmation',
+          kind: prose.decision.kind === 'analysis_inactive' ? 'analysis_inactive' : prose.decision.kind,
           tradeAction: null,
           title: 'پیش‌نمایش تحلیل',
           reason: 'برداشت کامل و وضعیت تصمیم پشت دسترسی تحلیل است؛ قیمت و خلاصهٔ شواهد همین‌جا رایگان‌اند.',

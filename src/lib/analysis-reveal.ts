@@ -1,24 +1,37 @@
-/** Shared aftermath reveal steps after narrative typing completes. */
+/** Analysis reveal step machine — shared completion, no estimated text-length timeouts. */
 
-export type AnalysisRevealPhase = 'typing' | 'aftermath' | 'done';
+export type AnalysisRevealPhase = 'typing' | 'fading' | 'done';
 
-export const AFTERMATH_STEP_GAP_MS = 450;
-export const AFTERMATH_FADE_MS = 300;
+export const REVEAL_FADE_MS = 300;
 
-/** How many aftermath items are visible for the current step (1-based step). */
-export function visibleAftermathCount(args: {
-  typingComplete: boolean;
-  step: number;
+export type RevealStepKind = 'type' | 'fade';
+
+export type RevealPlanStep = {
+  id: string;
+  kind: RevealStepKind;
+};
+
+/** Steps fully settled before the active index (exclusive upper bound of completed work). */
+export function completedRevealCount(args: {
+  activeIndex: number;
+  activeComplete: boolean;
   total: number;
   reducedMotion: boolean;
 }): number {
-  const { typingComplete, step, total, reducedMotion } = args;
+  const { activeIndex, activeComplete, total, reducedMotion } = args;
   if (total <= 0) return 0;
   if (reducedMotion) return total;
-  if (!typingComplete) return 0;
-  return Math.max(0, Math.min(total, step));
+  if (activeIndex < 0) return 0;
+  const done = activeComplete ? activeIndex + 1 : activeIndex;
+  return Math.max(0, Math.min(total, done));
 }
 
-export function isAftermathItemVisible(index: number, visibleCount: number) {
-  return index < visibleCount;
+export function isRevealStepMounted(index: number, activeIndex: number, reducedMotion: boolean) {
+  if (reducedMotion) return true;
+  return index <= activeIndex;
+}
+
+export function isRevealStepActive(index: number, activeIndex: number, reducedMotion: boolean) {
+  if (reducedMotion) return false;
+  return index === activeIndex;
 }

@@ -66,7 +66,7 @@ export default async function AnalysisPage({ params, searchParams }: {
         pageExtras={(
           <>
             {(!fullAccess || entitlement?.statusLabel === 'آزمایشی') && (
-              <AnalysisTrialAccess trial={trial} symbol={symbol} error={query.trial} />
+              <AnalysisTrialAccess trial={trial} symbol={symbol} error={query.trial} compact />
             )}
             <details className="market-view__details is-compact">
               <summary>بررسی نمودار و تاریخچهٔ {asset.short}</summary>

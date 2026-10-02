@@ -54,16 +54,18 @@ test('narrative layers stay distinct: view reason meaning result', () => {
   assert.ok(prose.reading);
   assert.match(prose.reading!, /نسبت|مجوز خرید یا فروش نیست/);
   assert.ok(prose.conclusion);
-  assert.match(prose.conclusion!, /تأیید نشده|HOLD نیست|خنثی نیست/);
+  assert.match(prose.conclusion!, /فعال نیست|HOLD|منتظر فرصت/);
   assert.doesNotMatch(prose.conclusion!, /۲٫۴۰٪/);
   assert.doesNotMatch(prose.reading! + prose.conclusion!, /در موتور محصول موجود نیست/);
-  assert.equal(prose.decision.kind, 'needs_confirmation');
+  assert.equal(prose.decision.kind, 'analysis_inactive');
   assert.equal(prose.decision.tradeAction, null);
   assert.ok(prose.decision.valuation);
   assert.match(prose.decision.valuation!.detail, /٪/);
   assert.match(prose.decision.valuation!.title, /طلا/);
   assert.equal(prose.decision.valuation!.marketLabel.length > 0, true);
   assert.ok(prose.decision.valuation!.percent != null);
+  assert.match(prose.decision.reason, /موتور تصمیم|فعال نیست/);
+  assert.doesNotMatch(prose.decision.title, /در انتظار تأیید شرایط/);
 });
 
 test('gold silver parity stays in meaning without inventing executable swap', () => {
@@ -81,6 +83,7 @@ test('gold silver parity stays in meaning without inventing executable swap', ()
   const stale = composeMarketViewProse(evidence.map(r => ({ ...r, status: 'stale' as const })), 'stale');
   assert.doesNotMatch(stale.reading!, /نسبت طلا به نقره/);
   assert.match(stale.decision.reason, /قدیمی/);
+  assert.equal(stale.decision.kind, 'insufficient_data');
 });
 
 test('focused symbol uses short names and does not fill with other markets', () => {
@@ -93,15 +96,31 @@ test('focused symbol uses short names and does not fill with other markets', () 
   assert.doesNotMatch(prose.reading!, /نسبت طلا به نقره/);
 });
 
-test('decision card never invents BUY/SELL/HOLD from bubble gaps', () => {
+test('decision card never invents BUY/SELL/HOLD or awaiting-confirmation from bubble gaps', () => {
   const pending = buildMarketViewDecision([
     row({ id: 'gold', marketLabel: 'طلا', status: 'ok', diffPercent: -3 }),
   ], 'ok', null);
-  assert.equal(pending.kind, 'needs_confirmation');
+  assert.equal(pending.kind, 'analysis_inactive');
   assert.equal(pending.tradeAction, null);
-  assert.match(pending.reason, /روند و نرخ قابل اجرای معامله/);
+  assert.match(pending.reason, /فعال نیست|منتظر فرصت معامله نیست/);
+  assert.doesNotMatch(pending.title, /در انتظار تأیید شرایط/);
   assert.doesNotMatch(pending.reason, /در موتور محصول موجود نیست/);
-  assert.doesNotMatch(pending.changeConditions, /می‌تواند به خرید، فروش یا نگهداری تبدیل شود/);
+});
+
+test('needs_confirmation only when an active engine reports unmet conditions', () => {
+  const awaiting = buildMarketViewDecision([
+    row({ id: 'gold', marketLabel: 'طلا', status: 'ok', diffPercent: -1 }),
+  ], 'ok', null, null, {
+    reason: 'روند تأییدشده هنوز برقرار نشده است.',
+    changeConditions: 'با برقراری روند و نرخ قابل اجرا، وضعیت بازبینی می‌شود.',
+  });
+  assert.equal(awaiting.kind, 'needs_confirmation');
+  assert.equal(awaiting.title, 'در انتظار تأیید شرایط');
+  const stale = buildMarketViewDecision([
+    row({ id: 'gold', marketLabel: 'طلا', status: 'stale', diffPercent: -1 }),
+  ], 'stale', null);
+  assert.equal(stale.kind, 'insufficient_data');
+  assert.match(stale.title, /قدیمی|داده/);
 });
 
 test('BUY/SELL/HOLD only from explicit engineTrade fixture', () => {
@@ -179,7 +198,7 @@ test('same snapshot supports overall and focused reports, preview redacts full p
   const snapshot = liveSnapshot();
   const overall = marketViewReportFromSnapshot(snapshot, 'full');
   assert.equal(overall.evidence.length, 4);
-  assert.equal(overall.decision.kind, 'needs_confirmation');
+  assert.equal(overall.decision.kind, 'analysis_inactive');
   assert.equal(overall.decision.tradeAction, null);
   assert.ok(overall.decision.valuation);
   assert.match(overall.decision.valuation!.detail, /برداشت مقایسه‌ای بازار/);

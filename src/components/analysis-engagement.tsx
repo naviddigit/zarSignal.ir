@@ -15,6 +15,7 @@ export function AnalysisEngagementPanel({
   signedIn: boolean;
 }) {
   const [readCount, setReadCount] = useState<number | null>(null);
+  const [readError, setReadError] = useState<string | null>(null);
   const [rating, setRating] = useState<number | null>(null);
   const [comment, setComment] = useState('');
   const [feedbackStatus, setFeedbackStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
@@ -29,6 +30,7 @@ export function AnalysisEngagementPanel({
   useEffect(() => {
     if (!signedIn) {
       setReadCount(null);
+      setReadError(null);
       setRating(null);
       setComment('');
       return;
@@ -69,14 +71,25 @@ export function AnalysisEngagementPanel({
             symbol: report.symbol ?? null,
           }),
         });
-        if (!cancelled && res.ok) {
+        if (cancelled) return;
+        if (res.ok) {
           const data = await res.json() as { count: number };
           setReadCount(data.count);
-        } else if (!cancelled && res.status === 401) {
+          setReadError(null);
+        } else if (res.status === 401) {
           recordedKey.current = null;
+          setReadCount(null);
+        } else {
+          recordedKey.current = null;
+          setReadCount(null);
+          setReadError('ثبت مطالعه ممکن نشد؛ عدد ساختگی نمایش داده نمی‌شود.');
         }
       } catch {
-        if (!cancelled) recordedKey.current = null;
+        if (!cancelled) {
+          recordedKey.current = null;
+          setReadCount(null);
+          setReadError('ثبت مطالعه ممکن نشد؛ عدد ساختگی نمایش داده نمی‌شود.');
+        }
       }
     })();
     return () => { cancelled = true; };
@@ -140,9 +153,11 @@ export function AnalysisEngagementPanel({
     <section className="market-view__engagement" aria-label="شمارش مطالعه، بازخورد و اشتراک">
       {signedIn && readCount != null ? (
         <p className="market-view__read-count" role="status">
-          شما تاکنون {new Intl.NumberFormat('fa-IR').format(readCount)} تحلیل خوانده‌اید.
-          <span className="market-view__read-hint"> شمارش مطالعهٔ تکمیل‌شده است، نه آرشیو قابل بازیابی.</span>
+          این {new Intl.NumberFormat('fa-IR').format(readCount)}‌اُمین تحلیل متفاوتی است که در حساب شما خوانده‌اید.
         </p>
+      ) : null}
+      {signedIn && readError ? (
+        <p className="market-view__feedback-status is-error" role="status">{readError}</p>
       ) : null}
 
       {signedIn ? (
@@ -182,7 +197,7 @@ export function AnalysisEngagementPanel({
             <textarea
               value={comment}
               maxLength={500}
-              rows={3}
+              rows={2}
               placeholder="بازخورد اختیاری (حداکثر ۵۰۰ نویسه)"
               onChange={event => {
                 setComment(event.target.value);
@@ -190,40 +205,54 @@ export function AnalysisEngagementPanel({
               }}
             />
           </label>
-          <button
-            type="submit"
-            className="button small-button"
-            disabled={rating == null || feedbackStatus === 'saving'}
-          >
-            {feedbackStatus === 'saving' ? 'در حال ارسال…' : 'ارسال بازخورد'}
-          </button>
+          <div className="market-view__engagement-actions">
+            <button
+              type="submit"
+              className="button small-button"
+              disabled={rating == null || feedbackStatus === 'saving'}
+            >
+              {feedbackStatus === 'saving' ? 'در حال ارسال…' : 'ارسال بازخورد'}
+            </button>
+            <button type="button" className="button small-button market-view__share-btn" onClick={() => void shareSummary()}>
+              {shareStatus === 'copied' ? <Copy size={16} aria-hidden /> : <Share2 size={16} aria-hidden />}
+              اشتراک خلاصه
+            </button>
+          </div>
           {feedbackStatus === 'saved' ? (
             <p className="market-view__feedback-status is-ok" role="status">بازخورد ذخیره شد؛ در صورت نیاز می‌توانید ویرایش کنید.</p>
           ) : null}
           {feedbackStatus === 'error' && feedbackError ? (
             <p className="market-view__feedback-status is-error" role="alert">{feedbackError}</p>
           ) : null}
+          {shareStatus === 'shared' ? (
+            <p className="market-view__feedback-status is-ok" role="status"><Check size={14} aria-hidden /> خلاصه ارسال شد.</p>
+          ) : null}
+          {shareStatus === 'copied' ? (
+            <p className="market-view__feedback-status is-ok" role="status">خلاصه در حافظه کپی شد.</p>
+          ) : null}
+          {shareStatus === 'error' && shareError ? (
+            <p className="market-view__feedback-status is-error" role="alert">{shareError}</p>
+          ) : null}
         </form>
-      ) : null}
-
-      <div className="market-view__share">
-        <button type="button" className="button small-button market-view__share-btn" onClick={() => void shareSummary()}>
-          {shareStatus === 'copied' ? <Copy size={16} aria-hidden /> : <Share2 size={16} aria-hidden />}
-          اشتراک خلاصهٔ عمومی
-        </button>
-        <p className="market-view__share-note">
-          فقط نماد، زمان داده، دید ارزشی کوتاه و لینک عمومی سایت — بدون متن کامل و بدون پارامتر درخواست.
-        </p>
-        {shareStatus === 'shared' ? (
-          <p className="market-view__feedback-status is-ok" role="status"><Check size={14} aria-hidden /> خلاصه ارسال شد.</p>
-        ) : null}
-        {shareStatus === 'copied' ? (
-          <p className="market-view__feedback-status is-ok" role="status">خلاصه در حافظه کپی شد.</p>
-        ) : null}
-        {shareStatus === 'error' && shareError ? (
-          <p className="market-view__feedback-status is-error" role="alert">{shareError}</p>
-        ) : null}
-      </div>
+      ) : (
+        <div className="market-view__share">
+          <button type="button" className="button small-button market-view__share-btn" onClick={() => void shareSummary()}>
+            {shareStatus === 'copied' ? <Copy size={16} aria-hidden /> : <Share2 size={16} aria-hidden />}
+            اشتراک خلاصهٔ عمومی
+          </button>
+          <p className="market-view__share-note">
+            فقط نماد، زمان داده، دید ارزشی کوتاه و لینک عمومی — بدون متن کامل و بدون پارامتر درخواست.
+          </p>
+          {shareStatus === 'shared' || shareStatus === 'copied' ? (
+            <p className="market-view__feedback-status is-ok" role="status">
+              {shareStatus === 'shared' ? 'خلاصه ارسال شد.' : 'خلاصه در حافظه کپی شد.'}
+            </p>
+          ) : null}
+          {shareStatus === 'error' && shareError ? (
+            <p className="market-view__feedback-status is-error" role="alert">{shareError}</p>
+          ) : null}
+        </div>
+      )}
     </section>
   );
 }
