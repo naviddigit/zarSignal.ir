@@ -28,6 +28,7 @@ model User {
   marketChangeAlerts      MarketChangeAlert[]
   inAppNotifications      InAppNotification[]
   marketVisitBaselines    UserMarketVisitBaseline[]
+  accessAudits            AdminAccessAudit[]
   accounts      Account[]
   sessions      Session[]
 
@@ -150,6 +151,7 @@ enum SubscriptionStatus {
   ACTIVE
   CANCELED
   EXPIRED
+  SUSPENDED
 }
 
 model Payment {
@@ -385,11 +387,14 @@ model AnalysisFeedback {
   schemaVersion String
   rating        Int
   comment       String?  @db.VarChar(500)
+  reviewedAt    DateTime?
+  reviewedBy    String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
   @@unique([userId, reportId, schemaVersion])
   @@index([userId, updatedAt])
+  @@index([reviewedAt])
 }
 
 /**
@@ -471,4 +476,27 @@ model UserMarketVisitBaseline {
 
   @@unique([userId, scope])
   @@index([userId, updatedAt])
+}
+
+/** Manual admin changes to customer access — never mutates Payment rows. */
+model AdminAccessAudit {
+  id            String   @id @default(cuid())
+  actor         String
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  action        String
+  reason        String?
+  previousValue Json
+  nextValue     Json
+  createdAt     DateTime @default(now())
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([createdAt(sort: Desc)])
+}
+
+/** Generic server-side cooldown buckets (refresh, new feedback, …). */
+model RateLimitBucket {
+  id            String   @id
+  nextAllowedAt DateTime
+  updatedAt     DateTime @updatedAt
 }

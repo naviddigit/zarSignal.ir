@@ -613,7 +613,7 @@ function buildRevealPlan(
   plan?: {
     level: import('@/lib/capabilities').AccessLevel | null;
     label: string | null;
-    status: 'فعال' | 'آزمایشی' | 'رایگان' | 'در انتظار پرداخت' | null;
+    status: 'فعال' | 'آزمایشی' | 'رایگان' | 'در انتظار پرداخت' | 'تعلیق‌شده' | null;
   },
 ): { items: PlanItem[]; meta: RevealPlanStep[] } {
   const items: PlanItem[] = [];
@@ -724,13 +724,16 @@ export function MarketViewReportView({
   signedIn?: boolean;
   planLevel?: import('@/lib/capabilities').AccessLevel | null;
   planLabel?: string | null;
-  planStatus?: 'فعال' | 'آزمایشی' | 'رایگان' | 'در انتظار پرداخت' | null;
+  planStatus?: 'فعال' | 'آزمایشی' | 'رایگان' | 'در انتظار پرداخت' | 'تعلیق‌شده' | null;
   readingSettings?: AnalysisReadingSettings;
 }) {
   const [report, setReport] = useState(initial);
   const [pendingFingerprint, setPendingFingerprint] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [unchangedNote, setUnchangedNote] = useState<string | null>(null);
+  const [cooldownUntil, setCooldownUntil] = useState<number | null>(null);
+  const [cooldownLeft, setCooldownLeft] = useState(0);
   const reduced = usePrefersReducedMotion();
   const [typeSpeed, setTypeSpeed] = useTypeSpeed();
   const endRef = useRef<HTMLElement | null>(null);
@@ -833,21 +836,51 @@ export function MarketViewReportView({
     if (activeStep?.kind === 'fade') scheduleAlign(true);
   }, [activeIndex, activeStep?.kind, scheduleAlign]);
 
-  const applyLatest = useCallback(async () => {
-    const url = initial.symbol
+  const applyLatest = useCallback(async (manual = false, fingerprint?: string) => {
+    const base = initial.symbol
       ? `/api/public/market-view?symbol=${initial.symbol.toLowerCase()}`
       : '/api/public/market-view';
-    const res = await fetch(url, { cache: 'no-store', credentials: 'same-origin' });
+    const params = new URLSearchParams();
+    if (manual) params.set('refresh', '1');
+    if (fingerprint) params.set('fp', fingerprint);
+    const qs = params.toString();
+    const target = qs ? `${base}${base.includes('?') ? '&' : '?'}${qs}` : base;
+    const res = await fetch(target, {
+      cache: 'no-store',
+      credentials: 'same-origin',
+      headers: manual ? { 'x-market-view-refresh': '1' } : undefined,
+    });
+    if (res.status === 429) {
+      const data = await res.json().catch(() => null) as { retryAfterSec?: number; error?: string } | null;
+      const sec = Math.max(1, Number(data?.retryAfterSec ?? 30));
+      setCooldownUntil(Date.now() + sec * 1000);
+      throw new Error(data?.error ?? 'cooldown');
+    }
     if (!res.ok) throw new Error('refresh_failed');
-    return res.json() as Promise<MarketViewReport>;
+    return res.json() as Promise<MarketViewReport & { unchanged?: boolean }>;
   }, [initial.symbol]);
+
+  useEffect(() => {
+    if (!cooldownUntil) {
+      setCooldownLeft(0);
+      return;
+    }
+    const tick = () => {
+      const left = Math.max(0, Math.ceil((cooldownUntil - Date.now()) / 1000));
+      setCooldownLeft(left);
+      if (left <= 0) setCooldownUntil(null);
+    };
+    tick();
+    const id = window.setInterval(tick, 250);
+    return () => window.clearInterval(id);
+  }, [cooldownUntil]);
 
   useEffect(() => {
     if (!canRefresh) return;
     const id = window.setInterval(() => {
       void (async () => {
         try {
-          const next = await applyLatest();
+          const next = await applyLatest(false);
           if (!next) return;
           if (next.access !== report.access) {
             setReport(next);
@@ -857,22 +890,34 @@ export function MarketViewReportView({
           if (next.snapshotFingerprint !== report.snapshotFingerprint) {
             setPendingFingerprint(next.snapshotFingerprint);
           }
-        } catch { /* quiet */ }
+        } catch { /* quiet — polling must not trip manual cooldown */ }
       })();
     }, 45000);
     return () => window.clearInterval(id);
   }, [applyLatest, canRefresh, report.snapshotFingerprint, report.access]);
 
   function showFresh() {
+    if (cooldownLeft > 0) return;
     startTransition(async () => {
       setError(null);
       try {
-        const next = await applyLatest();
-        if (next) {
-          setReport(next);
+        const next = await applyLatest(true, report.snapshotFingerprint);
+        if (!next) return;
+        setCooldownUntil(Date.now() + 30_000);
+        if (next.unchanged || next.snapshotFingerprint === report.snapshotFingerprint) {
+          setUnchangedNote('از آخرین بررسی، داده‌های مؤثر بر این گزارش تغییر نکرده‌اند.');
           setPendingFingerprint(null);
+          return;
         }
-      } catch {
+        setUnchangedNote(null);
+        setReport(next);
+        setPendingFingerprint(null);
+      } catch (err) {
+        if (err instanceof Error && err.message === 'cooldown') {
+          setError('لطفاً چند ثانیه صبر کنید و دوباره بررسی کنید.');
+          return;
+        }
+        setUnchangedNote(null);
         setError('دریافت گزارش تازه ممکن نشد؛ نسخهٔ قبلی حفظ شده است. دوباره تلاش کنید.');
       }
     });
@@ -1040,10 +1085,21 @@ export function MarketViewReportView({
       ) : null}
 
       {error ? <p role="alert" className="market-view__meta">{error}</p> : null}
+      {unchangedNote ? <p role="status" className="market-view__meta">{unchangedNote}</p> : null}
 
       {canRefresh && done && !pendingFingerprint ? (
-        <button type="button" className="market-view__reload text-link" onClick={showFresh} disabled={pending}>
-          <RefreshCw size={14} /> بررسی دادهٔ تازه
+        <button
+          type="button"
+          className="market-view__reload text-link"
+          onClick={showFresh}
+          disabled={pending || cooldownLeft > 0}
+        >
+          <RefreshCw size={14} />
+          {cooldownLeft > 0
+            ? `بررسی دوباره تا ${new Intl.NumberFormat('fa-IR').format(cooldownLeft)} ثانیه`
+            : pending
+              ? 'در حال بررسی…'
+              : 'بررسی دادهٔ تازه'}
         </button>
       ) : null}
 

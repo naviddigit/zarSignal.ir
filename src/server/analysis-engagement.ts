@@ -1,6 +1,9 @@
 import { z } from 'zod';
 import { db } from '@/lib/db';
 import { withDeadline } from '@/lib/with-deadline';
+import { consumeRateLimit, peekRateLimit } from '@/server/rate-limit';
+import { getFeedbackCooldownHours } from '@/server/feedback-policy';
+import { ensureHistorySchema } from '@/server/ensure-schema';
 
 const reportIdSchema = z.string().trim().regex(/^mvr_[a-f0-9]{8,64}$/i).max(80);
 const schemaVersionSchema = z.string().trim().regex(/^\d+\.\d+$/).max(16);
@@ -63,17 +66,54 @@ export async function getAnalysisFeedback(userId: string, reportId: string, sche
           schemaVersion: version,
         },
       },
-      select: { rating: true, comment: true, updatedAt: true },
+      select: { id: true, rating: true, comment: true, updatedAt: true },
     }),
     2000,
   );
 }
 
-/** Upsert editable feedback; one row per user+report+version. */
-export async function saveAnalysisFeedback(userId: string, input: AnalysisFeedbackInput) {
+export type SaveFeedbackResult =
+  | { ok: true; mode: 'create' | 'edit'; feedback: { rating: number; comment: string | null; updatedAt: Date } }
+  | { ok: false; code: 'rate_limited'; nextAllowedAt: Date; retryAfterSec: number };
+
+/**
+ * Upsert editable feedback.
+ * Edit of the same report row is always allowed.
+ * Creating a *new* feedback row is gated by admin-configurable cooldown (default 6h).
+ */
+export async function saveAnalysisFeedback(userId: string, input: AnalysisFeedbackInput): Promise<SaveFeedbackResult> {
+  await ensureHistorySchema().catch(() => undefined);
   const parsed = analysisFeedbackInput.parse(input);
   const comment = parsed.comment?.trim() ? parsed.comment.trim() : null;
-  return withDeadline(
+
+  const existing = await db.analysisFeedback.findUnique({
+    where: {
+      userId_reportId_schemaVersion: {
+        userId,
+        reportId: parsed.reportId,
+        schemaVersion: parsed.schemaVersion,
+      },
+    },
+    select: { id: true },
+  });
+
+  if (!existing) {
+    const hours = await getFeedbackCooldownHours();
+    const cooldownMs = hours * 3_600_000;
+    if (cooldownMs > 0) {
+      const gate = await consumeRateLimit(`feedback:new:${userId}`, cooldownMs);
+      if (!gate.allowed) {
+        return {
+          ok: false,
+          code: 'rate_limited',
+          nextAllowedAt: gate.nextAllowedAt,
+          retryAfterSec: gate.retryAfterSec,
+        };
+      }
+    }
+  }
+
+  const feedback = await withDeadline(
     db.analysisFeedback.upsert({
       where: {
         userId_reportId_schemaVersion: {
@@ -97,4 +137,18 @@ export async function saveAnalysisFeedback(userId: string, input: AnalysisFeedba
     }),
     3000,
   );
+
+  return { ok: true, mode: existing ? 'edit' : 'create', feedback };
+}
+
+export async function feedbackNewAvailability(userId: string) {
+  const hours = await getFeedbackCooldownHours();
+  if (hours <= 0) return { allowed: true as const, nextAllowedAt: null as string | null, cooldownHours: hours };
+  const peek = await peekRateLimit(`feedback:new:${userId}`);
+  return {
+    allowed: peek.allowed,
+    nextAllowedAt: peek.nextAllowedAt?.toISOString() ?? null,
+    retryAfterSec: 'retryAfterSec' in peek ? peek.retryAfterSec : null,
+    cooldownHours: hours,
+  };
 }

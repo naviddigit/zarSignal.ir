@@ -15,7 +15,7 @@ import { withDeadline } from '@/lib/with-deadline';
 export type AccountEntitlement = {
   level: AccessLevel;
   planLabel: string;
-  statusLabel: 'فعال' | 'در انتظار پرداخت' | 'آزمایشی' | 'رایگان';
+  statusLabel: 'فعال' | 'در انتظار پرداخت' | 'آزمایشی' | 'رایگان' | 'تعلیق‌شده';
   expiresAt: Date | null;
   historyDays: number;
   owned: ReturnType<typeof capabilityRowsFor>;
@@ -36,6 +36,9 @@ export async function resolveAccountEntitlement(userId: string): Promise<Account
     }), 4000).catch(() => []),
   ]);
 
+  const commercialSuspended = subscriptions.find(s =>
+    !isInternalProduct(s.product) && s.status === 'SUSPENDED' && plans.some(p => p.slug === s.product),
+  );
   const commercialActive = subscriptions.find(s =>
     !isInternalProduct(s.product) && validHistorySubscription(s, now) && plans.some(p => p.slug === s.product),
   );
@@ -46,6 +49,19 @@ export async function resolveAccountEntitlement(userId: string): Promise<Account
     s.product === trialProduct
     && validHistorySubscription(s, now),
   );
+
+  if (commercialSuspended) {
+    const plan = plans.find(p => p.slug === commercialSuspended.product);
+    return {
+      level: 'FREE',
+      planLabel: planDisplayName(commercialSuspended.product, plan?.title),
+      statusLabel: 'تعلیق‌شده',
+      expiresAt: commercialSuspended.expiresAt,
+      historyDays: 1,
+      owned: capabilityRowsFor('FREE', 1),
+      upgrade: upgradePreview('FREE'),
+    };
+  }
 
   if (commercialActive) {
     const plan = plans.find(p => p.slug === commercialActive.product);

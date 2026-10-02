@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import {
   analysisFeedbackInput,
+  feedbackNewAvailability,
   getAnalysisFeedback,
   saveAnalysisFeedback,
 } from '@/server/analysis-engagement';
@@ -23,9 +24,19 @@ export async function GET(request: Request) {
   const schemaVersion = url.searchParams.get('schemaVersion') ?? '';
   try {
     await ensureHistorySchema().catch(() => undefined);
-    const feedback = await getAnalysisFeedback(userId, reportId, schemaVersion);
+    const [feedback, availability] = await Promise.all([
+      getAnalysisFeedback(userId, reportId, schemaVersion),
+      feedbackNewAvailability(userId),
+    ]);
     return NextResponse.json(
-      { feedback: feedback ?? null },
+      {
+        feedback: feedback
+          ? { rating: feedback.rating, comment: feedback.comment, updatedAt: feedback.updatedAt }
+          : null,
+        nextAllowedAt: availability.nextAllowedAt,
+        canCreateNew: availability.allowed,
+        cooldownHours: availability.cooldownHours,
+      },
       { headers: { 'Cache-Control': 'private, no-store' } },
     );
   } catch {
@@ -49,9 +60,23 @@ export async function POST(request: Request) {
   }
   try {
     await ensureHistorySchema().catch(() => undefined);
-    const feedback = await saveAnalysisFeedback(userId, parsed.data);
+    const result = await saveAnalysisFeedback(userId, parsed.data);
+    if (!result.ok) {
+      return NextResponse.json(
+        {
+          error: 'فاصلهٔ مجاز بین بازخوردهای جدید هنوز تمام نشده است.',
+          nextAllowedAt: result.nextAllowedAt.toISOString(),
+          retryAfterSec: result.retryAfterSec,
+        },
+        { status: 429, headers: { 'Retry-After': String(result.retryAfterSec) } },
+      );
+    }
     return NextResponse.json(
-      { feedback, saved: true },
+      {
+        feedback: result.feedback,
+        saved: true,
+        mode: result.mode,
+      },
       { headers: { 'Cache-Control': 'private, no-store' } },
     );
   } catch {

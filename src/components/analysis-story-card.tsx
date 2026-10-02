@@ -26,7 +26,7 @@ export function AnalysisStoryCardButton({
   report: MarketViewReport;
   planLevel?: AccessLevel | null;
   planLabel?: string | null;
-  planStatus?: 'فعال' | 'آزمایشی' | 'رایگان' | 'در انتظار پرداخت' | null;
+  planStatus?: 'فعال' | 'آزمایشی' | 'رایگان' | 'در انتظار پرداخت' | 'تعلیق‌شده' | null;
   showPlanBadge?: boolean;
   testDataLabel?: string | null;
 }) {

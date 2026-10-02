@@ -1209,3 +1209,29 @@ html[data-theme='light'] .market-view__watermark{opacity:.13;color:var(--text-pr
     font-size:16px!important;
   }
 }
+
+/* Admin customers / feedback / datetime picker */
+.admin-table-wrap{overflow:auto;margin:16px 0}
+.admin-table{width:100%;border-collapse:collapse;font-size:13px}
+.admin-table th,.admin-table td{padding:12px 10px;border-bottom:1px solid var(--border-subtle);text-align:right;vertical-align:top}
+.admin-table th{color:var(--text-muted);font-weight:600;font-size:11px}
+.admin-filter-row{display:flex;flex-wrap:wrap;gap:12px;align-items:end}
+.admin-filter-row label{display:grid;gap:6px;font-size:11px;color:var(--text-secondary)}
+.admin-pager{display:flex;gap:12px;align-items:center;justify-content:center;margin:16px 0}
+.customer-access{display:grid;gap:16px}
+.customer-access__form{display:grid;gap:14px}
+.customer-access__form label{display:grid;gap:6px;font-size:12px;color:var(--text-secondary)}
+.customer-access__actions{display:flex;flex-wrap:wrap;gap:10px}
+.customer-access__expires{display:grid;gap:8px}
+.customer-access__expires-label{margin:0;font:700 14px Vazirmatn;color:var(--text-primary)}
+.customer-access__preview{display:grid;gap:8px}
+.dt-picker{display:grid;gap:14px;padding:8px 16px 18px}
+.dt-picker__hint{margin:0;font-size:12px;color:var(--text-muted)}
+.dt-picker__preview{margin:0;font:700 15px Vazirmatn;color:var(--text-primary)}
+.dt-picker__grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.dt-picker__grid label{display:grid;gap:6px;font-size:11px;color:var(--text-secondary)}
+.dt-picker__grid input,.dt-picker__shortcuts .button,.dt-picker__actions .button{min-height:44px}
+.dt-picker__shortcuts,.dt-picker__actions{display:flex;flex-wrap:wrap;gap:8px}
+.market-view__feedback-saved{display:grid;gap:10px;justify-items:start}
+.market-view__feedback-edit{min-height:44px}
+.ds-overlay__close{min-width:44px;min-height:44px}

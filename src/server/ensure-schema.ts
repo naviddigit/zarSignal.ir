@@ -127,6 +127,112 @@ const statements = [
         ON DELETE CASCADE ON UPDATE CASCADE;
     END IF;
   END $$`,
+  `ALTER TABLE "AnalysisFeedback" ADD COLUMN IF NOT EXISTS "reviewedAt" TIMESTAMP(3)`,
+  `ALTER TABLE "AnalysisFeedback" ADD COLUMN IF NOT EXISTS "reviewedBy" TEXT`,
+  `CREATE INDEX IF NOT EXISTS "AnalysisFeedback_reviewedAt_idx" ON "AnalysisFeedback"("reviewedAt")`,
+  `CREATE TABLE IF NOT EXISTS "MarketChangeAlert" (
+    "id" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "conditionType" TEXT NOT NULL,
+    "symbol" TEXT NOT NULL,
+    "unit" TEXT,
+    "direction" TEXT NOT NULL,
+    "threshold" DECIMAL(24,8) NOT NULL,
+    "channel" TEXT NOT NULL DEFAULT 'IN_APP',
+    "status" TEXT NOT NULL DEFAULT 'ACTIVE',
+    "armed" BOOLEAN NOT NULL DEFAULT true,
+    "expiresAt" TIMESTAMP(3),
+    "lastFiredAt" TIMESTAMP(3),
+    "lastEvaluatedAt" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    CONSTRAINT "MarketChangeAlert_pkey" PRIMARY KEY ("id")
+  )`,
+  `CREATE TABLE IF NOT EXISTS "MarketAlertEvent" (
+    "id" TEXT NOT NULL,
+    "alertId" TEXT NOT NULL,
+    "edgeKey" TEXT NOT NULL,
+    "observedAt" TIMESTAMP(3) NOT NULL,
+    "metricValue" DECIMAL(24,8) NOT NULL,
+    "message" TEXT NOT NULL,
+    "deliveryStatus" TEXT NOT NULL DEFAULT 'RECORDED',
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "MarketAlertEvent_pkey" PRIMARY KEY ("id")
+  )`,
+  `CREATE TABLE IF NOT EXISTS "InAppNotification" (
+    "id" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "title" TEXT NOT NULL,
+    "body" TEXT NOT NULL,
+    "href" TEXT,
+    "kind" TEXT NOT NULL DEFAULT 'MARKET_CHANGE',
+    "readAt" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "InAppNotification_pkey" PRIMARY KEY ("id")
+  )`,
+  `CREATE TABLE IF NOT EXISTS "UserMarketVisitBaseline" (
+    "id" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "scope" TEXT NOT NULL,
+    "observedAt" TIMESTAMP(3) NOT NULL,
+    "metricsJson" JSONB NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    CONSTRAINT "UserMarketVisitBaseline_pkey" PRIMARY KEY ("id")
+  )`,
+  `CREATE TABLE IF NOT EXISTS "AdminAccessAudit" (
+    "id" TEXT NOT NULL,
+    "actor" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "action" TEXT NOT NULL,
+    "reason" TEXT,
+    "previousValue" JSONB NOT NULL,
+    "nextValue" JSONB NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "AdminAccessAudit_pkey" PRIMARY KEY ("id")
+  )`,
+  `CREATE TABLE IF NOT EXISTS "RateLimitBucket" (
+    "id" TEXT NOT NULL,
+    "nextAllowedAt" TIMESTAMP(3) NOT NULL,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    CONSTRAINT "RateLimitBucket_pkey" PRIMARY KEY ("id")
+  )`,
+  `CREATE INDEX IF NOT EXISTS "MarketChangeAlert_status_armed_expiresAt_idx" ON "MarketChangeAlert"("status", "armed", "expiresAt")`,
+  `CREATE INDEX IF NOT EXISTS "MarketChangeAlert_userId_status_idx" ON "MarketChangeAlert"("userId", "status")`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS "MarketAlertEvent_alertId_edgeKey_key" ON "MarketAlertEvent"("alertId", "edgeKey")`,
+  `CREATE INDEX IF NOT EXISTS "InAppNotification_userId_createdAt_idx" ON "InAppNotification"("userId", "createdAt" DESC)`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS "UserMarketVisitBaseline_userId_scope_key" ON "UserMarketVisitBaseline"("userId", "scope")`,
+  `CREATE INDEX IF NOT EXISTS "AdminAccessAudit_userId_createdAt_idx" ON "AdminAccessAudit"("userId", "createdAt" DESC)`,
+  `DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'MarketChangeAlert_userId_fkey') THEN
+      ALTER TABLE "MarketChangeAlert" ADD CONSTRAINT "MarketChangeAlert_userId_fkey"
+        FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+    END IF;
+  END $$`,
+  `DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'MarketAlertEvent_alertId_fkey') THEN
+      ALTER TABLE "MarketAlertEvent" ADD CONSTRAINT "MarketAlertEvent_alertId_fkey"
+        FOREIGN KEY ("alertId") REFERENCES "MarketChangeAlert"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+    END IF;
+  END $$`,
+  `DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'InAppNotification_userId_fkey') THEN
+      ALTER TABLE "InAppNotification" ADD CONSTRAINT "InAppNotification_userId_fkey"
+        FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+    END IF;
+  END $$`,
+  `DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'UserMarketVisitBaseline_userId_fkey') THEN
+      ALTER TABLE "UserMarketVisitBaseline" ADD CONSTRAINT "UserMarketVisitBaseline_userId_fkey"
+        FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+    END IF;
+  END $$`,
+  `DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'AdminAccessAudit_userId_fkey') THEN
+      ALTER TABLE "AdminAccessAudit" ADD CONSTRAINT "AdminAccessAudit_userId_fkey"
+        FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+    END IF;
+  END $$`,
 ] as const;
 
 const migrationMarkers = [
@@ -134,6 +240,8 @@ const migrationMarkers = [
   '20260921190000_symbol_history_bars',
   '20261001180000_user_password_hash',
   '20261002023000_analysis_engagement',
+  '20261002140000_market_change_alerts',
+  '20261002160000_admin_customer_feedback',
 ] as const;
 
 async function markMigration(name: string) {

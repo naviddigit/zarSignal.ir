@@ -20,20 +20,24 @@ export function AnalysisEngagementPanel({
   signedIn: boolean;
   planLevel?: AccessLevel | null;
   planLabel?: string | null;
-  planStatus?: 'فعال' | 'آزمایشی' | 'رایگان' | 'در انتظار پرداخت' | null;
+  planStatus?: 'فعال' | 'آزمایشی' | 'رایگان' | 'در انتظار پرداخت' | 'تعلیق‌شده' | null;
 }) {
   const [readCount, setReadCount] = useState<number | null>(null);
   const [readError, setReadError] = useState<string | null>(null);
   const [rating, setRating] = useState<number | null>(null);
   const [comment, setComment] = useState('');
+  const [editing, setEditing] = useState(false);
+  const [hasSaved, setHasSaved] = useState(false);
   const [feedbackStatus, setFeedbackStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [feedbackError, setFeedbackError] = useState<string | null>(null);
+  const [nextAllowedAt, setNextAllowedAt] = useState<string | null>(null);
   const [shareStatus, setShareStatus] = useState<'idle' | 'shared' | 'copied' | 'error'>('idle');
   const [shareError, setShareError] = useState<string | null>(null);
   const recordedKey = useRef<string | null>(null);
   const submitting = useRef(false);
 
   const engagementKey = `${report.reportId}:${report.schemaVersion}`;
+  const collapsed = hasSaved && !editing;
 
   useEffect(() => {
     if (!signedIn) {
@@ -41,6 +45,8 @@ export function AnalysisEngagementPanel({
       setReadError(null);
       setRating(null);
       setComment('');
+      setHasSaved(false);
+      setEditing(false);
       return;
     }
     let cancelled = false;
@@ -51,11 +57,22 @@ export function AnalysisEngagementPanel({
           { credentials: 'same-origin', cache: 'no-store' },
         );
         if (!cancelled && existing.ok) {
-          const data = await existing.json() as { feedback?: { rating: number; comment: string | null } | null };
+          const data = await existing.json() as {
+            feedback?: { rating: number; comment: string | null } | null;
+            nextAllowedAt?: string | null;
+          };
           if (data.feedback) {
             setRating(data.feedback.rating);
             setComment(data.feedback.comment ?? '');
+            setHasSaved(true);
+            setEditing(false);
+            setFeedbackStatus('saved');
+          } else {
+            setHasSaved(false);
+            setEditing(false);
+            setFeedbackStatus('idle');
           }
+          setNextAllowedAt(data.nextAllowedAt ?? null);
         }
       } catch { /* quiet */ }
     })();
@@ -120,10 +137,21 @@ export function AnalysisEngagementPanel({
           comment: comment.trim() || null,
         }),
       });
+      const data = await res.json().catch(() => null) as {
+        error?: string;
+        nextAllowedAt?: string;
+        feedback?: { rating: number; comment: string | null };
+      } | null;
       if (!res.ok) {
-        const data = await res.json().catch(() => null) as { error?: string } | null;
+        if (data?.nextAllowedAt) setNextAllowedAt(data.nextAllowedAt);
         throw new Error(data?.error ?? 'ذخیره نشد');
       }
+      if (data?.feedback) {
+        setRating(data.feedback.rating);
+        setComment(data.feedback.comment ?? '');
+      }
+      setHasSaved(true);
+      setEditing(false);
       setFeedbackStatus('saved');
     } catch (err) {
       setFeedbackStatus('error');
@@ -172,69 +200,99 @@ export function AnalysisEngagementPanel({
       ) : null}
 
       {signedIn ? (
-        <form
-          className="market-view__feedback"
-          onSubmit={event => {
-            event.preventDefault();
-            void submitFeedback();
-          }}
-        >
-          <p className="market-view__feedback-prompt" id="analysis-feedback-label" data-follow-anchor>
-            این تحلیل چقدر برایتان روشن و مفید بود؟
-          </p>
-          <div className="market-view__rating" role="group" aria-labelledby="analysis-feedback-label">
-            {RATING_LABELS.map((label, index) => {
-              const value = index + 1;
-              return (
-                <label key={value} className={`market-view__rating-option${rating === value ? ' is-selected' : ''}`}>
-                  <input
-                    type="radio"
-                    name="analysis-rating"
-                    value={value}
-                    checked={rating === value}
-                    onChange={() => {
-                      setRating(value);
-                      setFeedbackStatus('idle');
-                    }}
-                  />
-                  <span aria-hidden="true">{new Intl.NumberFormat('fa-IR').format(value)}</span>
-                  <span className="visually-hidden">{value} از ۵ — {label}</span>
-                </label>
-              );
-            })}
-          </div>
-          <label className="market-view__feedback-comment">
-            <span className="visually-hidden">بازخورد اختیاری</span>
-            <textarea
-              value={comment}
-              maxLength={500}
-              rows={2}
-              placeholder="بازخورد اختیاری (حداکثر ۵۰۰ نویسه)"
-              onChange={event => {
-                setComment(event.target.value);
-                setFeedbackStatus('idle');
+        <div className="market-view__feedback">
+          {collapsed ? (
+            <div className="market-view__feedback-saved" role="status">
+              <p className="market-view__feedback-status is-ok">
+                <Check size={16} aria-hidden />
+                بازخورد شما ثبت شد
+                {rating != null ? ` · امتیاز ${new Intl.NumberFormat('fa-IR').format(rating)} از ۵` : ''}
+              </p>
+              <button
+                type="button"
+                className="button small-button market-view__feedback-edit"
+                onClick={() => {
+                  setEditing(true);
+                  setFeedbackStatus('idle');
+                }}
+              >
+                ویرایش بازخورد
+              </button>
+            </div>
+          ) : (
+            <form
+              onSubmit={event => {
+                event.preventDefault();
+                void submitFeedback();
               }}
-            />
-          </label>
-          <div className="market-view__engagement-actions">
-            <button
-              type="submit"
-              className="button small-button"
-              disabled={rating == null || feedbackStatus === 'saving'}
             >
-              {feedbackStatus === 'saving' ? 'در حال ارسال…' : 'ارسال بازخورد'}
-            </button>
-            <button type="button" className="button small-button market-view__share-btn" onClick={() => void shareSummary()}>
-              {shareStatus === 'copied' ? <Copy size={16} aria-hidden /> : <Share2 size={16} aria-hidden />}
-              اشتراک خلاصه
-            </button>
-          </div>
-          {feedbackStatus === 'saved' ? (
-            <p className="market-view__feedback-status is-ok" role="status">بازخورد ذخیره شد؛ در صورت نیاز می‌توانید ویرایش کنید.</p>
-          ) : null}
-          {feedbackStatus === 'error' && feedbackError ? (
-            <p className="market-view__feedback-status is-error" role="alert">{feedbackError}</p>
-          ) : null}
+              <p className="market-view__feedback-prompt" id="analysis-feedback-label" data-follow-anchor>
+                این تحلیل چقدر برایتان روشن و مفید بود؟
+              </p>
+              <div className="market-view__rating" role="group" aria-labelledby="analysis-feedback-label">
+                {RATING_LABELS.map((label, index) => {
+                  const value = index + 1;
+                  return (
+                    <label key={value} className={`market-view__rating-option${rating === value ? ' is-selected' : ''}`}>
+                      <input
+                        type="radio"
+                        name="analysis-rating"
+                        value={value}
+                        checked={rating === value}
+                        onChange={() => {
+                          setRating(value);
+                          setFeedbackStatus('idle');
+                        }}
+                      />
+                      <span aria-hidden="true">{new Intl.NumberFormat('fa-IR').format(value)}</span>
+                      <span className="visually-hidden">{value} از ۵ — {label}</span>
+                    </label>
+                  );
+                })}
+              </div>
+              <label className="market-view__feedback-comment">
+                <span className="visually-hidden">بازخورد اختیاری</span>
+                <textarea
+                  value={comment}
+                  maxLength={500}
+                  rows={2}
+                  placeholder="بازخورد اختیاری (حداکثر ۵۰۰ نویسه)"
+                  onChange={event => {
+                    setComment(event.target.value);
+                    setFeedbackStatus('idle');
+                  }}
+                />
+              </label>
+              <div className="market-view__engagement-actions">
+                <button
+                  type="submit"
+                  className="button small-button"
+                  disabled={rating == null || feedbackStatus === 'saving'}
+                >
+                  {feedbackStatus === 'saving' ? 'در حال ارسال…' : hasSaved ? 'ذخیرهٔ ویرایش' : 'ارسال بازخورد'}
+                </button>
+                {hasSaved ? (
+                  <button type="button" className="button small-button" onClick={() => setEditing(false)}>
+                    انصراف
+                  </button>
+                ) : null}
+                <button type="button" className="button small-button market-view__share-btn" onClick={() => void shareSummary()}>
+                  {shareStatus === 'copied' ? <Copy size={16} aria-hidden /> : <Share2 size={16} aria-hidden />}
+                  اشتراک خلاصه
+                </button>
+              </div>
+              {feedbackStatus === 'error' && feedbackError ? (
+                <p className="market-view__feedback-status is-error" role="alert">{feedbackError}</p>
+              ) : null}
+              {!hasSaved && nextAllowedAt && new Date(nextAllowedAt) > new Date() ? (
+                <p className="market-view__feedback-status" role="status">
+                  بازخورد جدید تا{' '}
+                  {new Intl.DateTimeFormat('fa-IR', { timeZone: 'Asia/Tehran', dateStyle: 'short', timeStyle: 'short' }).format(new Date(nextAllowedAt))}
+                  {' '}مجاز نیست؛ ویرایش همین گزارش محدود نیست.
+                </p>
+              ) : null}
+            </form>
+          )}
           {shareStatus === 'shared' ? (
             <p className="market-view__feedback-status is-ok" role="status"><Check size={14} aria-hidden /> خلاصه ارسال شد.</p>
           ) : null}
@@ -244,7 +302,7 @@ export function AnalysisEngagementPanel({
           {shareStatus === 'error' && shareError ? (
             <p className="market-view__feedback-status is-error" role="alert">{shareError}</p>
           ) : null}
-        </form>
+        </div>
       ) : (
         <div className="market-view__share" data-follow-anchor>
           <button type="button" className="button small-button market-view__share-btn" onClick={() => void shareSummary()}>
