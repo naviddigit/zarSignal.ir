@@ -1319,3 +1319,6 @@ html[data-theme='light'] .market-view__watermark{opacity:.13;color:var(--text-pr
   .alerts-list__item{align-items:flex-start}
   .alerts-list__cancel{margin-inline-start:auto}
 }
+
+.form-error{margin:12px 0 0;padding:12px 14px;border-radius:12px;border:1px solid color-mix(in srgb,var(--danger) 35%,var(--border-subtle));background:color-mix(in srgb,var(--danger) 8%,var(--surface-card));color:var(--danger);font-size:13px;line-height:1.75;max-width:100%;overflow-wrap:anywhere;word-break:break-word}
+
