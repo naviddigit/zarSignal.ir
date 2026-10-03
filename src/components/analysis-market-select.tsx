@@ -1,21 +1,18 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { instruments } from '@/lib/market';
 
 export function AnalysisMarketSelect({ current }: { current?: string | null }) {
   const active = current?.toUpperCase() ?? null;
-  const router = useRouter();
   return (
     <nav className="analysis-market-select" aria-label="انتخاب تحلیل">
-      <label htmlFor="analysis-market">بازار</label>
-      <select id="analysis-market" className="ds-input" value={active ?? ''}
-        onChange={event => router.push(event.target.value ? `/analysis/${event.target.value.toLowerCase()}` : '/analysis')}>
-        <option value="">کل بازار</option>
+      <div className="analysis-market-select__track">
+        <Link className="analysis-market-select__item" href="/analysis" aria-current={!active ? 'page' : undefined}>کل بازار</Link>
         {instruments.map(asset => (
-          <option key={asset.symbol} value={asset.symbol}>{asset.short}</option>
+          <Link key={asset.symbol} className="analysis-market-select__item" href={`/analysis/${asset.symbol.toLowerCase()}`} aria-current={active === asset.symbol ? 'page' : undefined}>{asset.short}</Link>
         ))}
-      </select>
+      </div>
     </nav>
   );
 }

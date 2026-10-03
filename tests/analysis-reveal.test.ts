@@ -5,6 +5,7 @@ import {
   completedRevealCount,
   isRevealStepActive,
   isRevealStepMounted,
+  revealStepDelay,
 } from '../src/lib/analysis-reveal';
 import { buildAnalysisRevealSteps, simulateRevealTimeline } from '../src/lib/analysis-reveal-plan';
 import { canOfferConfirmationWatch, engineReadinessForSymbol } from '../src/lib/analysis-engine-status';
@@ -31,6 +32,12 @@ test('reduced-motion mounts every reveal step immediately', () => {
     total: 6,
     reducedMotion: true,
   }), 6);
+});
+
+test('a short admin delay cannot overlap successive card entrances', () => {
+  assert.ok(revealStepDelay(80) > REVEAL_FADE_MS);
+  assert.ok(revealStepDelay(220) > REVEAL_FADE_MS);
+  assert.equal(revealStepDelay(1800), 1800);
 });
 
 test('reveal plan drops trivial typed intros; evidence table is its own fade step', () => {

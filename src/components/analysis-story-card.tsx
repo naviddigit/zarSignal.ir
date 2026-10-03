@@ -1,7 +1,9 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { ImageDown, Share2 } from 'lucide-react';
+import { ImageDown, Share2, Download, Sparkles } from 'lucide-react';
+import { Select } from '@/components/ui/select';
+import { OverlaySheet } from '@/components/ui/overlay-sheet';
 import type { MarketViewReport } from '@/lib/market-view-report';
 import {
   assertStoryPayloadPublic,
@@ -101,8 +103,10 @@ export function AnalysisStoryCardButton({
 
   return (
     <div className="market-view__story" data-follow-keep>
-      <button type="button" className="button small-button" aria-expanded={opened} onClick={() => setOpened(value => !value)}>ساخت استوری</button>
-      {opened ? <>
+      <button type="button" className="analysis-action" aria-haspopup="dialog" aria-expanded={opened} onClick={() => setOpened(true)}><Sparkles size={18} aria-hidden /> ساخت استوری</button>
+      <OverlaySheet open={opened} title="استودیوی استوری" onClose={() => setOpened(false)}>
+      <div className="analysis-story-studio">
+      <p className="market-view__share-note">قالب دلخواهتان را انتخاب کنید؛ یک خلاصهٔ تصویری با برند زرسیگنال و لینک عمومی بازار بسازید.</p>
       <div className="market-view__story-templates" role="group" aria-label="قالب استوری">
         {STORY_TEMPLATES.map(id => (
           <button
@@ -117,12 +121,13 @@ export function AnalysisStoryCardButton({
               setStatus('idle');
             }}
           >
+            <span className={`analysis-story-swatch is-${id}`} aria-hidden="true"><i /><i /><i /></span>
             {STORY_TEMPLATE_LABELS[id]}
           </button>
         ))}
       </div>
-      <label>تم تصویر <select className="ds-input" disabled={status === 'building'} value={dark ? 'dark' : 'light'} onChange={event => { setDark(event.target.value === 'dark'); setStatus('idle'); }}><option value="dark">تیره طلایی</option><option value="light">روشن</option></select></label>
-      {template === 'studio_light' ? <label>دارایی <select className="ds-input" disabled={status === 'building'} value={focus} onChange={event => { setFocus(Number(event.target.value)); setStatus('idle'); }}>{buildStoryPublicPayload(report, 'https://www.zarsignal.ir').metrics.map((metric, index) => <option key={index} value={index}>{metric.label}</option>)}</select></label> : null}
+      <Select label="تم تصویر" disabled={status === 'building'} value={dark ? 'dark' : 'light'} onChange={value => { setDark(value === 'dark'); setStatus('idle'); }} options={[{value:'dark',label:'شب طلایی'},{value:'light',label:'روشن و نقره‌ای'}]} />
+      {template === 'studio_light' ? <Select label="دارایی" disabled={status === 'building'} value={String(focus)} onChange={value => { setFocus(Number(value)); setStatus('idle'); }} options={buildStoryPublicPayload(report, 'https://www.zarsignal.ir').metrics.map((metric, index) => ({value:String(index),label:metric.label}))} /> : null}
       <button
         type="button"
         className="button small-button market-view__story-btn"
@@ -130,7 +135,7 @@ export function AnalysisStoryCardButton({
         disabled={status === 'building'}
       >
         <ImageDown size={16} aria-hidden />
-        {status === 'building' ? 'در حال ساخت…' : 'پیش‌نمایش و ساخت PNG'}
+        {status === 'building' ? 'در حال ساخت…' : 'ساخت پیش‌نمایش'}
       </button>
       <p className="market-view__share-note">
         قالب استوری ۱۰۸۰×۱۹۲۰ · بدون دادهٔ خصوصی حساب.
@@ -143,14 +148,15 @@ export function AnalysisStoryCardButton({
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <div className="market-view__story-preview"><img src={previewUrl} alt={`پیش‌نمایش استوری ${STORY_TEMPLATE_LABELS[template]}`} width={180} height={320} /></div>
           <div className="market-view__engagement-actions">
-            <button type="button" className="button small-button" onClick={download}>دانلود PNG</button>
-            <button type="button" className="button small-button" onClick={() => void shareFile()}>
-              <Share2 size={16} aria-hidden /> اشتراک فایل
+            <button type="button" className="analysis-action" onClick={download}><Download size={18} aria-hidden /> ذخیره تصویر</button>
+            <button type="button" className="analysis-icon-action" title="اشتراک تصویر" aria-label="اشتراک تصویر" onClick={() => void shareFile()}>
+              <Share2 size={18} aria-hidden />
             </button>
           </div>
         </div>
       ) : null}
-      </> : null}
+      </div>
+      </OverlaySheet>
     </div>
   );
 }

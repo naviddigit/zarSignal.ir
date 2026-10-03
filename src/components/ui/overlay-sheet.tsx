@@ -60,6 +60,7 @@ export function OverlaySheet({ open, title, onClose, children }: OverlaySheetPro
   const [rendered, setRendered] = useState(false);
   const [closing, setClosing] = useState(false);
   const wasOpen = useRef(false);
+  const panelRef = useRef<HTMLDivElement>(null);
 
   onCloseRef.current = onClose;
 
@@ -85,13 +86,25 @@ export function OverlaySheet({ open, title, onClose, children }: OverlaySheetPro
   useEffect(() => {
     if (!rendered) return;
     lockPageScroll();
+    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    panelRef.current?.focus();
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onCloseRef.current();
+      const panels = document.querySelectorAll('.ds-overlay__panel');
+      if (panels[panels.length - 1] !== panelRef.current) return;
+      if (event.key === 'Escape') { event.preventDefault(); onCloseRef.current(); }
+      if (event.key === 'Tab') {
+        const items = Array.from(panelRef.current?.querySelectorAll<HTMLElement>('button:not(:disabled), a[href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex="0"]') ?? []).filter(item => item.getClientRects().length);
+        const first = items[0]; const last = items[items.length - 1];
+        if (!first) { event.preventDefault(); return; }
+        if (event.shiftKey && (document.activeElement === first || document.activeElement === panelRef.current)) { event.preventDefault(); last.focus(); }
+        else if (!event.shiftKey && (document.activeElement === last || document.activeElement === panelRef.current)) { event.preventDefault(); first.focus(); }
+      }
     };
     window.addEventListener('keydown', onKey);
     return () => {
       window.removeEventListener('keydown', onKey);
       unlockPageScroll();
+      if (previousFocus?.isConnected) previousFocus.focus({ preventScroll: true });
     };
   }, [rendered]);
 
@@ -100,7 +113,7 @@ export function OverlaySheet({ open, title, onClose, children }: OverlaySheetPro
   return createPortal(
     <div className={`ds-overlay-layer${closing ? ' is-closing' : ''}`} role="presentation">
       <button type="button" className="ds-overlay__backdrop" aria-label="بستن" onClick={() => onCloseRef.current()} />
-      <div className="ds-overlay__panel" role="dialog" aria-modal="true" aria-labelledby={titleId}>
+      <div ref={panelRef} tabIndex={-1} className="ds-overlay__panel" role="dialog" aria-modal="true" aria-labelledby={titleId}>
         <div className="ds-overlay__handle" aria-hidden="true" />
         <header className="ds-overlay__header">
           <strong id={titleId}>{title}</strong>

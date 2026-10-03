@@ -28,6 +28,7 @@ import {
 } from '@/lib/market-view-typing';
 import {
   isRevealStepActive,
+  revealStepDelay,
   isRevealStepMounted,
   type RevealPlanStep,
 } from '@/lib/analysis-reveal';
@@ -237,10 +238,17 @@ function useReadingFollow(
   const settleTimer = useRef<number | null>(null);
   const lastAlignH = useRef(0);
   const observedEl = useRef<HTMLElement | null>(null);
+  const scrollFrame = useRef<number | null>(null);
+  const scrollDestination = useRef(0);
 
   const setFollow = useCallback((next: boolean) => {
     followingRef.current = next;
     setFollowing(next);
+    if (!next && scrollFrame.current != null) {
+      window.cancelAnimationFrame(scrollFrame.current);
+      scrollFrame.current = null;
+      programmatic.current = false;
+    }
   }, []);
 
   useEffect(() => {
@@ -256,13 +264,25 @@ function useReadingFollow(
     const rect = target.getBoundingClientRect();
     // Keep the live edge of the revealing text near mid-viewport so reading
     // starts mid-page and continues through the end of the narrative.
-    const focus = window.innerHeight * 0.48;
+    const focus = window.innerHeight * 0.76;
     const delta = rect.bottom - focus;
-    if (Math.abs(delta) < 6) return;
+    // Never pull earlier text upwards just because a smaller next section mounted.
+    if (delta < 6) return;
+    scrollDestination.current = window.scrollY + delta;
+    if (scrollFrame.current != null) return;
     programmatic.current = true;
-    // Resize-driven settles use auto to avoid smooth-scroll ↔ layout feedback loops.
-    window.scrollBy({ top: delta, behavior: smooth && !reducedMotion ? 'smooth' : 'instant' });
-    window.setTimeout(() => { programmatic.current = false; }, smooth && !reducedMotion ? 320 : 80);
+    const tick = () => {
+      const limit = document.documentElement.scrollHeight - window.innerHeight;
+      const remaining = Math.min(scrollDestination.current, limit) - window.scrollY;
+      if (!followingRef.current || remaining < 1) {
+        scrollFrame.current = null;
+        programmatic.current = false;
+        return;
+      }
+      window.scrollBy({ top: Math.max(1, remaining * (smooth ? .16 : .22)), behavior: 'instant' });
+      scrollFrame.current = window.requestAnimationFrame(tick);
+    };
+    scrollFrame.current = window.requestAnimationFrame(tick);
   }, [anchorRef, reducedMotion]);
 
   const scheduleAlign = useCallback((smooth = false) => {
@@ -361,6 +381,8 @@ function useReadingFollow(
       document.removeEventListener('selectionchange', onSelect);
       document.removeEventListener('pointerdown', onPointer, true);
       if (raf.current != null) window.cancelAnimationFrame(raf.current);
+      if (scrollFrame.current != null) window.cancelAnimationFrame(scrollFrame.current);
+      scrollFrame.current = null;
       raf.current = null;
     };
   }, [setFollow]);
@@ -543,6 +565,7 @@ function buildRevealPlan(
   },
   density: 'brief' | 'full' = 'full',
   onEngagementReady?: () => void,
+  afterReport: { id: string; node: ReactNode }[] = [],
 ): { items: PlanItem[]; meta: RevealPlanStep[] } {
   const items: PlanItem[] = [];
 
@@ -608,6 +631,11 @@ function buildRevealPlan(
       ),
     });
 
+  if (pageExtras) {
+    items.push({ id: 'page-extras', kind: 'fade', node: <div className="market-view__page-extras">{pageExtras}</div> });
+  }
+  afterReport.forEach(item => items.push({ ...item, kind: 'fade' }));
+
   items.push({
     id: 'engagement',
     kind: 'fade',
@@ -623,9 +651,6 @@ function buildRevealPlan(
     ),
   });
 
-  if (pageExtras) {
-    items.push({ id: 'page-extras', kind: 'fade', node: <div className="market-view__page-extras">{pageExtras}</div> });
-  }
 
 
   return {
@@ -639,6 +664,7 @@ export function MarketViewReportView({
   canRefresh,
   trialCta,
   pageExtras,
+  afterReport,
   signedIn = false,
   planLevel = null,
   planLabel = null,
@@ -649,6 +675,7 @@ export function MarketViewReportView({
   canRefresh: boolean;
   trialCta?: ReactNode;
   pageExtras?: ReactNode;
+  afterReport?: { id: string; node: ReactNode }[];
   signedIn?: boolean;
   planLevel?: import('@/lib/capabilities').AccessLevel | null;
   planLabel?: string | null;
@@ -675,8 +702,8 @@ export function MarketViewReportView({
       level: planLevel,
       label: planLabel,
       status: planStatus,
-    }, density, onEngagementReady),
-    [report, trialCta, pageExtras, signedIn, planLevel, planLabel, planStatus, density, onEngagementReady],
+    }, density, onEngagementReady, afterReport),
+    [report, trialCta, pageExtras, signedIn, planLevel, planLabel, planStatus, density, onEngagementReady, afterReport],
   );
 
   const [activeIndex, setActiveIndex] = useState(0);
@@ -740,7 +767,7 @@ export function MarketViewReportView({
     if (!activeStep || activeStep.kind !== 'fade') return;
     fadeTimer.current = window.setTimeout(() => {
       advance();
-    }, reading.sectionAppearMs);
+    }, revealStepDelay(reading.sectionAppearMs));
     return () => clearFade();
   }, [activeIndex, activeStep, reduced, plan.length, advance, clearFade, reportKey, reading.sectionAppearMs]);
 
@@ -750,7 +777,7 @@ export function MarketViewReportView({
   useEffect(() => {
     setFollowSettled(false);
     if (!revealDone || !engagementReady) return;
-    const timer = window.setTimeout(() => setFollowSettled(true), 500);
+    const timer = window.setTimeout(() => setFollowSettled(true), 900);
     return () => window.clearTimeout(timer);
   }, [revealDone, reportKey, engagementReady]);
   const followEnabled = !reduced && !followSettled;
@@ -961,7 +988,7 @@ export function MarketViewReportView({
             const keepEngagementFollow = item.id === 'engagement'
               && following
               && !followSettled;
-            const attachFadeFollow = (activeFade && item.id !== 'page-extras') || keepEngagementFollow;
+            const attachFadeFollow = activeFade || keepEngagementFollow;
             return (
               <RevealItem key={item.id}>
                 <div

@@ -79,19 +79,21 @@ export default async function AnalysisPage({ params, searchParams }: {
             <AnalysisTrialAccess trial={trial} symbol={symbol} error={query.trial} compact />
           ) : null
         )}
-      />
-      <details className="market-view__details"><summary>نمودار قیمت</summary>
+        afterReport={[
+          { id: 'price-chart', node: <details className="market-view__details"><summary>نمودار قیمت <span className="market-view__details-action">مشاهده جزئیات</span></summary>
       <section className="analysis-page__chart" aria-label="نمودار قیمت" data-follow-keep>
         <ChartWorkspace symbol={asset.symbol} compact hideMarketLink />
       </section>
-      </details>
-      <LastVisitChanges changes={lastVisit.changes} baselineAt={lastVisit.baselineAt} />
-      <nav className="analysis-page__tools" aria-label="ابزارهای مرتبط">
+      </details> },
+          ...(lastVisit.changes.length ? [{ id: 'last-visit', node: <LastVisitChanges changes={lastVisit.changes} baselineAt={lastVisit.baselineAt} /> }] : []),
+          { id: 'related-tools', node: <nav className="analysis-page__tools" aria-label="ابزارهای مرتبط">
         <Link href="/calculator">محاسبه</Link>
         <Link href="/alerts">هشدار</Link>
         <Link href={`/markets/${symbol}`}>قیمت</Link>
         <Link href="/methodology">روش</Link>
-      </nav>
+      </nav> },
+        ]}
+      />
     </main>
   );
 }

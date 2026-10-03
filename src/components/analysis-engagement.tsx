@@ -237,8 +237,8 @@ export function AnalysisEngagementPanel({
                   : 'ثبت بازخورد فعلاً ممکن نیست؛ دوباره تلاش کنید.'}
               </p>
               {feedbackReady && !nextAllowedAt ? <button type="button" className="text-link" onClick={() => setAvailabilityCheck(value => value + 1)}>تلاش دوباره</button> : null}
-              <button type="button" className="button small-button market-view__share-btn" onClick={() => void shareSummary()}>
-                <Share2 size={16} aria-hidden /> اشتراک خلاصه
+              <button type="button" className="analysis-icon-action" title="اشتراک خلاصه" aria-label="اشتراک خلاصه" onClick={() => void shareSummary()}>
+                <Share2 size={18} aria-hidden />
               </button>
             </div>
           ) : collapsed ? (
@@ -332,7 +332,7 @@ export function AnalysisEngagementPanel({
               <div className="market-view__engagement-actions">
                 <button
                   type="submit"
-                  className="button small-button"
+                  className="analysis-action"
                   disabled={rating == null || feedbackStatus === 'saving'}
                 >
                   {feedbackStatus === 'saving' ? 'در حال ارسال…' : hasSaved ? 'ذخیرهٔ ویرایش' : 'ارسال بازخورد'}
@@ -342,9 +342,8 @@ export function AnalysisEngagementPanel({
                     انصراف
                   </button>
                 ) : null}
-                <button type="button" className="button small-button market-view__share-btn" onClick={() => void shareSummary()}>
+                <button type="button" className="analysis-icon-action" title="اشتراک خلاصه" aria-label="اشتراک خلاصه" onClick={() => void shareSummary()}>
                   {shareStatus === 'copied' ? <Copy size={16} aria-hidden /> : <Share2 size={16} aria-hidden />}
-                  اشتراک
                 </button>
               </div>
               {feedbackStatus === 'error' && feedbackError ? (
@@ -362,9 +361,8 @@ export function AnalysisEngagementPanel({
         </div>
       ) : (
         <div className="market-view__share" data-follow-anchor>
-          <button type="button" className="button small-button market-view__share-btn" onClick={() => void shareSummary()}>
+          <button type="button" className="analysis-icon-action" title="اشتراک خلاصه" aria-label="اشتراک خلاصه" onClick={() => void shareSummary()}>
             {shareStatus === 'copied' ? <Copy size={16} aria-hidden /> : <Share2 size={16} aria-hidden />}
-            اشتراک خلاصه
           </button>
         </div>
       )}

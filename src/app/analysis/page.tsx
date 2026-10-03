@@ -73,15 +73,17 @@ export default async function MarketAnalysisPage({ searchParams }: { searchParam
             <AnalysisTrialAccess trial={trial} error={query.trial} compact />
           ) : null
         )}
-      />
-      <LastVisitChanges changes={lastVisit.changes} baselineAt={lastVisit.baselineAt} />
-      <nav className="analysis-page__tools" aria-label="ابزارهای مرتبط">
+        afterReport={[
+          ...(lastVisit.changes.length ? [{ id: 'last-visit', node: <LastVisitChanges changes={lastVisit.changes} baselineAt={lastVisit.baselineAt} /> }] : []),
+          { id: 'related-tools', node: <nav className="analysis-page__tools" aria-label="ابزارهای مرتبط">
         <Link href="/markets">نرخ‌ها</Link>
         <Link href="/calculator">محاسبه</Link>
         <Link href="/alerts">هشدار</Link>
         <Link href="/analysis/gold_melted">طلا</Link>
         {!fullAccess ? <Link href="/pricing">دسترسی کامل</Link> : null}
-      </nav>
+      </nav> },
+        ]}
+      />
     </main>
   );
 }

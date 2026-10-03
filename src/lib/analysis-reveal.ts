@@ -2,7 +2,12 @@
 
 export type AnalysisRevealPhase = 'typing' | 'fading' | 'done';
 
-export const REVEAL_FADE_MS = 300;
+export const REVEAL_FADE_MS = 560;
+
+/** Every card finishes its entrance before the next one mounts. */
+export function revealStepDelay(configuredMs: number) {
+  return Math.max(REVEAL_FADE_MS + 180, configuredMs);
+}
 
 export type RevealStepKind = 'type' | 'fade';
 
