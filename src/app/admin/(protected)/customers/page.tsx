@@ -25,8 +25,8 @@ export default async function AdminCustomersPage({
           <h1>مدیریت مشتری‌ها</h1>
           <p>جست‌وجو، ویرایش پروفایل، پلن و اعتبار دسترسی زمانی. سوابق پرداخت دست‌کاری نمی‌شوند.</p>
         </div>
-        <span className={`admin-badge ${dbError ? 'local' : 'connected'}`}>
-          {dbError ? 'دیتابیس در دسترس نیست' : 'PostgreSQL متصل'}
+        <span className={`ds-meta-chip ${dbError ? '' : 'is-ok'}`.trim()}>
+          {dbError ? 'دیتابیس قطع' : 'PostgreSQL متصل'}
         </span>
       </header>
 

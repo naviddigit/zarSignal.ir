@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useMemo, useState, useTransition } from 'react';
+import { AdminPerson } from '@/components/ui/admin-person';
 import { Input } from '@/components/ui/field';
 import { OverlaySheet } from '@/components/ui/overlay-sheet';
 import { formatTehranDateTime } from '@/lib/tehran-datetime';
@@ -73,85 +74,76 @@ export function CustomersWorkspace({ initialQuery, initialRows, dbError }: Props
 
   return (
     <>
-      <form className="admin-card customers-toolbar" method="get" action="/admin/customers">
-        <div className="admin-form-grid">
+      <section className="ds-data-panel">
+        <form className="ds-filter-bar" method="get" action="/admin/customers">
           <Input
-            label="جست‌وجو (ایمیل، نام، تلفن یا شناسه)"
+            label="جست‌وجو"
             name="q"
             value={query}
             onChange={event => setQuery(event.target.value)}
-            placeholder="user@example.com"
+            placeholder="ایمیل، نام، تلفن یا شناسه"
             dir="ltr"
-            fieldClassName="wide"
+            fieldClassName="ds-filter-bar__grow"
           />
-          <div className="ds-actions">
+          <div className="ds-filter-bar__actions">
             <button type="submit" className="button small-button">جست‌وجو</button>
-            {query ? (
-              <Link className="button small-button" href="/admin/customers">پاک کردن</Link>
-            ) : null}
+            {query ? <Link className="ds-ghost-btn" href="/admin/customers">پاک کردن</Link> : null}
           </div>
-        </div>
-      </form>
+        </form>
 
-      <section className="admin-card customers-panel">
-        <div className="customers-panel__head">
+        <div className="ds-data-toolbar">
           <div>
             <h2>فهرست مشتری‌ها</h2>
             <p>{dbError ? 'پایگاه داده در دسترس نیست.' : `${countLabel} نتیجه`}</p>
           </div>
           <div className="customers-view-toggle" role="group" aria-label="حالت نمایش">
-            <button
-              type="button"
-              className={view === 'list' ? 'is-active' : undefined}
-              onClick={() => setView('list')}
-            >
-              لیستی
-            </button>
-            <button
-              type="button"
-              className={view === 'grid' ? 'is-active' : undefined}
-              onClick={() => setView('grid')}
-            >
-              کارتی
-            </button>
+            <button type="button" className={view === 'list' ? 'is-active' : undefined} onClick={() => setView('list')}>لیستی</button>
+            <button type="button" className={view === 'grid' ? 'is-active' : undefined} onClick={() => setView('grid')}>کارتی</button>
           </div>
         </div>
 
         {dbError ? (
           <p className="form-error" role="alert">
-            اتصال PostgreSQL برقرار نیست؛ فهرست خوانده نشد. این به‌معنای خالی‌بودن مشتری‌ها نیست.
+            اتصال PostgreSQL برقرار نیست؛ فهرست خوانده نشد.
           </p>
         ) : rows.length === 0 ? (
-          <p className="customers-panel__empty">مشتری‌ای با این جست‌وجو یافت نشد.</p>
+          <p className="ds-data-table__empty">مشتری‌ای با این جست‌وجو یافت نشد.</p>
         ) : view === 'list' ? (
-          <div className="admin-table-wrap">
-            <table className="admin-table customers-table">
+          <div className="ds-data-table-wrap">
+            <table className="ds-data-table">
               <thead>
                 <tr>
-                  <th>مشتری</th>
-                  <th>پلن</th>
-                  <th>وضعیت</th>
-                  <th>انقضا</th>
+                  <th className="is-person">مشتری</th>
+                  <th className="is-plan">پلن</th>
+                  <th className="is-status">وضعیت</th>
+                  <th className="is-time">انقضا</th>
                   <th>اعتبار</th>
-                  <th></th>
+                  <th className="is-actions">عملیات</th>
                 </tr>
               </thead>
               <tbody>
                 {rows.map(row => (
                   <tr key={row.id}>
-                    <td>
-                      <strong>{row.name || 'بدون نام'}</strong>
-                      <div className="customers-table__meta" dir="ltr">{row.email || row.id}</div>
+                    <td className="is-person">
+                      <AdminPerson name={row.name} meta={row.email || row.phone || row.id} />
                     </td>
-                    <td>{row.planLabel}</td>
-                    <td><span className={`status-pill ${statusTone(row.statusLabel)}`}>{row.statusLabel}</span></td>
-                    <td>{faShort(row.expiresAt)}</td>
-                    <td>{row.accessCreditLabel}</td>
-                    <td className="customers-table__actions">
-                      <button type="button" className="button small-button" onClick={() => openEditor(row.id, 'access')}>
-                        ویرایش
-                      </button>
-                      <Link href={`/admin/customers/${row.id}`}>جزئیات</Link>
+                    <td className="is-plan">{row.planLabel}</td>
+                    <td className="is-status">
+                      <span className={`status-pill ${statusTone(row.statusLabel)}`}>{row.statusLabel}</span>
+                    </td>
+                    <td className="is-time">{faShort(row.expiresAt)}</td>
+                    <td>
+                      <span className="ds-clamp">{row.accessCreditLabel}</span>
+                    </td>
+                    <td className="is-actions">
+                      <div className="ds-row-actions">
+                        <button type="button" className="ds-ghost-btn" onClick={() => openEditor(row.id, 'access')}>
+                          ویرایش
+                        </button>
+                        <Link className="ds-ghost-btn is-muted" href={`/admin/customers/${row.id}`}>
+                          جزئیات
+                        </Link>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -163,31 +155,17 @@ export function CustomersWorkspace({ initialQuery, initialRows, dbError }: Props
             {rows.map(row => (
               <article className="customers-grid__card" role="listitem" key={row.id}>
                 <header className="customers-grid__card-head">
-                  <div>
-                    <strong>{row.name || 'بدون نام'}</strong>
-                    <p dir="ltr">{row.email || row.id}</p>
-                  </div>
+                  <AdminPerson name={row.name} meta={row.email || row.id} />
                   <span className={`status-pill ${statusTone(row.statusLabel)}`}>{row.statusLabel}</span>
                 </header>
                 <dl className="customers-grid__facts">
-                  <div>
-                    <dt>پلن</dt>
-                    <dd>{row.planLabel}</dd>
-                  </div>
-                  <div>
-                    <dt>انقضا</dt>
-                    <dd>{faShort(row.expiresAt)}</dd>
-                  </div>
-                  <div>
-                    <dt>اعتبار</dt>
-                    <dd>{row.accessCreditLabel}</dd>
-                  </div>
+                  <div><dt>پلن</dt><dd>{row.planLabel}</dd></div>
+                  <div><dt>انقضا</dt><dd>{faShort(row.expiresAt)}</dd></div>
+                  <div><dt>اعتبار</dt><dd>{row.accessCreditLabel}</dd></div>
                 </dl>
-                <footer className="customers-grid__actions">
-                  <button type="button" className="button small-button" onClick={() => openEditor(row.id, 'access')}>
-                    ویرایش
-                  </button>
-                  <Link href={`/admin/customers/${row.id}`}>جزئیات</Link>
+                <footer className="ds-row-actions">
+                  <button type="button" className="ds-ghost-btn" onClick={() => openEditor(row.id, 'access')}>ویرایش</button>
+                  <Link className="ds-ghost-btn is-muted" href={`/admin/customers/${row.id}`}>جزئیات</Link>
                 </footer>
               </article>
             ))}
@@ -207,24 +185,8 @@ export function CustomersWorkspace({ initialQuery, initialRows, dbError }: Props
           {detail ? (
             <>
               <div className="customers-editor__tabs" role="tablist" aria-label="بخش ویرایش">
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={editorTab === 'access'}
-                  className={editorTab === 'access' ? 'is-active' : undefined}
-                  onClick={() => setEditorTab('access')}
-                >
-                  دسترسی
-                </button>
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={editorTab === 'profile'}
-                  className={editorTab === 'profile' ? 'is-active' : undefined}
-                  onClick={() => setEditorTab('profile')}
-                >
-                  پروفایل
-                </button>
+                <button type="button" role="tab" aria-selected={editorTab === 'access'} className={editorTab === 'access' ? 'is-active' : undefined} onClick={() => setEditorTab('access')}>دسترسی</button>
+                <button type="button" role="tab" aria-selected={editorTab === 'profile'} className={editorTab === 'profile' ? 'is-active' : undefined} onClick={() => setEditorTab('profile')}>پروفایل</button>
               </div>
 
               {editorTab === 'profile' ? (
@@ -239,9 +201,7 @@ export function CustomersWorkspace({ initialQuery, initialRows, dbError }: Props
                       ? { ...current, user: { ...current.user, name: next.name, phone: next.phone } }
                       : current);
                     setRows(current => current.map(row => (
-                      row.id === detail.user.id
-                        ? { ...row, name: next.name, phone: next.phone }
-                        : row
+                      row.id === detail.user.id ? { ...row, name: next.name, phone: next.phone } : row
                     )));
                   }}
                 />
@@ -249,9 +209,7 @@ export function CustomersWorkspace({ initialQuery, initialRows, dbError }: Props
                 <>
                   <p className="customers-editor__hint">
                     {detail.entitlement.planLabel} · {detail.entitlement.statusLabel}
-                    {detail.entitlement.expiresAt
-                      ? ` · ${formatTehranDateTime(detail.entitlement.expiresAt)}`
-                      : ''}
+                    {detail.entitlement.expiresAt ? ` · ${formatTehranDateTime(detail.entitlement.expiresAt)}` : ''}
                   </p>
                   <CustomerAccessForm
                     userId={detail.user.id}
