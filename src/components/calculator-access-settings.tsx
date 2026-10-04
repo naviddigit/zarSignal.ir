@@ -104,7 +104,6 @@ export function CalculatorAccessSettingsForm({
           <article key={op} className="wide calc-access-module">
             <header className="calc-access-module__head">
               <strong>{CALCULATOR_MODULE_LABELS[op]}</strong>
-              <small dir="ltr">{op}</small>
             </header>
 
             <div className="ds-choice-row" role="radiogroup" aria-label={`حالت دسترسی ${CALCULATOR_MODULE_LABELS[op]}`}>

@@ -18,6 +18,7 @@ type Props = {
   userId: string;
   currentExpiresAt: string | null;
   plans: Plan[];
+  compact?: boolean;
 };
 
 const ACTION_OPTIONS = [
@@ -29,7 +30,7 @@ const ACTION_OPTIONS = [
   { value: 'cancel', label: 'لغو اشتراک' },
 ];
 
-export function CustomerAccessForm({ userId, currentExpiresAt, plans }: Props) {
+export function CustomerAccessForm({ userId, currentExpiresAt, plans, compact = false }: Props) {
   const [previewState, previewAction, previewPending] = useActionState<CustomerActionState | null, FormData>(
     previewCustomerAction,
     null,
@@ -54,8 +55,8 @@ export function CustomerAccessForm({ userId, currentExpiresAt, plans }: Props) {
   const planOptions = plans.map(plan => ({ value: plan.slug, label: plan.title }));
 
   return (
-    <div className="customer-access">
-      <form className="admin-card customer-access__form" action={previewAction}>
+    <div className={`customer-access${compact ? ' is-compact' : ''}`}>
+      <form className={`${compact ? 'customers-editor__form' : 'admin-card'} customer-access__form`} action={previewAction}>
         <input type="hidden" name="userId" value={userId} />
         <input type="hidden" name="expiresAtIso" value={expiresIso} />
         <input type="hidden" name="action" value={action} />
@@ -66,7 +67,7 @@ export function CustomerAccessForm({ userId, currentExpiresAt, plans }: Props) {
             options={ACTION_OPTIONS}
             value={action}
             onChange={setAction}
-            className="wide"
+            className={compact ? undefined : 'wide'}
           />
 
           {action === 'set_plan' ? (
@@ -75,12 +76,12 @@ export function CustomerAccessForm({ userId, currentExpiresAt, plans }: Props) {
               label="پلن جدید"
               options={planOptions}
               defaultValue={plans[0]?.slug}
-              className="wide"
+              className={compact ? undefined : 'wide'}
             />
           ) : null}
 
           {action === 'gift_hours' || action === 'adjust_hours' ? (
-            <Field label={action === 'gift_hours' ? 'ساعت هدیه (مثبت)' : 'ساعت تعدیل (+/−)'} className="wide">
+            <Field label={action === 'gift_hours' ? 'ساعت هدیه' : 'ساعت تعدیل (+/−)'} className={compact ? undefined : 'wide'}>
               <input
                 className="ds-input"
                 name="hours"
@@ -94,44 +95,44 @@ export function CustomerAccessForm({ userId, currentExpiresAt, plans }: Props) {
           ) : null}
 
           {action === 'set_expires_at' ? (
-            <div className="customer-access__expires wide">
-              <span className="ds-field__label">تاریخ و ساعت انقضا (تهران)</span>
+            <div className={`customer-access__expires${compact ? '' : ' wide'}`}>
+              <span className="ds-field__label">انقضا (تهران)</span>
               <p className="customer-access__expires-label">{formatTehranDateTime(expiresDate)}</p>
               <button type="button" className="button small-button" onClick={() => setPickerOpen(true)}>
-                انتخاب تاریخ و ساعت
+                انتخاب تاریخ
               </button>
             </div>
           ) : null}
 
           <Textarea
-            label="دلیل تغییر (حداقل ۳ نویسه)"
+            label="دلیل تغییر"
             name="reason"
             rows={2}
             required
             minLength={3}
-            placeholder="مثلاً هدیهٔ پشتیبانی / اصلاح انقضا"
+            placeholder="مثلاً هدیهٔ پشتیبانی"
             fieldClassName="wide"
           />
 
           <div className="ds-actions customer-access__actions">
-            <PendingButton className="button small-button" pendingText="در حال محاسبه…" disabled={busy}>
+            <PendingButton className="button small-button" pendingText="…" disabled={busy}>
               پیش‌نمایش
             </PendingButton>
             <button
               type="submit"
-              className="button"
+              className="button small-button"
               formAction={applyAction}
               disabled={busy}
             >
-              {applyPending ? 'در حال ذخیره…' : 'ذخیرهٔ تغییر'}
+              {applyPending ? '…' : 'ذخیره'}
             </button>
           </div>
         </div>
       </form>
 
       {preview ? (
-        <aside className="admin-card customer-access__preview" aria-live="polite">
-          <h3>پیش‌نمایش نتیجه</h3>
+        <aside className={`${compact ? 'customers-editor__preview' : 'admin-card'} customer-access__preview`} aria-live="polite">
+          <h3>پیش‌نمایش</h3>
           <p>
             قبل: {preview.previous.planLabel} · {preview.previous.statusLabel}
             {preview.previous.expiresAt

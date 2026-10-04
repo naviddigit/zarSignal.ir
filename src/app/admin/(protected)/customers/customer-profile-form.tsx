@@ -10,10 +10,11 @@ type Props = {
   name: string | null;
   phone: string | null;
   email: string | null;
+  compact?: boolean;
   onSaved?: (next: { name: string | null; phone: string | null }) => void;
 };
 
-export function CustomerProfileForm({ userId, name, phone, email, onSaved }: Props) {
+export function CustomerProfileForm({ userId, name, phone, email, compact = false, onSaved }: Props) {
   const [state, action] = useActionState<CustomerProfileState | null, FormData>(
     async (prev, form) => {
       const next = await updateCustomerProfileAction(prev, form);
@@ -24,7 +25,7 @@ export function CustomerProfileForm({ userId, name, phone, email, onSaved }: Pro
   );
 
   return (
-    <form className="admin-card" action={action}>
+    <form className={compact ? 'customers-editor__form' : 'admin-card'} action={action}>
       <input type="hidden" name="userId" value={userId} />
       <div className="admin-form-grid">
         <Input
@@ -32,9 +33,9 @@ export function CustomerProfileForm({ userId, name, phone, email, onSaved }: Pro
           name="name"
           defaultValue={name ?? ''}
           placeholder="نام مشتری"
-          fieldClassName="wide"
+          fieldClassName={compact ? undefined : 'wide'}
         />
-        <Field label="ایمیل" className="wide">
+        <Field label="ایمیل" className={compact ? undefined : 'wide'}>
           <input className="ds-input" value={email ?? '—'} dir="ltr" readOnly disabled />
         </Field>
         <Input
@@ -43,19 +44,19 @@ export function CustomerProfileForm({ userId, name, phone, email, onSaved }: Pro
           defaultValue={phone ?? ''}
           placeholder="+98…"
           dir="ltr"
-          fieldClassName="wide"
+          fieldClassName={compact ? undefined : 'wide'}
         />
         <Textarea
-          label="دلیل ویرایش پروفایل"
+          label="دلیل ویرایش"
           name="reason"
-          rows={2}
+          rows={compact ? 2 : 2}
           required
           minLength={3}
           placeholder="مثلاً اصلاح نام از پشتیبانی"
           fieldClassName="wide"
         />
         <div className="ds-actions">
-          <PendingButton pendingText="در حال ذخیره…">ذخیره پروفایل</PendingButton>
+          <PendingButton className="button small-button" pendingText="در حال ذخیره…">ذخیره پروفایل</PendingButton>
         </div>
       </div>
       {state?.error ? <p className="form-error" role="alert">{state.error}</p> : null}

@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { requireAdmin } from '@/server/admin-auth';
+import { AdminNav } from './admin-nav';
 
 export default async function AdminLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   await requireAdmin();
@@ -10,19 +11,7 @@ export default async function AdminLayout({ children }: Readonly<{ children: Rea
           زر<span className="gold-text">سیگنال</span>
           <small>MANAGEMENT</small>
         </Link>
-        <nav aria-label="ناوبری مدیریت">
-          <Link href="/admin">نمای کلی</Link>
-          <Link href="/admin/data">داده و دریافت</Link>
-          <Link href="/admin/integrations">اتصال‌ها و API</Link>
-          <Link href="/admin/customers">مشتری‌ها</Link>
-          <Link href="/admin/feedback">بازخوردها</Link>
-          <Link href="/admin/plans">تعرفه‌ها و قیمت</Link>
-          <Link href="/admin/products">اشتراک و مشتریان API</Link>
-          <Link href="/admin/analysis">مدل تحلیل</Link>
-          <Link href="/admin/analysis-settings">تنظیمات تحلیل</Link>
-          <Link href="/admin/content">محتوای صفحه اصلی</Link>
-          <Link href="/admin/seo">جست‌وجو و محتوا</Link>
-        </nav>
+        <AdminNav />
         <form action="/api/admin/session" method="post">
           <button className="admin-logout" type="submit" formMethod="post" formAction="/api/admin/session?_method=delete">خروج</button>
         </form>

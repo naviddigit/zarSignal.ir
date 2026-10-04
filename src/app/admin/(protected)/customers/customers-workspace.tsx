@@ -11,6 +11,8 @@ import { CustomerAccessForm } from './customer-access-form';
 import { CustomerProfileForm } from './customer-profile-form';
 
 type Detail = NonNullable<Awaited<ReturnType<typeof loadCustomer>>>;
+type ViewMode = 'list' | 'grid';
+type EditorTab = 'profile' | 'access';
 
 type Props = {
   initialQuery: string;
@@ -32,7 +34,9 @@ function faShort(iso: string | null) {
 export function CustomersWorkspace({ initialQuery, initialRows, dbError }: Props) {
   const [query, setQuery] = useState(initialQuery);
   const [rows, setRows] = useState(initialRows);
+  const [view, setView] = useState<ViewMode>('list');
   const [editorOpen, setEditorOpen] = useState(false);
+  const [editorTab, setEditorTab] = useState<EditorTab>('access');
   const [detail, setDetail] = useState<Detail | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -42,7 +46,8 @@ export function CustomersWorkspace({ initialQuery, initialRows, dbError }: Props
     [rows.length],
   );
 
-  function openEditor(userId: string) {
+  function openEditor(userId: string, tab: EditorTab = 'access') {
+    setEditorTab(tab);
     setEditorOpen(true);
     setDetail(null);
     setLoadError(null);
@@ -68,7 +73,7 @@ export function CustomersWorkspace({ initialQuery, initialRows, dbError }: Props
 
   return (
     <>
-      <form className="admin-card" method="get" action="/admin/customers">
+      <form className="admin-card customers-toolbar" method="get" action="/admin/customers">
         <div className="admin-form-grid">
           <Input
             label="جست‌وجو (ایمیل، نام، تلفن یا شناسه)"
@@ -80,7 +85,7 @@ export function CustomersWorkspace({ initialQuery, initialRows, dbError }: Props
             fieldClassName="wide"
           />
           <div className="ds-actions">
-            <button type="submit" className="button">جست‌وجو</button>
+            <button type="submit" className="button small-button">جست‌وجو</button>
             {query ? (
               <Link className="button small-button" href="/admin/customers">پاک کردن</Link>
             ) : null}
@@ -94,6 +99,22 @@ export function CustomersWorkspace({ initialQuery, initialRows, dbError }: Props
             <h2>فهرست مشتری‌ها</h2>
             <p>{dbError ? 'پایگاه داده در دسترس نیست.' : `${countLabel} نتیجه`}</p>
           </div>
+          <div className="customers-view-toggle" role="group" aria-label="حالت نمایش">
+            <button
+              type="button"
+              className={view === 'list' ? 'is-active' : undefined}
+              onClick={() => setView('list')}
+            >
+              لیستی
+            </button>
+            <button
+              type="button"
+              className={view === 'grid' ? 'is-active' : undefined}
+              onClick={() => setView('grid')}
+            >
+              کارتی
+            </button>
+          </div>
         </div>
 
         {dbError ? (
@@ -102,6 +123,41 @@ export function CustomersWorkspace({ initialQuery, initialRows, dbError }: Props
           </p>
         ) : rows.length === 0 ? (
           <p className="customers-panel__empty">مشتری‌ای با این جست‌وجو یافت نشد.</p>
+        ) : view === 'list' ? (
+          <div className="admin-table-wrap">
+            <table className="admin-table customers-table">
+              <thead>
+                <tr>
+                  <th>مشتری</th>
+                  <th>پلن</th>
+                  <th>وضعیت</th>
+                  <th>انقضا</th>
+                  <th>اعتبار</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map(row => (
+                  <tr key={row.id}>
+                    <td>
+                      <strong>{row.name || 'بدون نام'}</strong>
+                      <div className="customers-table__meta" dir="ltr">{row.email || row.id}</div>
+                    </td>
+                    <td>{row.planLabel}</td>
+                    <td><span className={`status-pill ${statusTone(row.statusLabel)}`}>{row.statusLabel}</span></td>
+                    <td>{faShort(row.expiresAt)}</td>
+                    <td>{row.accessCreditLabel}</td>
+                    <td className="customers-table__actions">
+                      <button type="button" className="button small-button" onClick={() => openEditor(row.id, 'access')}>
+                        ویرایش
+                      </button>
+                      <Link href={`/admin/customers/${row.id}`}>جزئیات</Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         ) : (
           <div className="customers-grid" role="list">
             {rows.map(row => (
@@ -119,27 +175,19 @@ export function CustomersWorkspace({ initialQuery, initialRows, dbError }: Props
                     <dd>{row.planLabel}</dd>
                   </div>
                   <div>
-                    <dt>انقضا (تهران)</dt>
+                    <dt>انقضا</dt>
                     <dd>{faShort(row.expiresAt)}</dd>
                   </div>
                   <div>
-                    <dt>اعتبار دسترسی</dt>
+                    <dt>اعتبار</dt>
                     <dd>{row.accessCreditLabel}</dd>
                   </div>
-                  {row.phone ? (
-                    <div>
-                      <dt>تلفن</dt>
-                      <dd dir="ltr">{row.phone}</dd>
-                    </div>
-                  ) : null}
                 </dl>
                 <footer className="customers-grid__actions">
-                  <button type="button" className="button" onClick={() => openEditor(row.id)}>
+                  <button type="button" className="button small-button" onClick={() => openEditor(row.id, 'access')}>
                     ویرایش
                   </button>
-                  <Link className="button small-button" href={`/admin/customers/${row.id}`}>
-                    جزئیات
-                  </Link>
+                  <Link href={`/admin/customers/${row.id}`}>جزئیات</Link>
                 </footer>
               </article>
             ))}
@@ -158,13 +206,34 @@ export function CustomersWorkspace({ initialQuery, initialRows, dbError }: Props
           {loadError ? <p className="form-error" role="alert">{loadError}</p> : null}
           {detail ? (
             <>
-              <section>
-                <h3>پروفایل</h3>
+              <div className="customers-editor__tabs" role="tablist" aria-label="بخش ویرایش">
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={editorTab === 'access'}
+                  className={editorTab === 'access' ? 'is-active' : undefined}
+                  onClick={() => setEditorTab('access')}
+                >
+                  دسترسی
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={editorTab === 'profile'}
+                  className={editorTab === 'profile' ? 'is-active' : undefined}
+                  onClick={() => setEditorTab('profile')}
+                >
+                  پروفایل
+                </button>
+              </div>
+
+              {editorTab === 'profile' ? (
                 <CustomerProfileForm
                   userId={detail.user.id}
                   name={detail.user.name}
                   phone={detail.user.phone}
                   email={detail.user.email}
+                  compact
                   onSaved={next => {
                     setDetail(current => current
                       ? { ...current, user: { ...current.user, name: next.name, phone: next.phone } }
@@ -176,23 +245,25 @@ export function CustomersWorkspace({ initialQuery, initialRows, dbError }: Props
                     )));
                   }}
                 />
-              </section>
-              <section>
-                <h3>دسترسی و پلن</h3>
-                <p className="customers-editor__hint">
-                  پلن فعلی: {detail.entitlement.planLabel} · وضعیت: {detail.entitlement.statusLabel}
-                  {detail.entitlement.expiresAt
-                    ? ` · انقضا: ${formatTehranDateTime(detail.entitlement.expiresAt)}`
-                    : ''}
-                </p>
-                <CustomerAccessForm
-                  userId={detail.user.id}
-                  currentExpiresAt={detail.entitlement.expiresAt?.toISOString() ?? null}
-                  plans={detail.plans}
-                />
-              </section>
+              ) : (
+                <>
+                  <p className="customers-editor__hint">
+                    {detail.entitlement.planLabel} · {detail.entitlement.statusLabel}
+                    {detail.entitlement.expiresAt
+                      ? ` · ${formatTehranDateTime(detail.entitlement.expiresAt)}`
+                      : ''}
+                  </p>
+                  <CustomerAccessForm
+                    userId={detail.user.id}
+                    currentExpiresAt={detail.entitlement.expiresAt?.toISOString() ?? null}
+                    plans={detail.plans}
+                    compact
+                  />
+                </>
+              )}
+
               <p className="customers-editor__more">
-                <Link href={`/admin/customers/${detail.user.id}`}>مشاهده سوابق و اشتراک‌ها</Link>
+                <Link href={`/admin/customers/${detail.user.id}`}>سوابق و اشتراک‌ها</Link>
               </p>
             </>
           ) : null}
