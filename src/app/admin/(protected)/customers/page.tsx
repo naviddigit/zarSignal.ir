@@ -18,7 +18,13 @@ export default async function AdminCustomersPage({
   searchParams: Promise<{ q?: string }>;
 }) {
   const { q = '' } = await searchParams;
-  const rows = await searchCustomers(q).catch(() => []);
+  let rows: Awaited<ReturnType<typeof searchCustomers>> = [];
+  let dbError = false;
+  try {
+    rows = await searchCustomers(q);
+  } catch {
+    dbError = true;
+  }
 
   return (
     <>
@@ -29,6 +35,12 @@ export default async function AdminCustomersPage({
           <p>جست‌وجو، پلن فعلی، وضعیت، انقضا و اعتبار دسترسی زمانی. سوابق پرداخت دست‌کاری نمی‌شوند.</p>
         </div>
       </header>
+
+      {dbError ? (
+        <p className="form-error admin-message" role="alert">
+          اتصال پایگاه داده برقرار نیست؛ فهرست مشتری‌ها خوانده نشد. این به‌معنای خالی‌بودن مشتری‌ها نیست — تا اتصال PostgreSQL درست نشود جست‌وجو کار نمی‌کند.
+        </p>
+      ) : null}
 
       <form className="admin-card" method="get" action="/admin/customers">
         <label>
@@ -51,7 +63,9 @@ export default async function AdminCustomersPage({
             </tr>
           </thead>
           <tbody>
-            {rows.length === 0 ? (
+            {dbError ? (
+              <tr><td colSpan={6}>پایگاه داده در دسترس نیست.</td></tr>
+            ) : rows.length === 0 ? (
               <tr><td colSpan={6}>مشتری‌ای یافت نشد.</td></tr>
             ) : rows.map(row => (
               <tr key={row.id}>

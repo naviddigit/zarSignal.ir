@@ -231,15 +231,25 @@ export function AnalysisEngagementPanel({
         <div className="market-view__feedback">
           {!feedbackReady || (!hasSaved && !canCreateNew) ? (
             <div className="market-view__feedback-saved" role="status" data-follow-anchor>
-              <p className="market-view__feedback-status">
+              <p className={`market-view__feedback-status${!feedbackReady || nextAllowedAt ? '' : ' is-error'}`}>
                 {!feedbackReady ? 'در حال بررسی بازخورد…' : nextAllowedAt
                   ? `بازخورد قبلی شما ثبت شده است؛ بازخورد جدید از ${new Intl.DateTimeFormat('fa-IR', { timeZone: 'Asia/Tehran', dateStyle: 'short', timeStyle: 'short' }).format(new Date(nextAllowedAt))} امکان‌پذیر است.`
                   : 'ثبت بازخورد فعلاً ممکن نیست؛ دوباره تلاش کنید.'}
               </p>
-              {feedbackReady && !nextAllowedAt ? <button type="button" className="text-link" onClick={() => setAvailabilityCheck(value => value + 1)}>تلاش دوباره</button> : null}
-              <button type="button" className="analysis-icon-action" title="اشتراک خلاصه" aria-label="اشتراک خلاصه" onClick={() => void shareSummary()}>
-                <Share2 size={18} aria-hidden />
-              </button>
+              <div className="market-view__engagement-actions">
+                {feedbackReady && !nextAllowedAt ? (
+                  <button
+                    type="button"
+                    className="button small-button"
+                    onClick={() => setAvailabilityCheck(value => value + 1)}
+                  >
+                    تلاش دوباره
+                  </button>
+                ) : null}
+                <button type="button" className="analysis-icon-action" title="اشتراک خلاصه" aria-label="اشتراک خلاصه" onClick={() => void shareSummary()}>
+                  <Share2 size={18} aria-hidden />
+                </button>
+              </div>
             </div>
           ) : collapsed ? (
             <div className="market-view__feedback-saved" role="status" data-follow-anchor>

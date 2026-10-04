@@ -1247,7 +1247,9 @@ body:has(.market-view[data-reveal-phase]:not([data-reveal-phase='done'])) .foote
 .dt-picker__grid label{display:grid;gap:6px;font-size:11px;color:var(--text-secondary)}
 .dt-picker__grid input,.dt-picker__shortcuts .button,.dt-picker__actions .button{min-height:44px}
 .dt-picker__shortcuts,.dt-picker__actions{display:flex;flex-wrap:wrap;gap:8px}
-.market-view__feedback-saved{display:grid;gap:10px;justify-items:start}
+.market-view__feedback-saved{display:grid;gap:12px;justify-items:stretch;width:100%;min-width:0}
+.market-view__feedback-saved .market-view__engagement-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center;width:100%;min-width:0}
+.market-view__feedback-saved .button.small-button{width:auto;min-width:max-content;max-width:100%;min-height:40px;padding:0 14px;white-space:nowrap;overflow:visible;flex:0 0 auto}
 .market-view__feedback-edit{min-height:44px}
 .ds-overlay__close{min-width:44px;min-height:44px}
 
