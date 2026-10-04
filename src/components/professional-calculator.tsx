@@ -1,10 +1,12 @@
 'use client';
+import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { LockKeyhole, RefreshCw, ArrowUpLeft } from 'lucide-react';
 import { calculatorCatalog, type CalculatorOperation, type CalculatorResult } from '@/lib/calculator-catalog';
 import {
   decideCalculatorModuleAccess,
   type CalculatorAccessPolicy,
+  type CalculatorModule,
 } from '@/lib/calculator-access';
 import type { AccessLevel } from '@/lib/capabilities';
 import { isStale, type Quote, type Snapshot } from '@/lib/market';
@@ -134,6 +136,7 @@ export function ProfessionalCalculator({
   const [error, setError] = useState('');
   const [activeField, setActiveField] = useState('');
   const [keypadCue, setKeypadCue] = useState(false);
+  const [lockedNotice, setLockedNotice] = useState<{ title: string; message: string; upgrade: boolean } | null>(null);
   const request = useRef<AbortController | null>(null);
   const cueTimer = useRef<number | null>(null);
   useEffect(() => () => {
@@ -141,7 +144,7 @@ export function ProfessionalCalculator({
     if (cueTimer.current) window.clearTimeout(cueTimer.current);
   }, []);
 
-  function moduleAccess(op: CalculatorOperation) {
+  function moduleAccess(op: CalculatorModule) {
     return decideCalculatorModuleAccess(op, accessPolicy, accessLevel, {
       statusLabel,
       settingsAvailable: accessAvailable,
@@ -159,12 +162,12 @@ export function ProfessionalCalculator({
 
   const available = toolsByProduct[product];
   const operation = isOperation(tool) ? tool : null;
-  const operationGate = operation ? moduleAccess(operation) : null;
-  const operationAllowed = !operation || operationGate?.ok === true;
+  const toolGate = moduleAccess(tool);
+  const operationAllowed = toolGate.ok;
   const spec = operation && operationAllowed ? calculatorCatalog[operation] : null;
   const popular = popularByProduct[product].map(item => {
-    if (!isOperation(item.id)) return item;
-    const decision = moduleAccess(item.id);
+    if (!available.includes(item.id as Tool)) return item;
+    const decision = moduleAccess(item.id as CalculatorModule);
     return { ...item, locked: item.locked || !decision.ok };
   });
 
@@ -180,16 +183,14 @@ export function ProfessionalCalculator({
   function choose(next: Tool, forProduct: Product = product) {
     const allowed = toolsByProduct[forProduct];
     if (!allowed.includes(next)) return;
-    if (isOperation(next)) {
-      const gate = moduleAccess(next);
-      if (!gate.ok) {
-        setError(gate.message);
-        setTool(next);
-        setActiveField('');
-        setResult(null);
-        setResultOpen(false);
-        return;
-      }
+    const gate = moduleAccess(next);
+    if (!gate.ok) {
+      setLockedNotice({ title: popularByProduct[forProduct].find(item => item.id === next)?.label ?? 'ماشین‌حساب', message: gate.message, upgrade: gate.code === 'forbidden' || gate.code === 'trial_expired' });
+      setTool(next);
+      setActiveField('');
+      setResult(null);
+      setResultOpen(false);
+      return;
     }
     invalidate();
     setTool(next);
@@ -211,8 +212,9 @@ export function ProfessionalCalculator({
 
   function pickPopular(id: string) {
     const item = popular.find(entry => entry.id === id);
-    if (!item || item.locked) return;
+    if (!item) return;
     if (available.includes(id as Tool)) choose(id as Tool);
+    else setLockedNotice({ title: item.label, message: 'این ابزار هنوز فرمول و دادهٔ تأییدشده برای انتشار ندارد. خرید اشتراک هم فعلاً آن را فعال نمی‌کند.', upgrade: false });
   }
 
   function setMode(key: string, mode: 'LIVE' | 'MANUAL') {
@@ -324,16 +326,17 @@ export function ProfessionalCalculator({
       <CalculatorPopularRow items={popular} active={tool} onPick={pickPopular} />
 
       <div className="calc-stage__main">
-        {tool === 'weight' ? (
-          <WeightConvertWidget amount={weightAmount} onAmountChange={setWeightAmount} />
-        ) : tool === 'purity' ? (
-          <PurityConvertWidget key={product} product={product} amount={purityAmount} onAmountChange={setPurityAmount} />
-        ) : operation && !operationAllowed ? (
+        {!operationAllowed ? (
           <div className="calc-tool-panel calc-tool-panel--locked">
             <LockKeyhole size={22} />
             <strong>دسترسی لازم است</strong>
-            <p>{operationGate && !operationGate.ok ? operationGate.message : 'این محاسبه برای پلن فعلی شما فعال نیست.'}</p>
+            <p>{!toolGate.ok ? toolGate.message : ''}</p>
+            {!toolGate.ok && (toolGate.code === 'forbidden' || toolGate.code === 'trial_expired') ? <Link href="/pricing">ارتقای حساب</Link> : null}
           </div>
+        ) : tool === 'weight' ? (
+          <WeightConvertWidget amount={weightAmount} onAmountChange={setWeightAmount} />
+        ) : tool === 'purity' ? (
+          <PurityConvertWidget key={product} product={product} amount={purityAmount} onAmountChange={setPurityAmount} />
         ) : spec ? (
           <form className="calc-tool-panel" onSubmit={calculate}>
             <div className="calc-tool-panel__toolbar">
@@ -442,6 +445,13 @@ export function ProfessionalCalculator({
             ))}
           </div>
         ) : null}
+      </OverlaySheet>
+      <OverlaySheet open={Boolean(lockedNotice)} title={lockedNotice?.title ?? 'دسترسی ماشین‌حساب'} onClose={() => setLockedNotice(null)}>
+        <div className="calc-access-notice">
+          <LockKeyhole size={24} aria-hidden="true" />
+          <p>{lockedNotice?.message}</p>
+          {lockedNotice?.upgrade ? <Link className="button" href="/pricing">حساب خود را ارتقا دهید</Link> : null}
+        </div>
       </OverlaySheet>
     </section>
   );

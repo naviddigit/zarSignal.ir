@@ -230,8 +230,7 @@ export function CalculatorPopularRow({
               key={item.id}
               type="button"
               className={`${active === item.id ? 'is-on' : ''}${item.locked ? ' is-locked' : ''}`.trim()}
-              disabled={item.locked}
-              title={item.locked ? 'نیاز به اشتراک — به‌زودی / پلن بالاتر' : undefined}
+              title={item.locked ? 'مشاهده وضعیت دسترسی' : undefined}
               aria-label={item.locked ? `${item.label} · قفل` : item.label}
               onClick={() => onPick(item.id)}
             >

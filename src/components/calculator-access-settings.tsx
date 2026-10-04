@@ -7,11 +7,12 @@ import {
   CALCULATOR_MODULE_LABELS,
   type CalculatorAccessPolicy,
   type CalculatorModuleMode,
+  type CalculatorModule,
 } from '@/lib/calculator-access';
-import { calculatorCatalog, type CalculatorOperation } from '@/lib/calculator-catalog';
+import Link from 'next/link';
 
 const LEVELS: AccessLevel[] = ['FREE', 'HOME', 'PROFESSIONAL', 'ADVANCED_PROFESSIONAL'];
-const OPS = Object.keys(calculatorCatalog) as CalculatorOperation[];
+const OPS = Object.keys(CALCULATOR_MODULE_LABELS) as CalculatorModule[];
 
 export function CalculatorAccessSettingsForm({
   policy,
@@ -25,7 +26,7 @@ export function CalculatorAccessSettingsForm({
   const [pending, setPending] = useState(false);
   const [message, setMessage] = useState('');
 
-  function setMode(op: CalculatorOperation, mode: CalculatorModuleMode) {
+  function setMode(op: CalculatorModule, mode: CalculatorModuleMode) {
     setDraft(current => ({
       ...current,
       [op]: {
@@ -38,7 +39,7 @@ export function CalculatorAccessSettingsForm({
     }));
   }
 
-  function toggleLevel(op: CalculatorOperation, level: AccessLevel) {
+  function toggleLevel(op: CalculatorModule, level: AccessLevel) {
     setDraft(current => {
       const row = current[op];
       const has = row.allowedLevels.includes(level);
@@ -73,6 +74,8 @@ export function CalculatorAccessSettingsForm({
       }}
     >
       {!available ? <p role="alert" className="wide">اتصال پایگاه داده برای ذخیره این تنظیم در دسترس نیست.</p> : null}
+      <p className="wide">برای دسترسی چندساعته، ماژول را روی «پلن‌های مجاز» بگذارید، «پلن خانگی» را انتخاب کنید و تیک «حساب رایگان» را بردارید؛ مدت دورهٔ آزمایشی را در <Link href="/admin/plans">تنظیمات پلن‌ها</Link> تعیین کنید. دوره از زمان فعال‌سازی آزمایش حساب شروع می‌شود.</p>
+      <p className="wide">طلای زینتی، زیور نقره، نسبت طلا/نقره، مبدل ارز و حباب سکه هنوز ابزار قابل اجرا نیستند؛ پس در فهرست کنترل دسترسی هم نمایش داده نمی‌شوند.</p>
       {OPS.map(op => {
         const row = draft[op];
         return (

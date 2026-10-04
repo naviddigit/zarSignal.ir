@@ -94,3 +94,14 @@ test('calculator module access: free / plans / disabled with trial and pending',
   assert.equal(settingsDown.ok, false);
   if (!settingsDown.ok) assert.equal(settingsDown.code, 'settings_error');
 });
+
+test('local weight and purity tools use the same admin plan policy', () => {
+  const policy = normalizeCalculatorAccessPolicy({
+    weight: { mode: 'plans', allowedLevels: ['HOME', 'PROFESSIONAL'] },
+    purity: { mode: 'disabled', allowedLevels: [] },
+  });
+  assert.equal(decideCalculatorModuleAccess('weight', policy, 'FREE').ok, false);
+  assert.equal(decideCalculatorModuleAccess('weight', policy, 'HOME', { statusLabel: 'آزمایشی' }).ok, true);
+  assert.equal(decideCalculatorModuleAccess('purity', policy, 'PROFESSIONAL').ok, false);
+  assert.equal(decideCalculatorModuleAccess('purity', defaultCalculatorAccessPolicy, 'FREE').ok, true);
+});

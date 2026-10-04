@@ -208,6 +208,10 @@
 .calc-popular__icons button.is-on .calc-popular__icon{background:color-mix(in srgb,var(--accent) 16%,var(--surface-soft));color:var(--accent)}
 .calc-popular__icons button.is-locked,
 .calc-popular__icons button:disabled{opacity:.78;cursor:not-allowed;border-style:dashed}
+.calc-popular__icons button.is-locked:not(:disabled){cursor:pointer;border-style:dashed}
+.calc-access-notice{display:grid;justify-items:start;gap:16px;padding:20px;color:var(--text-secondary)}
+.calc-access-notice>svg{color:var(--accent)}
+.calc-access-notice p{margin:0;line-height:1.9}
 .calc-popular__icon .calc-lock-badge{position:absolute;top:-4px;left:-4px;width:16px;height:16px;padding:2px;border-radius:999px;background:var(--surface-card);box-shadow:0 0 0 1px var(--border-subtle);color:var(--accent)}
 .calc-popular__chips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none}
 .calc-popular__chips::-webkit-scrollbar{display:none}

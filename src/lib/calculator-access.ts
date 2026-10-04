@@ -2,6 +2,7 @@ import type { AccessLevel } from '@/lib/capabilities';
 import { calculatorCatalog, type CalculatorOperation } from '@/lib/calculator-catalog';
 
 export type { CalculatorOperation };
+export type CalculatorModule = CalculatorOperation | 'weight' | 'purity';
 export const CALCULATOR_ACCESS_SETTING_KEY = 'calculator-module-access-v1';
 
 /** Per-module access: free for everyone, restricted to listed levels, or fully disabled. */
@@ -13,12 +14,14 @@ export type CalculatorModulePolicy = {
   allowedLevels: AccessLevel[];
 };
 
-export type CalculatorAccessPolicy = Record<CalculatorOperation, CalculatorModulePolicy>;
+export type CalculatorAccessPolicy = Record<CalculatorModule, CalculatorModulePolicy>;
 
 const ALL_LEVELS: AccessLevel[] = ['FREE', 'HOME', 'PROFESSIONAL', 'ADVANCED_PROFESSIONAL'];
 
 /** Defaults preserve today's public catalog: all approved modules free. */
 export const defaultCalculatorAccessPolicy: CalculatorAccessPolicy = {
+  weight: { mode: 'free', allowedLevels: [...ALL_LEVELS] },
+  purity: { mode: 'free', allowedLevels: [...ALL_LEVELS] },
   mazanehTo18k: { mode: 'free', allowedLevels: [...ALL_LEVELS] },
   market18kToMazaneh: { mode: 'free', allowedLevels: [...ALL_LEVELS] },
   goldBubble: { mode: 'free', allowedLevels: [...ALL_LEVELS] },
@@ -26,14 +29,16 @@ export const defaultCalculatorAccessPolicy: CalculatorAccessPolicy = {
   silverBubble: { mode: 'free', allowedLevels: [...ALL_LEVELS] },
 };
 
-export const CALCULATOR_MODULE_LABELS: Record<CalculatorOperation, string> = Object.fromEntries(
-  (Object.keys(calculatorCatalog) as CalculatorOperation[]).map(op => [op, calculatorCatalog[op].title]),
-) as Record<CalculatorOperation, string>;
+export const CALCULATOR_MODULE_LABELS: Record<CalculatorModule, string> = {
+  weight: 'تبدیل واحد وزن',
+  purity: 'تبدیل عیار طلا و نقره',
+  ...Object.fromEntries((Object.keys(calculatorCatalog) as CalculatorOperation[]).map(op => [op, calculatorCatalog[op].title])),
+} as Record<CalculatorModule, string>;
 
 export function normalizeCalculatorAccessPolicy(input: unknown): CalculatorAccessPolicy {
-  const raw = (input && typeof input === 'object' ? input : {}) as Partial<Record<CalculatorOperation, Partial<CalculatorModulePolicy>>>;
+  const raw = (input && typeof input === 'object' ? input : {}) as Partial<Record<CalculatorModule, Partial<CalculatorModulePolicy>>>;
   const out = { ...defaultCalculatorAccessPolicy };
-  for (const op of Object.keys(calculatorCatalog) as CalculatorOperation[]) {
+  for (const op of Object.keys(defaultCalculatorAccessPolicy) as CalculatorModule[]) {
     const row = raw[op];
     if (!row || typeof row !== 'object') continue;
     const mode = row.mode === 'free' || row.mode === 'plans' || row.mode === 'disabled' ? row.mode : out[op].mode;
@@ -53,7 +58,7 @@ export type CalculatorAccessDecision =
   | { ok: false; code: 'disabled' | 'forbidden' | 'trial_expired' | 'settings_error'; message: string };
 
 export function decideCalculatorModuleAccess(
-  operation: CalculatorOperation,
+  operation: CalculatorModule,
   policy: CalculatorAccessPolicy,
   level: AccessLevel,
   opts?: { statusLabel?: string | null; settingsAvailable?: boolean },
