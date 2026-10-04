@@ -10,12 +10,16 @@ export default async function AdminCustomersPage({
 }) {
   const { q = '' } = await searchParams;
   let rows: Awaited<ReturnType<typeof searchCustomers>> = [];
-  let dbError = false;
+  let loadError: string | null = null;
   try {
     rows = await searchCustomers(q);
-  } catch {
-    dbError = true;
+  } catch (error) {
+    const raw = error instanceof Error ? error.message : String(error ?? '');
+    loadError = /deadline|timeout|timed out/i.test(raw)
+      ? 'خواندن فهرست طول کشید؛ دوباره تلاش کنید.'
+      : 'اتصال پایگاه داده برقرار نیست؛ فهرست مشتری‌ها خوانده نشد.';
   }
+  const dbError = Boolean(loadError);
 
   return (
     <>
@@ -30,9 +34,9 @@ export default async function AdminCustomersPage({
         </span>
       </header>
 
-      {dbError ? (
+      {loadError ? (
         <p className="form-error admin-message" role="alert">
-          اتصال پایگاه داده برقرار نیست؛ فهرست مشتری‌ها خوانده نشد. این به‌معنای خالی‌بودن مشتری‌ها نیست — تا اتصال PostgreSQL درست نشود جست‌وجو و ویرایش کار نمی‌کند.
+          {loadError} این به‌معنای خالی‌بودن مشتری‌ها نیست.
         </p>
       ) : null}
 

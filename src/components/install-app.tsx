@@ -23,7 +23,7 @@ export function InstallApp() {
   }, []);
   if (installed) return null;
   return <>
-    <button className="install-app-button" aria-label="نصب زرسیگنال" title="نصب زرسیگنال" onClick={async () => {
+    <button type="button" className="header-tool install-app-button" aria-label="نصب برنامه" title="نصب برنامه" onClick={async () => {
       if (!prompt) { dialog.current?.showModal(); return; }
       try { await prompt.prompt(); await prompt.userChoice; } catch { dialog.current?.showModal(); }
       finally { setPrompt(null); }

@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { auth, getAuthCapabilities, signIn, signOut } from '@/auth';
 import { PendingButton } from '@/components/pending-button';
 import { FunnelTrack } from '@/components/funnel-track';
+import { GoogleMark } from '@/components/google-mark';
 import { loginWithEmail, registerWithEmail } from '@/app/login/actions';
 
 export const dynamic = 'force-dynamic';
@@ -27,11 +28,11 @@ export default async function LoginPage({
 }) {
   const params = await searchParams;
   const returnTo = safeNext(params.next);
+  const afterGoogle = `/account/complete?next=${encodeURIComponent(returnTo)}`;
   const mode = params.mode === 'register' ? 'register' : 'login';
   const session = await auth().catch(() => null);
   const authCapabilities = await getAuthCapabilities();
   const errorText = params.error ? errors[params.error] ?? 'ورود ناموفق بود.' : null;
-  // Email/password is the production path. Never hide it behind Google/SMS placeholders.
   const emailReady = authCapabilities.email;
 
   return (
@@ -48,7 +49,7 @@ export default async function LoginPage({
             <h1>خوش آمدید</h1>
             <p>{session.user.email ?? session.user.name}</p>
             <div className="auth-session-actions">
-              <Link className="button" href={returnTo}>ادامه به حساب</Link>
+              <Link className="button" href={afterGoogle}>ادامه</Link>
               <form action={async () => { 'use server'; await signOut({ redirectTo: '/' }); }}>
                 <PendingButton pendingText="در حال خروج…">خروج از حساب</PendingButton>
               </form>
@@ -57,14 +58,27 @@ export default async function LoginPage({
         ) : (
           <>
             <span className="eyebrow gold-text">حساب کاربری زرسیگنال</span>
-            <h1>{mode === 'register' ? 'ثبت‌نام با ایمیل' : 'ورود با ایمیل'}</h1>
-            <p>مسیر اصلی ورود همین فرم است. پرداخت آنلاین هنوز فعال نیست.</p>
+            <h1>{mode === 'register' ? 'ثبت‌نام' : 'ورود'}</h1>
+            <p>با ایمیل وارد شوید یا از گوگل ادامه دهید.</p>
             {errorText ? <p className="calc-error" role="alert">{errorText}</p> : null}
 
             <div className="auth-methods">
+              {authCapabilities.google ? (
+                <form action={async () => { 'use server'; await signIn('google', { redirectTo: afterGoogle }); }}>
+                  <PendingButton className="google-button" pendingText="در حال اتصال به گوگل…">
+                    <GoogleMark size={20} />
+                    <span>ادامه با گوگل</span>
+                  </PendingButton>
+                </form>
+              ) : null}
+
+              {authCapabilities.google && emailReady ? (
+                <div className="auth-divider"><span>یا با ایمیل</span></div>
+              ) : null}
+
               {emailReady ? (
                 <form className="email-login" action={mode === 'register' ? registerWithEmail : loginWithEmail}>
-                  <input type="hidden" name="next" value={returnTo} />
+                  <input type="hidden" name="next" value={mode === 'register' ? afterGoogle : returnTo} />
                   {mode === 'register' ? (
                     <>
                       <label htmlFor="name">نام (اختیاری)</label>
@@ -103,22 +117,8 @@ export default async function LoginPage({
                 </div>
               )}
 
-              {authCapabilities.google ? (
-                <>
-                  <div className="auth-divider"><span>یا</span></div>
-                  <form action={async () => { 'use server'; await signIn('google', { redirectTo: returnTo }); }}>
-                    <PendingButton className="google-button" pendingText="در حال اتصال…">
-                      <b>G</b> ادامه با گوگل
-                    </PendingButton>
-                  </form>
-                </>
-              ) : null}
-
-              {/* Disabled providers stay out of the primary path — one quiet note only. */}
-              {!authCapabilities.google || !authCapabilities.phone ? (
-                <p className="auth-alt-note">
-                  گوگل و پیامک هنوز فعال نیستند؛ فعلاً فقط ایمیل.
-                </p>
+              {!authCapabilities.phone ? (
+                <p className="auth-alt-note">ورود پیامکی به‌زودی؛ فعلاً ایمیل{authCapabilities.google ? ' و گوگل' : ''}.</p>
               ) : null}
             </div>
             <small>با ورود، قوانین استفاده و حریم خصوصی زرسیگنال را می‌پذیرید.</small>

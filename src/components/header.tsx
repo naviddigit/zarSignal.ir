@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Activity, ArrowUpLeft, Calculator, UserRound } from 'lucide-react';
+import { Activity, Calculator, UserRound } from 'lucide-react';
 import { auth } from '@/auth';
 import { ThemeToggle } from './theme-toggle';
 import { InstallApp } from './install-app';
@@ -28,7 +28,7 @@ export async function Header() {
         </nav>
 
         <div className="header-actions">
-          <Link className="header-tool" href="/calculator" aria-label="ماشین‌حساب" title="ماشین‌حساب">
+          <Link className="header-tool header-tool--calc" href="/calculator" aria-label="ماشین‌حساب" title="ماشین‌حساب">
             <Calculator size={19} />
           </Link>
           <ThemeToggle />
@@ -40,7 +40,7 @@ export async function Header() {
             </Link>
           ) : (
             <Link className="button small-button header-auth" href="/login">
-              ورود <ArrowUpLeft size={16} />
+              ورود
             </Link>
           )}
         </div>

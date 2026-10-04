@@ -50,10 +50,15 @@ export async function searchCustomers(query: string, take = 40): Promise<Custome
     4000,
   );
 
-  const rows: CustomerListItem[] = [];
-  for (const user of users) {
-    const entitlement = await resolveAccountEntitlement(user.id).catch(() => null);
-    rows.push({
+  // Resolve entitlements in parallel — sequential lookups timed out and looked like "DB down".
+  const entitlements = await withDeadline(
+    Promise.all(users.map(user => resolveAccountEntitlement(user.id).catch(() => null))),
+    8000,
+  );
+
+  return users.map((user, index) => {
+    const entitlement = entitlements[index];
+    return {
       id: user.id,
       email: user.email,
       name: user.name,
@@ -64,9 +69,8 @@ export async function searchCustomers(query: string, take = 40): Promise<Custome
       expiresAt: entitlement?.expiresAt?.toISOString() ?? null,
       level: entitlement?.level ?? 'FREE',
       accessCreditLabel: creditLabel(entitlement?.expiresAt ?? null, entitlement?.statusLabel ?? 'رایگان'),
-    });
-  }
-  return rows;
+    };
+  });
 }
 
 export type CustomerProfileUpdate = {
