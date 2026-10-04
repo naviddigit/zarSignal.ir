@@ -37,3 +37,19 @@ test('LIVE ignores forged client values and fails closed on demo, stale or wrong
   assert.throws(() => calculateProfessional({ operation: 'mazanehTo18k', inputs: { melted: manual(-1) } }, snapshot));
   assert.throws(() => calculateProfessional({ operation: 'mazanehTo18k', inputs: { melted: { provenance: 'CONSTANT', value: 1 } } }, snapshot));
 });
+test('silver LIVE accepts a fresh one-sided watch price but rejects inverted bid and ask', () => {
+  const observedAt = new Date().toISOString();
+  const base = demoQuotes[0];
+  const quotes = [
+    { ...base, symbol: 'XAG_USD' as const, buy: '50', sell: '0', currency: 'USD' as const, unit: 'اونس تروا', observedAt },
+    { ...base, symbol: 'USD' as const, buy: '0', sell: '200000', currency: 'TMN' as const, unit: 'دلار', observedAt },
+    { ...base, symbol: 'SILVER_999' as const, buy: '350000', sell: '0', currency: 'TMN' as const, unit: 'گرم', observedAt },
+  ];
+  const snapshot: Snapshot = { mode: 'live', status: 'ok', quotes };
+  const request = { operation: 'silverBubble', inputs: { xag: { provenance: 'LIVE' }, usd: { provenance: 'LIVE' }, silver999: { provenance: 'LIVE' } } };
+  const result = calculateProfessional(request, snapshot);
+  assert.equal(result.inputs[0].value, 50);
+  assert.equal(result.inputs[1].value, 200000);
+  assert.equal(result.inputs[2].value, 350000);
+  assert.throws(() => calculateProfessional(request, { ...snapshot, quotes: [{ ...quotes[0], buy: '55', sell: '50' }, ...quotes.slice(1)] }));
+});

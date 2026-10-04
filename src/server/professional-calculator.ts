@@ -4,8 +4,10 @@ import { mazanehTo18k, market18kToMazaneh } from './mazaneh-to-18k';
 import { goldBubble, silverBubbleV54, usdGap } from './bubble-formulas';
 
 function midQuote(quote: Quote) {
-  const mid = (Number(quote.buy) + Number(quote.sell)) / 2;
-  return Number.isFinite(mid) && mid > 0 && Number(quote.buy) <= Number(quote.sell) ? mid : null;
+  const buy = Number(quote.buy);
+  const sell = Number(quote.sell);
+  if (buy > 0 && sell > 0) return buy <= sell ? (buy + sell) / 2 : null;
+  return buy > 0 ? buy : sell > 0 ? sell : null;
 }
 
 function resolveLiveValue(field: (typeof calculatorCatalog)[CalculatorOperation]['fields'][number], snapshot: Snapshot) {

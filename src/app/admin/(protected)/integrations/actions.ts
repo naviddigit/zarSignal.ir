@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { db } from '@/lib/db';
 import { requireAdmin } from '@/server/admin-auth';
-import { encryptIntegrationSecret } from '@/server/integration-secrets';
+import { decryptIntegrationSecret, encryptIntegrationSecret } from '@/server/integration-secrets';
 import { ensureHistorySchema } from '@/server/ensure-schema';
 
 const integrations = [
@@ -22,8 +22,8 @@ export type SaveIntegrationState = {
 
 function mapError(error: unknown): string {
   const raw = error instanceof Error ? error.message : String(error ?? '');
-  if (/INTEGRATION_ENCRYPTION_KEY/i.test(raw)) {
-    return 'کلید رمزگذاری اتصال‌ها روی سرور تنظیم نشده یا کوتاه است. مقدار INTEGRATION_ENCRYPTION_KEY را در محیط Production بررسی کنید؛ کلید موجود را بدون مسیر مهاجرت عوض نکنید.';
+  if (/INTEGRATION_ENCRYPTION_KEY|AUTH_SECRET/i.test(raw)) {
+    return 'کلید رمزگذاری سرور تنظیم نشده است. AUTH_SECRET یا INTEGRATION_ENCRYPTION_KEY با طول حداقل ۳۲ نویسه در محیط Production لازم است.';
   }
   if (/Google Client ID|apps\.googleusercontent/i.test(raw)) {
     return 'Google Client ID معتبر نیست؛ باید به .apps.googleusercontent.com ختم شود.';
@@ -63,6 +63,12 @@ export async function saveIntegrationAction(
     const current = await db.integrationSetting.findUnique({ where: { key } });
     if (key === 'google_oauth' && enabled && !secret && !current?.valueEncrypted) {
       return { ok: false, key, error: 'برای فعال‌سازی ورود Google، Client Secret لازم است.' };
+    }
+    if (key === 'google_oauth' && enabled) {
+      const effectiveSecret = secret || (current?.valueEncrypted ? decryptIntegrationSecret(current.valueEncrypted) : '');
+      if (effectiveSecret.length < 20) {
+        return { ok: false, key, error: 'Google Client Secret معتبر نیست؛ مقدار کامل را از Google Cloud کپی کنید.' };
+      }
     }
 
     let valueEncrypted = current?.valueEncrypted ?? null;

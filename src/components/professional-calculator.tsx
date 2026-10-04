@@ -73,17 +73,19 @@ const isLocalTool = (tool: string): tool is LocalTool => tool === 'weight' || to
 const isOperation = (tool: string): tool is CalculatorOperation => !isLocalTool(tool) && tool in calculatorCatalog;
 
 function midQuote(quote: Quote) {
-  const mid = (Number(quote.buy) + Number(quote.sell)) / 2;
-  return Number.isFinite(mid) && mid > 0 ? mid : null;
+  const buy = Number(quote.buy);
+  const sell = Number(quote.sell);
+  if (buy > 0 && sell > 0) return buy <= sell ? (buy + sell) / 2 : null;
+  return buy > 0 ? buy : sell > 0 ? sell : null;
 }
 
 /** Resolve a live calculator field from market quotes. ۱۸ عیار همیشه از مظنه ÷ ۴٫۳۳۱۸. */
-function liveEntry(field: (typeof calculatorCatalog)[CalculatorOperation]['fields'][number], snapshot: Snapshot, allowStale = true): Entry {
+function liveEntry(field: (typeof calculatorCatalog)[CalculatorOperation]['fields'][number], snapshot: Snapshot): Entry {
   if (snapshot.mode !== 'live') return { value: '', provenance: 'MANUAL' };
 
   if (field.symbol === 'GOLD_18K') {
     const melted = snapshot.quotes.find(q => q.symbol === 'GOLD_MELTED');
-    if (melted && (allowStale || !isStale(melted)) && melted.currency === 'TMN') {
+    if (melted && !isStale(melted) && melted.currency === 'TMN') {
       const mid = midQuote(melted);
       if (mid != null) {
         try {
@@ -95,7 +97,7 @@ function liveEntry(field: (typeof calculatorCatalog)[CalculatorOperation]['field
   }
 
   const quote = snapshot.quotes.find(q => q.symbol === field.symbol);
-  if (quote && (allowStale || !isStale(quote)) && quote.currency === field.currency && quote.unit === field.quoteUnit) {
+  if (quote && !isStale(quote) && quote.currency === field.currency && quote.unit === field.quoteUnit) {
     const mid = midQuote(quote);
     if (mid != null) return { value: String(mid), provenance: 'LIVE', observedAt: quote.observedAt };
   }
@@ -325,7 +327,7 @@ export function ProfessionalCalculator({
         {tool === 'weight' ? (
           <WeightConvertWidget amount={weightAmount} onAmountChange={setWeightAmount} />
         ) : tool === 'purity' ? (
-          <PurityConvertWidget amount={purityAmount} onAmountChange={setPurityAmount} />
+          <PurityConvertWidget key={product} product={product} amount={purityAmount} onAmountChange={setPurityAmount} />
         ) : operation && !operationAllowed ? (
           <div className="calc-tool-panel calc-tool-panel--locked">
             <LockKeyhole size={22} />
@@ -342,8 +344,7 @@ export function ProfessionalCalculator({
             </div>
             {spec.fields.map(field => {
               const input = inputs[field.key] ?? { value: '', provenance: 'MANUAL' as const };
-              // Keep «لحظه‌ای» clickable whenever market feed is live — stale quotes still fill.
-              const liveAvailable = market.mode === 'live' && liveEntry(field, market, true).provenance === 'LIVE';
+              const liveAvailable = market.mode === 'live' && liveEntry(field, market).provenance === 'LIVE';
               return (
                 <div className={`calc-tool-panel__field${input.provenance === 'LIVE' ? ' is-live' : ' is-manual'}`} key={field.key}>
                   <div className="calc-tool-panel__head">

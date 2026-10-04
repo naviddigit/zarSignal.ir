@@ -74,7 +74,7 @@ export function IntegrationCardForm({
             defaultValue={publicValue ?? ''}
             placeholder={placeholder}
             dir="ltr"
-            required={google}
+            required={google && enabled}
           />
         </label>
         <label>
@@ -85,7 +85,7 @@ export function IntegrationCardForm({
             placeholder={hasSecret ? 'کلید ذخیره شده؛ برای حفظ آن خالی بگذارید' : 'کلید جدید'}
             autoComplete="new-password"
             dir="ltr"
-            required={google && !hasSecret}
+            required={google && enabled && !hasSecret}
           />
         </label>
       </div>
