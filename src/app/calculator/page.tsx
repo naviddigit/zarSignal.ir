@@ -23,7 +23,7 @@ export default async function CalculatorPage() {
       ? resolveAccountEntitlement(session.user.id).catch(() => null)
       : Promise.resolve(null),
   ]);
-  const { available, ...policy } = calcAccess;
+  const { available, writable: _writable, ...policy } = calcAccess;
 
   return (
     <main id="main" className="shell professional-page calc-app-page">

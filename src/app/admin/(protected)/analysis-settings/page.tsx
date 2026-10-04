@@ -16,7 +16,7 @@ export default async function AnalysisSettingsPage() {
     getCalculatorAccessPolicy(),
     withDeadline(db.analysisPolicyAudit.findMany({ take: 10, orderBy: { timestamp: 'desc' } }), 2000).catch(() => []),
   ]);
-  const { available: calcAvailable, ...calcPolicy } = calcAccess;
+  const { available: calcAvailable, writable: calcWritable, ...calcPolicy } = calcAccess;
 
   return (
     <>
@@ -36,8 +36,12 @@ export default async function AnalysisSettingsPage() {
 
       <section className="admin-card">
         <h2>دسترسی ماژول‌های ماشین‌حساب</h2>
-        <p>برای هر ماژول موجود: رایگان، پلن‌های مجاز، یا غیرفعال. کنترل در صفحه و endpoint محاسبه یکسان است.</p>
-        <CalculatorAccessSettingsForm policy={calcPolicy} available={calcAvailable} />
+        <p>برای هر ماژول: رایگان، پلن‌های مجاز، یا غیرفعال. مسیر: ادمین → تنظیمات تحلیل. پیش‌فرض همه رایگان است.</p>
+        <CalculatorAccessSettingsForm
+          policy={calcPolicy}
+          available={calcAvailable}
+          writable={calcWritable}
+        />
       </section>
 
       <section className="admin-card">

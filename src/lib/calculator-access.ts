@@ -63,6 +63,8 @@ export function decideCalculatorModuleAccess(
   level: AccessLevel,
   opts?: { statusLabel?: string | null; settingsAvailable?: boolean },
 ): CalculatorAccessDecision {
+  // settingsAvailable=false is reserved for true policy absence. Callers that fall back to
+  // defaultCalculatorAccessPolicy must pass available=true (or omit the flag).
   if (opts?.settingsAvailable === false) {
     return {
       ok: false,
@@ -76,7 +78,11 @@ export function decideCalculatorModuleAccess(
   }
   if (row.mode === 'free') return { ok: true };
   if (opts?.statusLabel === 'در انتظار پرداخت') {
-    return { ok: false, code: 'forbidden', message: 'اشتراک در انتظار پرداخت است؛ پس از فعال‌سازی می‌توانید محاسبه کنید.' };
+    return {
+      ok: false,
+      code: 'forbidden',
+      message: 'اشتراک در انتظار پرداخت است؛ پس از فعال‌سازی می‌توانید محاسبه کنید. حساب خود را ارتقا دهید.',
+    };
   }
   if (row.allowedLevels.includes(level)) return { ok: true };
   if (opts?.statusLabel === 'آزمایشی' && row.allowedLevels.includes('HOME')) {
@@ -85,7 +91,7 @@ export function decideCalculatorModuleAccess(
   return {
     ok: false,
     code: 'forbidden',
-    message: 'این محاسبه برای پلن فعلی شما فعال نیست.',
+    message: 'این محاسبه برای پلن فعلی شما فعال نیست. حساب خود را ارتقا دهید.',
   };
 }
 

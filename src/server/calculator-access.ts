@@ -12,16 +12,27 @@ import {
   type CalculatorOperation,
 } from '@/lib/calculator-access';
 
-export async function getCalculatorAccessPolicy(): Promise<CalculatorAccessPolicy & { available: boolean }> {
+export type CalculatorAccessPolicyState = CalculatorAccessPolicy & {
+  /** Usable policy for customer decisions (defaults count as usable). */
+  available: boolean;
+  /** Admin can persist changes (requires live DB). */
+  writable: boolean;
+};
+
+/**
+ * Read module monetization policy.
+ * DB failure must not lock the calculator: fall back to free defaults and mark writable=false.
+ */
+export async function getCalculatorAccessPolicy(): Promise<CalculatorAccessPolicyState> {
   try {
     const row = await withDeadline(
       db.integrationSetting.findUnique({ where: { key: CALCULATOR_ACCESS_SETTING_KEY } }),
       2000,
     );
-    if (!row?.publicValue) return { ...defaultCalculatorAccessPolicy, available: true };
-    return { ...normalizeCalculatorAccessPolicy(JSON.parse(row.publicValue)), available: true };
+    if (!row?.publicValue) return { ...defaultCalculatorAccessPolicy, available: true, writable: true };
+    return { ...normalizeCalculatorAccessPolicy(JSON.parse(row.publicValue)), available: true, writable: true };
   } catch {
-    return { ...defaultCalculatorAccessPolicy, available: false };
+    return { ...defaultCalculatorAccessPolicy, available: true, writable: false };
   }
 }
 
@@ -56,9 +67,8 @@ export async function resolveCalculatorOperationAccess(
     return { ok: false, code: 'disabled', message: 'عملیات ماشین‌حساب نامعتبر است.' };
   }
   const policy = await getCalculatorAccessPolicy();
-  const decision = decideCalculatorModuleAccess(operation, policy, level, {
-    statusLabel,
-    settingsAvailable: policy.available,
-  });
+  // Always evaluate against a usable policy (defaults if DB is down). Never block with settings_error
+  // when free defaults are already applied — that message was masking upgrade / plan gates.
+  const decision = decideCalculatorModuleAccess(operation, policy, level, { statusLabel });
   return { ...decision, operation };
 }

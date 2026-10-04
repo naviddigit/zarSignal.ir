@@ -1,0 +1,11 @@
+---
+description: Admin pages must use the product design system, not ad-hoc forms
+alwaysApply: true
+---
+
+# Admin design system
+
+- Use `src/components/ui/*` (`Field`, `Input`, `Select`, `Checkbox`, `OverlaySheet`) and `admin-form-grid` / `admin-card` / `ds-*`.
+- Do not add raw inline-styled radios/inputs for new or rebuilt admin forms.
+- Match patterns already used on `/admin/plans` and `/admin/data`.
+- Calculator monetization UI lives at `/admin/analysis-settings` via `CalculatorAccessSettingsForm`.

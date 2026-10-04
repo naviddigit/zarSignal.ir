@@ -1,6 +1,8 @@
 'use client';
+
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import type { AccessLevel } from '@/lib/capabilities';
 import { accessLevelLabel } from '@/lib/capabilities';
 import {
@@ -9,17 +11,25 @@ import {
   type CalculatorModuleMode,
   type CalculatorModule,
 } from '@/lib/calculator-access';
-import Link from 'next/link';
+import { Checkbox } from '@/components/ui/checkbox';
 
 const LEVELS: AccessLevel[] = ['FREE', 'HOME', 'PROFESSIONAL', 'ADVANCED_PROFESSIONAL'];
 const OPS = Object.keys(CALCULATOR_MODULE_LABELS) as CalculatorModule[];
+const MODE_LABELS: Record<CalculatorModuleMode, string> = {
+  free: 'رایگان',
+  plans: 'پلن‌های مجاز',
+  disabled: 'غیرفعال',
+};
 
 export function CalculatorAccessSettingsForm({
   policy,
   available,
+  writable = available,
 }: {
   policy: CalculatorAccessPolicy;
   available: boolean;
+  /** When false, form is visible (defaults) but save is blocked — DB down. */
+  writable?: boolean;
 }) {
   const router = useRouter();
   const [draft, setDraft] = useState(policy);
@@ -52,9 +62,13 @@ export function CalculatorAccessSettingsForm({
 
   return (
     <form
-      className="admin-form-grid"
+      className="admin-form-grid calc-access-form"
       onSubmit={async event => {
         event.preventDefault();
+        if (!writable) {
+          setMessage('اتصال پایگاه داده برای ذخیره این تنظیم در دسترس نیست.');
+          return;
+        }
         setPending(true);
         setMessage('');
         try {
@@ -73,48 +87,62 @@ export function CalculatorAccessSettingsForm({
         }
       }}
     >
-      {!available ? <p role="alert" className="wide">اتصال پایگاه داده برای ذخیره این تنظیم در دسترس نیست.</p> : null}
-      <p className="wide">برای دسترسی چندساعته، ماژول را روی «پلن‌های مجاز» بگذارید، «پلن خانگی» را انتخاب کنید و تیک «حساب رایگان» را بردارید؛ مدت دورهٔ آزمایشی را در <Link href="/admin/plans">تنظیمات پلن‌ها</Link> تعیین کنید. دوره از زمان فعال‌سازی آزمایش حساب شروع می‌شود.</p>
-      <p className="wide">طلای زینتی، زیور نقره، نسبت طلا/نقره، مبدل ارز و حباب سکه هنوز ابزار قابل اجرا نیستند؛ پس در فهرست کنترل دسترسی هم نمایش داده نمی‌شوند.</p>
+      {!writable ? (
+        <p role="alert" className="wide form-error admin-message">
+          اتصال پایگاه داده برای ذخیره این تنظیم در دسترس نیست. پیش‌فرض رایگان برای مشتری اعمال می‌شود تا DB برقرار شود.
+        </p>
+      ) : null}
+
+      <p className="wide">
+        هر ماژول را روی «رایگان»، «پلن‌های مجاز» یا «غیرفعال» بگذارید. برای پولی‌کردن: «پلن‌های مجاز» را انتخاب کنید و فقط پلن‌های موردنظر را تیک بزنید (تیک حساب رایگان را بردارید).
+        دورهٔ آزمایشی را در <Link href="/admin/plans">تنظیمات پلن‌ها</Link> تعیین کنید.
+      </p>
+
       {OPS.map(op => {
         const row = draft[op];
         return (
-          <fieldset key={op} className="wide" style={{ border: '1px solid var(--border, #ddd)', padding: '0.75rem', marginBottom: '0.5rem' }}>
-            <legend><strong>{CALCULATOR_MODULE_LABELS[op]}</strong> <small dir="ltr">({op})</small></legend>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', marginBlock: '0.5rem' }}>
+          <article key={op} className="wide calc-access-module">
+            <header className="calc-access-module__head">
+              <strong>{CALCULATOR_MODULE_LABELS[op]}</strong>
+              <small dir="ltr">{op}</small>
+            </header>
+
+            <div className="ds-choice-row" role="radiogroup" aria-label={`حالت دسترسی ${CALCULATOR_MODULE_LABELS[op]}`}>
               {(['free', 'plans', 'disabled'] as CalculatorModuleMode[]).map(mode => (
-                <label key={mode} style={{ display: 'inline-flex', gap: '0.35rem', alignItems: 'center' }}>
+                <label key={mode} className={`ds-choice${row.mode === mode ? ' is-on' : ''}`}>
                   <input
                     type="radio"
                     name={`mode-${op}`}
                     checked={row.mode === mode}
                     onChange={() => setMode(op, mode)}
                   />
-                  {mode === 'free' ? 'رایگان' : mode === 'plans' ? 'پلن‌های مجاز' : 'غیرفعال'}
+                  <span>{MODE_LABELS[mode]}</span>
                 </label>
               ))}
             </div>
+
             {row.mode === 'plans' ? (
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
+              <div className="ds-checks">
                 {LEVELS.map(level => (
-                  <label key={level} style={{ display: 'inline-flex', gap: '0.35rem', alignItems: 'center' }}>
-                    <input
-                      type="checkbox"
-                      checked={row.allowedLevels.includes(level)}
-                      onChange={() => toggleLevel(op, level)}
-                    />
-                    {accessLevelLabel(level)}
-                  </label>
+                  <Checkbox
+                    key={level}
+                    label={accessLevelLabel(level)}
+                    checked={row.allowedLevels.includes(level)}
+                    onCheckedChange={() => toggleLevel(op, level)}
+                  />
                 ))}
               </div>
             ) : null}
-          </fieldset>
+          </article>
         );
       })}
-      <button className="button" type="submit" disabled={pending || !available} aria-busy={pending}>
-        {pending ? 'در حال ذخیره…' : 'ذخیره دسترسی ماشین‌حساب'}
-      </button>
-      <p role="status" className="wide">{message}</p>
+
+      <div className="ds-actions">
+        <button className="button" type="submit" disabled={!writable || pending} aria-busy={pending}>
+          {pending ? 'در حال ذخیره…' : 'ذخیره دسترسی ماشین‌حساب'}
+        </button>
+      </div>
+      {message ? <p role="status" className="wide">{message}</p> : null}
     </form>
   );
 }

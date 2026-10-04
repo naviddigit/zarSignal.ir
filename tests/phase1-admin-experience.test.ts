@@ -88,11 +88,23 @@ test('calculator module access: free / plans / disabled with trial and pending',
     }).ok,
     true,
   );
+  // True absence of settings still errors — but callers that fall back to defaults must not pass false.
   const settingsDown = decideCalculatorModuleAccess('mazanehTo18k', defaultCalculatorAccessPolicy, 'FREE', {
     settingsAvailable: false,
   });
   assert.equal(settingsDown.ok, false);
   if (!settingsDown.ok) assert.equal(settingsDown.code, 'settings_error');
+  // Defaults with available omitted/true stay usable (DB-down fail-open path).
+  assert.equal(
+    decideCalculatorModuleAccess('mazanehTo18k', defaultCalculatorAccessPolicy, 'FREE').ok,
+    true,
+  );
+  const paidDenied = decideCalculatorModuleAccess('goldBubble', policy, 'FREE');
+  assert.equal(paidDenied.ok, false);
+  if (!paidDenied.ok) {
+    assert.equal(paidDenied.code, 'forbidden');
+    assert.match(paidDenied.message, /ارتقاء|ارتقا/);
+  }
 });
 
 test('local weight and purity tools use the same admin plan policy', () => {
