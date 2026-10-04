@@ -12,7 +12,7 @@ import {
   type RefObject,
 } from 'react';
 import Link from 'next/link';
-import { Activity, ArrowUpLeft, ChevronDown, RefreshCw } from 'lucide-react';
+import { Activity, ArrowUpLeft, ChevronDown, RefreshCw, X } from 'lucide-react';
 import { buildAnalysisNarrativeSections, buildBriefAnalysisNarrativeSections, formatFaPercent, formatTehranStamp, selectReportMetrics } from '@/lib/market-view-report';
 import type { MarketViewDecision, MarketViewReport } from '@/lib/market-view-report';
 import {
@@ -695,6 +695,7 @@ export function MarketViewReportView({
   const reading = readingSettings;
   const [engagementReady, setEngagementReady] = useState(false);
   const onEngagementReady = useCallback(() => setEngagementReady(true), []);
+  const [boardPriceOpen, setBoardPriceOpen] = useState(true);
 
   const reportKey = `${report.snapshotFingerprint}:${report.symbol ?? 'all'}:${report.access}:${density}`;
   const { items: plan } = useMemo(
@@ -875,16 +876,10 @@ export function MarketViewReportView({
       data-reveal-total={plan.length}
     >
       <header className="market-view__hero">
-        <h1>{report.title}</h1>
-        <p className="market-view__meta" role="status">
-          داده: {formatTehranStamp(report.dataObservedAtIso)} به وقت تهران
-          {' · '}
-          وضعیت: {freshnessText(report)}
-
-        </p>
-        {!reduced ? (
-          <div className="market-view__controls" data-follow-keep>
-            <div className="market-view__density" role="group" aria-label="حجم متن">
+        <div className="market-view__title-row">
+          <h1>{report.title}</h1>
+          {!reduced ? (
+            <div className="market-view__density" role="group" aria-label="حجم متن" data-follow-keep>
               <button
                 type="button"
                 className={density === 'brief' ? 'is-active' : undefined}
@@ -904,6 +899,15 @@ export function MarketViewReportView({
                 کامل
               </button>
             </div>
+          ) : null}
+        </div>
+        <p className="market-view__meta" role="status">
+          داده: {formatTehranStamp(report.dataObservedAtIso)} به وقت تهران
+          {' · '}
+          وضعیت: {freshnessText(report)}
+        </p>
+        {!reduced ? (
+          <div className="market-view__controls" data-follow-keep>
             <div className="market-view__speed" role="group" aria-label="سرعت نمایش" data-follow-keep>
               <span>سرعت</span>
               <button
@@ -927,11 +931,21 @@ export function MarketViewReportView({
             </div>
           </div>
         ) : null}
-        {report.currentQuote ? (
-          <p className="market-view__meta">
-            قیمت تابلو {report.currentQuote.label}:{' '}
-            <bdi className={metricClass('neutral')}>{report.currentQuote.price}</bdi>
-            {' / '}{report.currentQuote.unit}
+        {report.currentQuote && boardPriceOpen ? (
+          <p className="market-view__board-price">
+            <button
+              type="button"
+              className="market-view__board-dismiss"
+              aria-label="بستن قیمت تابلو"
+              onClick={() => setBoardPriceOpen(false)}
+            >
+              <X size={12} strokeWidth={2.2} aria-hidden />
+            </button>
+            <span>
+              قیمت تابلو {report.currentQuote.label}:{' '}
+              <bdi className={metricClass('neutral')}>{report.currentQuote.price}</bdi>
+              {' / '}{report.currentQuote.unit}
+            </span>
           </p>
         ) : null}
       </header>

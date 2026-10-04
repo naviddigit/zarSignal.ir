@@ -108,15 +108,15 @@ export function AnalysisStoryCardButton({
     <div className={compact ? 'market-view__story is-inline' : 'market-view__story'} data-follow-keep>
       <button
         type="button"
-        className={compact ? 'analysis-icon-action' : 'analysis-action'}
+        className={compact ? 'analysis-action is-compact-story' : 'analysis-action'}
         aria-haspopup="dialog"
         aria-expanded={opened}
         title="ساخت استوری"
         aria-label="ساخت استوری"
         onClick={() => setOpened(true)}
       >
-        <Sparkles size={18} aria-hidden />
-        {compact ? null : ' ساخت استوری'}
+        <Sparkles size={16} aria-hidden />
+        ساخت استوری
       </button>
       <OverlaySheet open={opened} title="استودیوی استوری" onClose={() => setOpened(false)}>
       <div className="analysis-story-studio">
