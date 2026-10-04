@@ -1,16 +1,7 @@
 import { searchCustomers } from '@/server/admin-customers';
-import Link from 'next/link';
+import { CustomersWorkspace } from './customers-workspace';
 
 export const dynamic = 'force-dynamic';
-
-function faDate(iso: string | null) {
-  if (!iso) return '—';
-  return new Intl.DateTimeFormat('fa-IR', {
-    timeZone: 'Asia/Tehran',
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  }).format(new Date(iso));
-}
 
 export default async function AdminCustomersPage({
   searchParams,
@@ -32,57 +23,20 @@ export default async function AdminCustomersPage({
         <div>
           <span className="eyebrow">CUSTOMERS</span>
           <h1>مدیریت مشتری‌ها</h1>
-          <p>جست‌وجو، پلن فعلی، وضعیت، انقضا و اعتبار دسترسی زمانی. سوابق پرداخت دست‌کاری نمی‌شوند.</p>
+          <p>جست‌وجو، ویرایش پروفایل، پلن و اعتبار دسترسی زمانی. سوابق پرداخت دست‌کاری نمی‌شوند.</p>
         </div>
+        <span className={`admin-badge ${dbError ? 'local' : 'connected'}`}>
+          {dbError ? 'دیتابیس در دسترس نیست' : 'PostgreSQL متصل'}
+        </span>
       </header>
 
       {dbError ? (
         <p className="form-error admin-message" role="alert">
-          اتصال پایگاه داده برقرار نیست؛ فهرست مشتری‌ها خوانده نشد. این به‌معنای خالی‌بودن مشتری‌ها نیست — تا اتصال PostgreSQL درست نشود جست‌وجو کار نمی‌کند.
+          اتصال پایگاه داده برقرار نیست؛ فهرست مشتری‌ها خوانده نشد. این به‌معنای خالی‌بودن مشتری‌ها نیست — تا اتصال PostgreSQL درست نشود جست‌وجو و ویرایش کار نمی‌کند.
         </p>
       ) : null}
 
-      <form className="admin-card" method="get" action="/admin/customers">
-        <label>
-          <span>جست‌وجو (ایمیل، نام یا شناسه)</span>
-          <input className="ds-input" name="q" defaultValue={q} placeholder="مثلاً user@example.com" dir="ltr" />
-        </label>
-        <button type="submit" className="button small-button">جست‌وجو</button>
-      </form>
-
-      <div className="admin-table-wrap">
-        <table className="admin-table">
-          <thead>
-            <tr>
-              <th>مشتری</th>
-              <th>پلن</th>
-              <th>وضعیت</th>
-              <th>انقضا (تهران)</th>
-              <th>اعتبار دسترسی</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {dbError ? (
-              <tr><td colSpan={6}>پایگاه داده در دسترس نیست.</td></tr>
-            ) : rows.length === 0 ? (
-              <tr><td colSpan={6}>مشتری‌ای یافت نشد.</td></tr>
-            ) : rows.map(row => (
-              <tr key={row.id}>
-                <td>
-                  <strong>{row.name || '—'}</strong>
-                  <div dir="ltr">{row.email || row.id}</div>
-                </td>
-                <td>{row.planLabel}</td>
-                <td>{row.statusLabel}</td>
-                <td>{faDate(row.expiresAt)}</td>
-                <td>{row.accessCreditLabel}</td>
-                <td><Link className="button small-button" href={`/admin/customers/${row.id}`}>مدیریت</Link></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <CustomersWorkspace initialQuery={q} initialRows={rows} dbError={dbError} />
     </>
   );
 }

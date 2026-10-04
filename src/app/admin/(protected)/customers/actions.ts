@@ -7,6 +7,7 @@ import {
   getCustomerDetail,
   previewCustomerAccessChange,
   searchCustomers,
+  updateCustomerProfile,
   type CustomerAccessMutation,
 } from '@/server/admin-customers';
 import { resolveAccountEntitlement } from '@/server/account-entitlement';
@@ -17,6 +18,14 @@ export type CustomerActionState = {
   error?: string;
   message?: string;
   preview?: ReturnType<typeof previewCustomerAccessChange>;
+};
+
+export type CustomerProfileState = {
+  ok: boolean;
+  error?: string;
+  message?: string;
+  name?: string | null;
+  phone?: string | null;
 };
 
 function parseMutation(form: FormData): CustomerAccessMutation {
@@ -100,6 +109,32 @@ export async function applyCustomerAction(
             : `وضعیت: ${result.entitlementAfter.statusLabel}`,
         },
       },
+    };
+  } catch (error) {
+    return { ok: false, error: mapCustomerError(error) };
+  }
+}
+
+export async function updateCustomerProfileAction(
+  _prev: CustomerProfileState | null,
+  form: FormData,
+): Promise<CustomerProfileState> {
+  try {
+    const actor = await requireAdmin();
+    const userId = String(form.get('userId') ?? '');
+    const updated = await updateCustomerProfile(actor, {
+      userId,
+      name: String(form.get('name') ?? ''),
+      phone: String(form.get('phone') ?? ''),
+      reason: String(form.get('reason') ?? ''),
+    });
+    revalidatePath('/admin/customers');
+    revalidatePath(`/admin/customers/${userId}`);
+    return {
+      ok: true,
+      message: 'اطلاعات مشتری ذخیره شد.',
+      name: updated.name,
+      phone: updated.phone,
     };
   } catch (error) {
     return { ok: false, error: mapCustomerError(error) };

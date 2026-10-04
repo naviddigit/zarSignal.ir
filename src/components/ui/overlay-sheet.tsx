@@ -9,6 +9,8 @@ type OverlaySheetProps = {
   title: string;
   onClose: () => void;
   children: ReactNode;
+  /** Wider panel for dense admin editors (still capped by viewport). */
+  size?: 'default' | 'wide';
 };
 
 let lockCount = 0;
@@ -53,7 +55,7 @@ function unlockPageScroll() {
  * Shared design-system overlay:
  * desktop = centered modal, mobile = bottom drawer (slide up / down).
  */
-export function OverlaySheet({ open, title, onClose, children }: OverlaySheetProps) {
+export function OverlaySheet({ open, title, onClose, children, size = 'default' }: OverlaySheetProps) {
   const titleId = useId();
   const onCloseRef = useRef(onClose);
   const [mounted, setMounted] = useState(false);
@@ -113,7 +115,14 @@ export function OverlaySheet({ open, title, onClose, children }: OverlaySheetPro
   return createPortal(
     <div className={`ds-overlay-layer${closing ? ' is-closing' : ''}`} role="presentation">
       <button type="button" className="ds-overlay__backdrop" aria-label="بستن" onClick={() => onCloseRef.current()} />
-      <div ref={panelRef} tabIndex={-1} className="ds-overlay__panel" role="dialog" aria-modal="true" aria-labelledby={titleId}>
+      <div
+        ref={panelRef}
+        tabIndex={-1}
+        className={`ds-overlay__panel${size === 'wide' ? ' ds-overlay__panel--wide' : ''}`}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+      >
         <div className="ds-overlay__handle" aria-hidden="true" />
         <header className="ds-overlay__header">
           <strong id={titleId}>{title}</strong>

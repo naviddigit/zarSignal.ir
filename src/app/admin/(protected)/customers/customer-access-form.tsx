@@ -1,6 +1,9 @@
 'use client';
 
 import { useActionState, useMemo, useState } from 'react';
+import { PendingButton } from '@/components/pending-button';
+import { Field, Textarea } from '@/components/ui/field';
+import { Select } from '@/components/ui/select';
 import { TehranDateTimePicker } from '@/components/tehran-datetime-picker';
 import { formatTehranDateTime } from '@/lib/tehran-datetime';
 import {
@@ -17,6 +20,15 @@ type Props = {
   plans: Plan[];
 };
 
+const ACTION_OPTIONS = [
+  { value: 'set_plan', label: 'تغییر پلن' },
+  { value: 'gift_hours', label: 'هدیهٔ دسترسی (ساعت)' },
+  { value: 'adjust_hours', label: 'افزودن/کاهش زمان (ساعت)' },
+  { value: 'set_expires_at', label: 'تنظیم مستقیم تاریخ انقضا' },
+  { value: 'suspend', label: 'تعلیق اشتراک' },
+  { value: 'cancel', label: 'لغو اشتراک' },
+];
+
 export function CustomerAccessForm({ userId, currentExpiresAt, plans }: Props) {
   const [previewState, previewAction, previewPending] = useActionState<CustomerActionState | null, FormData>(
     previewCustomerAction,
@@ -26,83 +38,94 @@ export function CustomerAccessForm({ userId, currentExpiresAt, plans }: Props) {
     applyCustomerAction,
     null,
   );
-  const [action, setAction] = useState<string>('gift_hours');
+  const [action, setAction] = useState('gift_hours');
   const [expiresIso, setExpiresIso] = useState(currentExpiresAt ?? new Date().toISOString());
   const [pickerOpen, setPickerOpen] = useState(false);
 
   const expiresDate = useMemo(() => new Date(expiresIso), [expiresIso]);
   const preview = applyState?.preview ?? previewState?.preview ?? null;
   const error = applyState?.error ?? previewState?.error;
-  const message = applyState?.ok ? applyState.message : previewState?.ok && !applyState?.ok ? previewState.message : applyState?.message;
+  const message = applyState?.ok
+    ? applyState.message
+    : previewState?.ok && !applyState?.ok
+      ? previewState.message
+      : applyState?.message;
+  const busy = previewPending || applyPending;
+  const planOptions = plans.map(plan => ({ value: plan.slug, label: plan.title }));
 
   return (
     <div className="customer-access">
       <form className="admin-card customer-access__form" action={previewAction}>
         <input type="hidden" name="userId" value={userId} />
         <input type="hidden" name="expiresAtIso" value={expiresIso} />
+        <input type="hidden" name="action" value={action} />
 
-        <label>
-          <span>نوع تغییر</span>
-          <select
-            className="ds-input"
-            name="action"
+        <div className="admin-form-grid">
+          <Select
+            label="نوع تغییر"
+            options={ACTION_OPTIONS}
             value={action}
-            onChange={e => setAction(e.target.value)}
-          >
-            <option value="set_plan">تغییر پلن</option>
-            <option value="gift_hours">هدیهٔ دسترسی (ساعت)</option>
-            <option value="adjust_hours">افزودن/کاهش زمان (ساعت)</option>
-            <option value="set_expires_at">تنظیم مستقیم تاریخ انقضا</option>
-            <option value="suspend">تعلیق اشتراک</option>
-            <option value="cancel">لغو اشتراک</option>
-          </select>
-        </label>
+            onChange={setAction}
+            className="wide"
+          />
 
-        {action === 'set_plan' ? (
-          <label>
-            <span>پلن جدید</span>
-            <select className="ds-input" name="planSlug" defaultValue={plans[0]?.slug}>
-              {plans.map(p => (
-                <option key={p.slug} value={p.slug}>{p.title}</option>
-              ))}
-            </select>
-          </label>
-        ) : null}
+          {action === 'set_plan' ? (
+            <Select
+              name="planSlug"
+              label="پلن جدید"
+              options={planOptions}
+              defaultValue={plans[0]?.slug}
+              className="wide"
+            />
+          ) : null}
 
-        {action === 'gift_hours' || action === 'adjust_hours' ? (
-          <label>
-            <span>{action === 'gift_hours' ? 'ساعت هدیه (مثبت)' : 'ساعت تعدیل (+/−)'}</span>
-            <input className="ds-input" name="hours" type="number" step={1} defaultValue={action === 'gift_hours' ? 24 : 24} dir="ltr" />
-          </label>
-        ) : null}
+          {action === 'gift_hours' || action === 'adjust_hours' ? (
+            <Field label={action === 'gift_hours' ? 'ساعت هدیه (مثبت)' : 'ساعت تعدیل (+/−)'} className="wide">
+              <input
+                className="ds-input"
+                name="hours"
+                type="number"
+                step={1}
+                defaultValue={24}
+                dir="ltr"
+                required
+              />
+            </Field>
+          ) : null}
 
-        {action === 'set_expires_at' ? (
-          <div className="customer-access__expires">
-            <span>تاریخ و ساعت انقضا (تهران)</span>
-            <p className="customer-access__expires-label">{formatTehranDateTime(expiresDate)}</p>
-            <button type="button" className="button small-button" onClick={() => setPickerOpen(true)}>
-              انتخاب تاریخ و ساعت
+          {action === 'set_expires_at' ? (
+            <div className="customer-access__expires wide">
+              <span className="ds-field__label">تاریخ و ساعت انقضا (تهران)</span>
+              <p className="customer-access__expires-label">{formatTehranDateTime(expiresDate)}</p>
+              <button type="button" className="button small-button" onClick={() => setPickerOpen(true)}>
+                انتخاب تاریخ و ساعت
+              </button>
+            </div>
+          ) : null}
+
+          <Textarea
+            label="دلیل تغییر (حداقل ۳ نویسه)"
+            name="reason"
+            rows={2}
+            required
+            minLength={3}
+            placeholder="مثلاً هدیهٔ پشتیبانی / اصلاح انقضا"
+            fieldClassName="wide"
+          />
+
+          <div className="ds-actions customer-access__actions">
+            <PendingButton className="button small-button" pendingText="در حال محاسبه…" disabled={busy}>
+              پیش‌نمایش
+            </PendingButton>
+            <button
+              type="submit"
+              className="button"
+              formAction={applyAction}
+              disabled={busy}
+            >
+              {applyPending ? 'در حال ذخیره…' : 'ذخیرهٔ تغییر'}
             </button>
           </div>
-        ) : null}
-
-        <label>
-          <span>دلیل تغییر (حداقل ۳ نویسه)</span>
-          <textarea className="ds-input" name="reason" rows={2} required minLength={3} placeholder="مثلاً هدیهٔ پشتیبانی / اصلاح انقضا" />
-        </label>
-
-        <div className="customer-access__actions">
-          <button type="submit" className="button small-button" disabled={previewPending || applyPending}>
-            {previewPending ? 'در حال محاسبه…' : 'پیش‌نمایش'}
-          </button>
-          <button
-            type="submit"
-            className="button"
-            formAction={applyAction}
-            disabled={previewPending || applyPending}
-          >
-            {applyPending ? 'در حال ذخیره…' : 'ذخیرهٔ تغییر'}
-          </button>
         </div>
       </form>
 

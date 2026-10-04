@@ -9,6 +9,7 @@ export type CustomerListItem = {
   id: string;
   email: string | null;
   name: string | null;
+  phone: string | null;
   createdAt: string;
   planLabel: string;
   statusLabel: string;
@@ -37,13 +38,14 @@ export async function searchCustomers(query: string, take = 40): Promise<Custome
             OR: [
               { email: { contains: q, mode: 'insensitive' } },
               { name: { contains: q, mode: 'insensitive' } },
+              { phone: { contains: q, mode: 'insensitive' } },
               { id: q },
             ],
           }
         : undefined,
       orderBy: { createdAt: 'desc' },
       take,
-      select: { id: true, email: true, name: true, createdAt: true },
+      select: { id: true, email: true, name: true, phone: true, createdAt: true },
     }),
     4000,
   );
@@ -55,6 +57,7 @@ export async function searchCustomers(query: string, take = 40): Promise<Custome
       id: user.id,
       email: user.email,
       name: user.name,
+      phone: user.phone,
       createdAt: user.createdAt.toISOString(),
       planLabel: entitlement?.planLabel ?? accessLevelLabel('FREE'),
       statusLabel: entitlement?.statusLabel ?? 'رایگان',
@@ -66,11 +69,69 @@ export async function searchCustomers(query: string, take = 40): Promise<Custome
   return rows;
 }
 
+export type CustomerProfileUpdate = {
+  userId: string;
+  name: string;
+  phone?: string;
+  reason: string;
+};
+
+/** Profile fields only — never mutates payment or subscription history. */
+export async function updateCustomerProfile(actor: string, update: CustomerProfileUpdate) {
+  if (!actor) throw new Error('unauthorized');
+  if (!update.userId) throw new Error('مشتری مشخص نیست.');
+  if (!update.reason?.trim() || update.reason.trim().length < 3) {
+    throw new Error('دلیل تغییر حداقل ۳ نویسه لازم است.');
+  }
+  const name = update.name.trim();
+  if (name.length > 120) throw new Error('نام نباید بیشتر از ۱۲۰ نویسه باشد.');
+  const phoneRaw = update.phone?.trim() ?? '';
+  const phone = phoneRaw === '' ? null : phoneRaw;
+  if (phone && !/^\+?[0-9\s-]{8,20}$/.test(phone)) {
+    throw new Error('شماره تماس معتبر نیست.');
+  }
+
+  await ensureHistorySchema().catch(() => undefined);
+  const before = await db.user.findUnique({
+    where: { id: update.userId },
+    select: { id: true, name: true, phone: true, email: true },
+  });
+  if (!before) throw new Error('مشتری یافت نشد.');
+
+  let after;
+  try {
+    after = await db.user.update({
+      where: { id: update.userId },
+      data: { name: name || null, phone },
+      select: { id: true, name: true, phone: true, email: true },
+    });
+  } catch (error) {
+    const raw = error instanceof Error ? error.message : String(error);
+    if (/Unique constraint|P2002|phone/i.test(raw)) {
+      throw new Error('این شماره تماس قبلاً برای مشتری دیگری ثبت شده است.');
+    }
+    throw error;
+  }
+
+  await db.adminAccessAudit.create({
+    data: {
+      actor,
+      userId: update.userId,
+      action: 'update_profile',
+      reason: update.reason.trim(),
+      previousValue: { name: before.name, phone: before.phone },
+      nextValue: { name: after.name, phone: after.phone },
+    },
+  }).catch(() => undefined);
+
+  return after;
+}
+
 export async function getCustomerDetail(userId: string) {
   await ensureHistorySchema().catch(() => undefined);
   const user = await db.user.findUnique({
     where: { id: userId },
-    select: { id: true, email: true, name: true, createdAt: true, role: true },
+    select: { id: true, email: true, name: true, phone: true, createdAt: true, role: true },
   });
   if (!user) return null;
   const [entitlement, subscriptions, plans, audits] = await Promise.all([
@@ -96,6 +157,7 @@ export async function getCustomerDetail(userId: string) {
       id: user.id,
       email: user.email,
       name: user.name,
+      phone: user.phone,
       createdAt: user.createdAt.toISOString(),
       role: user.role,
     },
