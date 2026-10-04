@@ -249,6 +249,14 @@ export function AnalysisEngagementPanel({
                 <button type="button" className="analysis-icon-action" title="اشتراک خلاصه" aria-label="اشتراک خلاصه" onClick={() => void shareSummary()}>
                   <Share2 size={18} aria-hidden />
                 </button>
+                <AnalysisStoryCardButton
+                  compact
+                  report={report}
+                  planLevel={planLevel}
+                  planLabel={planLabel}
+                  planStatus={planStatus}
+                  showPlanBadge={false}
+                />
               </div>
             </div>
           ) : collapsed ? (
@@ -272,16 +280,29 @@ export function AnalysisEngagementPanel({
                 })}
               </div>
               {comment ? <p>{comment}</p> : null}
-              <button
-                type="button"
-                className="button small-button market-view__feedback-edit"
-                onClick={() => {
-                  setEditing(true);
-                  setFeedbackStatus('idle');
-                }}
-              >
-                ویرایش بازخورد
-              </button>
+              <div className="market-view__engagement-actions">
+                <button
+                  type="button"
+                  className="button small-button market-view__feedback-edit"
+                  onClick={() => {
+                    setEditing(true);
+                    setFeedbackStatus('idle');
+                  }}
+                >
+                  ویرایش بازخورد
+                </button>
+                <button type="button" className="analysis-icon-action" title="اشتراک خلاصه" aria-label="اشتراک خلاصه" onClick={() => void shareSummary()}>
+                  {shareStatus === 'copied' ? <Copy size={16} aria-hidden /> : <Share2 size={16} aria-hidden />}
+                </button>
+                <AnalysisStoryCardButton
+                  compact
+                  report={report}
+                  planLevel={planLevel}
+                  planLabel={planLabel}
+                  planStatus={planStatus}
+                  showPlanBadge={false}
+                />
+              </div>
             </div>
           ) : (
             <form
@@ -355,6 +376,14 @@ export function AnalysisEngagementPanel({
                 <button type="button" className="analysis-icon-action" title="اشتراک خلاصه" aria-label="اشتراک خلاصه" onClick={() => void shareSummary()}>
                   {shareStatus === 'copied' ? <Copy size={16} aria-hidden /> : <Share2 size={16} aria-hidden />}
                 </button>
+                <AnalysisStoryCardButton
+                  compact
+                  report={report}
+                  planLevel={planLevel}
+                  planLabel={planLabel}
+                  planStatus={planStatus}
+                  showPlanBadge={false}
+                />
               </div>
               {feedbackStatus === 'error' && feedbackError ? (
                 <p className="market-view__feedback-status is-error" role="alert">{feedbackError}</p>
@@ -371,9 +400,19 @@ export function AnalysisEngagementPanel({
         </div>
       ) : (
         <div className="market-view__share" data-follow-anchor>
-          <button type="button" className="analysis-icon-action" title="اشتراک خلاصه" aria-label="اشتراک خلاصه" onClick={() => void shareSummary()}>
-            {shareStatus === 'copied' ? <Copy size={16} aria-hidden /> : <Share2 size={16} aria-hidden />}
-          </button>
+          <div className="market-view__engagement-actions">
+            <button type="button" className="analysis-icon-action" title="اشتراک خلاصه" aria-label="اشتراک خلاصه" onClick={() => void shareSummary()}>
+              {shareStatus === 'copied' ? <Copy size={16} aria-hidden /> : <Share2 size={16} aria-hidden />}
+            </button>
+            <AnalysisStoryCardButton
+              compact
+              report={report}
+              planLevel={planLevel}
+              planLabel={planLabel}
+              planStatus={planStatus}
+              showPlanBadge={false}
+            />
+          </div>
         </div>
       )}
 
@@ -385,14 +424,6 @@ export function AnalysisEngagementPanel({
       {shareStatus === 'error' && shareError ? (
         <p className="market-view__feedback-status is-error" role="alert">{shareError}</p>
       ) : null}
-
-      <AnalysisStoryCardButton
-        report={report}
-        planLevel={planLevel}
-        planLabel={planLabel}
-        planStatus={planStatus}
-        showPlanBadge={false}
-      />
     </section>
   );
 }

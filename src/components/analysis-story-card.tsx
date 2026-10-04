@@ -24,6 +24,7 @@ export function AnalysisStoryCardButton({
   planStatus = null,
   showPlanBadge = false,
   testDataLabel = null,
+  compact = false,
 }: {
   report: MarketViewReport;
   planLevel?: AccessLevel | null;
@@ -31,6 +32,8 @@ export function AnalysisStoryCardButton({
   planStatus?: 'فعال' | 'آزمایشی' | 'رایگان' | 'در انتظار پرداخت' | 'تعلیق‌شده' | null;
   showPlanBadge?: boolean;
   testDataLabel?: string | null;
+  /** Icon-only trigger for embedding beside share actions. */
+  compact?: boolean;
 }) {
   const [opened, setOpened] = useState(false);
   const [dark, setDark] = useState(true);
@@ -102,8 +105,19 @@ export function AnalysisStoryCardButton({
   }, [file, download]);
 
   return (
-    <div className="market-view__story" data-follow-keep>
-      <button type="button" className="analysis-action" aria-haspopup="dialog" aria-expanded={opened} onClick={() => setOpened(true)}><Sparkles size={18} aria-hidden /> ساخت استوری</button>
+    <div className={compact ? 'market-view__story is-inline' : 'market-view__story'} data-follow-keep>
+      <button
+        type="button"
+        className={compact ? 'analysis-icon-action' : 'analysis-action'}
+        aria-haspopup="dialog"
+        aria-expanded={opened}
+        title="ساخت استوری"
+        aria-label="ساخت استوری"
+        onClick={() => setOpened(true)}
+      >
+        <Sparkles size={18} aria-hidden />
+        {compact ? null : ' ساخت استوری'}
+      </button>
       <OverlaySheet open={opened} title="استودیوی استوری" onClose={() => setOpened(false)}>
       <div className="analysis-story-studio">
       <p className="market-view__share-note">قالب دلخواهتان را انتخاب کنید؛ یک خلاصهٔ تصویری با برند زرسیگنال و لینک عمومی بازار بسازید.</p>

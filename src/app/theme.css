@@ -560,7 +560,7 @@ html.ds-scroll-locked body{
 .header-inner{gap:8px;flex-wrap:nowrap}
 .header-actions{gap:6px;flex-wrap:nowrap}
 .header-tool--calc{display:none}
-.install-app-button{width:36px;min-width:36px;min-height:36px;padding:0;gap:0}
+.header-tool.install-app-button,.install-app-button{width:36px;min-width:36px;min-height:36px;padding:0;gap:0}
 .install-app-button>span{display:none}
 .header-auth{max-width:108px;padding-inline:10px}
 }
@@ -987,8 +987,15 @@ html.ds-scroll-locked body{
 .reliability-warning{max-width:680px;margin:0 auto;padding:28px;display:grid;gap:16px}.reliability-warning>svg{color:var(--accent)}.reliability-warning h1{font-size:clamp(23px,4vw,32px);margin:0}.reliability-warning p{margin:0;font-size:14px;line-height:1.9;color:var(--text-secondary)}.reliability-warning .button{width:100%;white-space:normal;text-align:center;min-height:44px}.reliability-model-note{padding:12px;border-radius:10px;background:var(--surface-soft)}.reliability-periods{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-bottom:24px}.reliability-periods p{padding:16px;border-radius:12px;background:var(--surface-soft);margin:0;font-size:13px}.reliability-periods strong{display:block;margin-top:8px;font-size:20px}.policy-audit-json{white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px;background:var(--surface-soft);padding:12px;border-radius:10px}
 @media(max-width:760px){.reliability-warning{padding:20px;gap:12px}.reliability-periods{grid-template-columns:1fr}.reliability-warning p{font-size:13px}}
 
-.install-app-button{display:inline-flex;align-items:center;justify-content:center;gap:6px;flex:none;min-height:40px;padding:8px 10px;border:1px solid var(--border-subtle);border-radius:10px;background:var(--surface-card);color:var(--accent);font:12px Vazirmatn;cursor:pointer}
-.header-tool.install-app-button{width:40px;min-width:40px;min-height:40px;padding:0}
+.install-app-button{display:inline-flex;align-items:center;justify-content:center;gap:6px;flex:none;min-height:40px;padding:8px 12px;border:1px solid var(--border-subtle);border-radius:10px;background:var(--surface-card);color:var(--accent);font:600 12px Vazirmatn;cursor:pointer}
+.header-tool.install-app-button{width:auto;min-width:0;min-height:40px;padding:8px 12px;gap:6px}
+.principles{border-block:0;padding-block:18px;margin-top:18px}
+.footer{border-top:0}
+.faq-preview-list,.faq-page-list,.faq-accordion{border-top:0}
+.chart-upgrade-sheet{display:grid;gap:16px}
+.chart-upgrade-sheet p{margin:0;font-size:14px;line-height:1.9;color:var(--text-secondary)}
+.chart-upgrade-sheet .button{justify-content:center;min-height:44px}
+.market-view__story.is-inline{display:contents}
 .install-app-dialog{width:min(440px,calc(100% - 32px));max-height:80dvh;overflow:auto;padding:24px;border:1px solid var(--border-subtle);border-radius:20px;background:var(--surface-card);color:var(--text-primary);box-shadow:0 16px 60px #0005;text-align:right}.install-app-dialog::backdrop{background:#0008}.install-app-dialog form{display:flex;justify-content:flex-end}.install-app-dialog form button{display:grid;place-items:center;width:44px;height:44px;border:0;border-radius:10px;background:var(--surface-soft);color:var(--text-primary);cursor:pointer}.install-app-dialog>img{border-radius:14px}.install-app-dialog h2{font-size:22px}.install-app-dialog p{font-size:14px;line-height:2;color:var(--text-secondary)}.install-app-dialog p svg{vertical-align:middle}.install-app-dialog .install-app-note{font-size:12px;color:var(--text-muted)}
 
 /* Shared horizontal rail (also used on calculator) */
