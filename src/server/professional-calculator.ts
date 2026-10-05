@@ -133,6 +133,28 @@ export function calculateProfessional(body: unknown, snapshot: Snapshot): Calcul
   } else if (request.operation === 'aedDerivedUsd') {
     const result = usdFromAedGap({ aedToman: v.aed, usdMarket: v.usd });
     outputs = [output('دلار مشتق از درهم', result.usdFromAed, 'تومان / دلار'), output('اختلاف دلار بازار', result.gap, 'تومان / دلار'), output('اختلاف نسبی', result.percent, 'درصد')];
+  } else if (request.operation === 'meltedTarget') {
+    const invested = v.average * v.quantity;
+    const targetValue = v.target * v.quantity;
+    const profit = targetValue - invested - v.cost;
+    outputs = [output('قیمت هدف معادل گرم ۱۸ عیار', mazanehTo18k(v.target).market18k, 'تومان / گرم'), output('ارزش موقعیت در هدف', targetValue, 'تومان'), output('سود/زیان تخمینی پس از هزینه', profit, 'تومان'), output('سود/زیان هر مثقال', profit / v.quantity, 'تومان / مثقال'), output('بازده تخمینی', profit / invested * 100, 'درصد'), output('فاصله هدف از قیمت فعلی', (v.target / v.melted - 1) * 100, 'درصد')];
+  } else if (request.operation === 'meltedNewBuy') {
+    const oldInvestment = v.average * v.quantity;
+    const addedInvestment = v.buyPrice * v.added + v.cost;
+    const finalQuantity = v.quantity + v.added;
+    const newAverage = (oldInvestment + addedInvestment) / finalQuantity;
+    outputs = [output('میانگین جدید هر مثقال', newAverage, 'تومان / مثقال'), output('میانگین جدید معادل گرم ۱۸', mazanehTo18k(newAverage).market18k, 'تومان / گرم'), output('تغییر میانگین', newAverage - v.average, 'تومان / مثقال'), output('موقعیت نهایی', finalQuantity, 'مثقال'), output('سرمایه خرید جدید با هزینه', addedInvestment, 'تومان')];
+  } else if (request.operation === 'meltedTargetAverage') {
+    const required = v.target === v.average ? 0 : v.quantity * (v.average - v.target) / (v.target - v.buyPrice);
+    if (!Number.isFinite(required) || required < 0 || (required === 0 && v.target !== v.average)) throw new Error('میانگین هدف با این قیمت خرید دست‌یافتنی نیست.');
+    outputs = [output('مقدار خرید لازم', required, 'مثقال'), output('معادل قیمت خرید هر گرم ۱۸', mazanehTo18k(v.buyPrice).market18k, 'تومان / گرم'), output('سرمایه لازم بدون کارمزد', required * v.buyPrice, 'تومان'), output('موقعیت پس از خرید', v.quantity + required, 'مثقال')];
+  } else if (request.operation === 'meltedPartialSell') {
+    if (v.sold > v.quantity) throw new Error('مقدار فروش نمی‌تواند از موقعیت فعلی بیشتر باشد.');
+    const remaining = v.quantity - v.sold;
+    outputs = [output('فروش ناخالص', v.sellPrice * v.sold, 'تومان'), output('سود/زیان محقق‌شده پس از هزینه', (v.sellPrice - v.average) * v.sold - v.cost, 'تومان'), output('موقعیت باقی‌مانده', remaining, 'مثقال'), output('بهای تمام‌شده باقی‌مانده', remaining * v.average, 'تومان'), output('ارزش نظری باقی‌مانده با قیمت واردشده', remaining * v.sellPrice, 'تومان')];
+  } else if (request.operation === 'meltedBreakEven') {
+    const price = v.average + v.cost / v.quantity;
+    outputs = [output('قیمت سربه‌سر هر مثقال', price, 'تومان / مثقال'), output('معادل گرم ۱۸ عیار', mazanehTo18k(price).market18k, 'تومان / گرم'), output('فاصله سربه‌سر از قیمت فعلی', (price / v.melted - 1) * 100, 'درصد')];
   } else if (request.operation === 'mazanehTo18k') outputs = [{ label: 'قیمت مشتق گرم ۱۸ عیار', value: mazanehTo18k(v.melted).market18k, unit: 'تومان / گرم' }];
   else if (request.operation === 'market18kToMazaneh') outputs = [{ label: 'مظنه محاسبه‌شده', value: market18kToMazaneh(v.gram), unit: 'تومان / مثقال (مثقال فیزیکی)' }];
   else if (request.operation === 'silverBubble') {

@@ -118,3 +118,34 @@ test('capital, coin P&L, mint premium and AED peg use explicit costs and existin
   assert.equal(aed.outputs[0].value, 110175);
   assert.throws(() => calculateProfessional({ operation: 'capitalSilver', inputs: { capital: manual(100), silver999: manual(50), cost: manual(100) } }, empty));
 });
+
+test('melted-gold target, averaging, partial sale and break-even keep cost basis explicit', () => {
+  const target = calculateProfessional({ operation: 'meltedTarget', inputs: {
+    average: manual(100), quantity: manual(10), melted: manual(110), target: manual(120), cost: manual(5),
+  } }, empty);
+  assert.equal(target.outputs[1].value, 1200);
+  assert.equal(target.outputs[2].value, 195);
+  const buy = calculateProfessional({ operation: 'meltedNewBuy', inputs: {
+    average: manual(100), quantity: manual(10), buyPrice: manual(80), added: manual(10), cost: manual(20),
+  } }, empty);
+  assert.equal(buy.outputs[0].value, 91);
+  assert.equal(buy.outputs[3].value, 20);
+  const average = calculateProfessional({ operation: 'meltedTargetAverage', inputs: {
+    average: manual(100), quantity: manual(10), buyPrice: manual(80), target: manual(90),
+  } }, empty);
+  assert.equal(average.outputs[0].value, 10);
+  assert.throws(() => calculateProfessional({ operation: 'meltedTargetAverage', inputs: {
+    average: manual(100), quantity: manual(10), buyPrice: manual(95), target: manual(90),
+  } }, empty), /دست‌یافتنی/);
+  const sold = calculateProfessional({ operation: 'meltedPartialSell', inputs: {
+    average: manual(100), quantity: manual(10), sellPrice: manual(120), sold: manual(4), cost: manual(5),
+  } }, empty);
+  assert.deepEqual(sold.outputs.filter((_, i) => [0, 1, 2, 3].includes(i)).map(o => o.value), [480, 75, 6, 600]);
+  assert.throws(() => calculateProfessional({ operation: 'meltedPartialSell', inputs: {
+    average: manual(100), quantity: manual(10), sellPrice: manual(120), sold: manual(11), cost: manual(0),
+  } }, empty));
+  const breakEven = calculateProfessional({ operation: 'meltedBreakEven', inputs: {
+    average: manual(100), quantity: manual(10), melted: manual(110), cost: manual(50),
+  } }, empty);
+  assert.equal(breakEven.outputs[0].value, 105);
+});

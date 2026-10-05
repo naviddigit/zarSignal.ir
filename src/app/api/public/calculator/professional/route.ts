@@ -40,9 +40,12 @@ export async function POST(request: Request) {
     return Response.json(calculateProfessional(body, snapshot), {
       headers: { 'Cache-Control': 'no-store' },
     });
-  } catch {
+  } catch (error) {
+    const detail = error instanceof Error && /^(مقدار «|میانگین هدف|مقدار فروش|تعداد سکه|هزینه‌ها باید)/.test(error.message)
+      ? error.message
+      : 'ورودی یا داده زنده معتبر نیست؛ واحد و تازگی قیمت‌ها را بررسی کنید یا مقدار دستی وارد کنید.';
     return Response.json(
-      { error: 'ورودی یا داده زنده معتبر نیست؛ واحد و تازگی قیمت‌ها را بررسی کنید یا مقدار دستی وارد کنید.' },
+      { error: detail },
       { status: 400, headers: { 'Cache-Control': 'no-store' } },
     );
   }

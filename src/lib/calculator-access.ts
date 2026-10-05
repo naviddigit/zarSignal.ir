@@ -45,6 +45,11 @@ export const defaultCalculatorAccessPolicy: CalculatorAccessPolicy = {
   coinPnl: { mode: 'free', allowedLevels: [...ALL_LEVELS] },
   silverMintPremium: { mode: 'free', allowedLevels: [...ALL_LEVELS] },
   aedDerivedUsd: { mode: 'free', allowedLevels: [...ALL_LEVELS] },
+  meltedTarget: { mode: 'free', allowedLevels: [...ALL_LEVELS] },
+  meltedNewBuy: { mode: 'free', allowedLevels: [...ALL_LEVELS] },
+  meltedTargetAverage: { mode: 'free', allowedLevels: [...ALL_LEVELS] },
+  meltedPartialSell: { mode: 'free', allowedLevels: [...ALL_LEVELS] },
+  meltedBreakEven: { mode: 'free', allowedLevels: [...ALL_LEVELS] },
 };
 
 export const CALCULATOR_MODULE_LABELS: Record<CalculatorModule, string> = {
