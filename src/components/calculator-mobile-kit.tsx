@@ -287,7 +287,7 @@ export function MarketMesghalEquivalentWidget({ amount, onAmountChange, onPriceC
 }
 
 /** Main physical weight conversion card. */
-export function WeightConvertWidget({ amount, onAmountChange, onPriceConversionClick }: { amount: string; onAmountChange: (next: string) => void; onPriceConversionClick?: () => void }) {
+export function WeightConvertWidget({ amount, onAmountChange, onMarketEquivalentClick }: { amount: string; onAmountChange: (next: string) => void; onMarketEquivalentClick?: () => void }) {
   const [from, setFrom] = useState<WeightUnit>('gram');
   const [to, setTo] = useState<WeightUnit>('mesghal');
 
@@ -371,7 +371,7 @@ export function WeightConvertWidget({ amount, onAmountChange, onPriceConversionC
           {result != null ? ` | ${fa(Number(amount), 2)} ${weightUnits[from].label} = ${fa(result)} ${weightUnits[to].label}` : null}
         </span>
       </p>
-      {onPriceConversionClick ? <button type="button" className="calc-weight-widget__price-link" onClick={onPriceConversionClick}>این عدد قیمت نیست؛ تبدیل قیمت مظنه و گرم ۱۸ عیار ←</button> : null}
+      {onMarketEquivalentClick ? <button type="button" className="calc-weight-widget__price-link" onClick={onMarketEquivalentClick}>محاسبهٔ عرفی ۱۸ عیار با ضریب ۴٫۳۳۱۸ ←</button> : null}
     </section>
   );
 }

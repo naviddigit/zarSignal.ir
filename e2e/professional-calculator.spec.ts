@@ -5,8 +5,10 @@ test('mazaneh price directions share one shortcut while physical weight stays se
   await expect(page.getByRole('textbox', { name: 'مقدار گرم طلای ۱۸ عیار' })).toHaveValue('1');
   await expect(page.getByText('0.230851')).toBeVisible();
   await expect(page.getByText('ضریب ثابت بازار: ۴٫۳۳۱۸')).toBeVisible();
-  await page.getByRole('button', { name: 'تبدیل وزن فیزیکی' }).click();
+  await page.getByRole('button', { name: 'وزن واقعی · مثقال ۴٫۶۰۸' }).click();
   await expect(page.getByText('1 گرم = 0.217014 مثقال وزنی')).toBeVisible();
+  await page.getByRole('button', { name: 'محاسبهٔ عرفی ۱۸ عیار با ضریب ۴٫۳۳۱۸' }).click();
+  await expect(page.getByText('0.230851')).toBeVisible();
   await expect(page.getByRole('button', { name: 'مظنه ↔ گرم ۱۸' })).toHaveCount(1);
   await page.getByRole('button', { name: 'مظنه ↔ گرم ۱۸' }).click();
   await expect(page.getByRole('button', { name: 'گرم ۱۸ به مظنه' })).toHaveAttribute('aria-pressed', 'true');
@@ -15,7 +17,7 @@ test('mazaneh price directions share one shortcut while physical weight stays se
   await page.getByRole('button', { name: 'محاسبه', exact: true }).click();
   await expect(page.getByRole('dialog', { name: 'نتیجه محاسبه' })).toContainText('23,085,091');
   await page.getByRole('button', { name: 'بستن' }).last().click();
-  await page.getByRole('button', { name: 'تبدیل وزن فیزیکی' }).click();
+  await page.getByRole('button', { name: 'وزن واقعی · مثقال ۴٫۶۰۸' }).click();
   await expect(page.getByText('۱ مثقال = ۴٫۶۰۸ گرم')).toBeVisible();
   await expect(page.locator('.calc-weight-widget')).toBeVisible();
   await page.getByRole('button', { name: 'تبدیل عیار و وزن خالص' }).click();

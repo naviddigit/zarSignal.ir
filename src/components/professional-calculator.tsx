@@ -40,13 +40,13 @@ const toolsByProduct: Record<Product, Tool[]> = {
   fx: ['usdGap', 'aedDerivedUsd', 'fxRateGap', 'rateCompare', 'percentageChange'],
   coin: ['coinBuy', 'coinSell', 'coinCapital', 'coinPnl', 'coinBreakEven', 'weight', 'purity', 'percentageChange'],
 };
-const toolLabel = (value: Tool) => value === 'marketWeight' ? 'گرم ۱۸ ↔ مثقال عرفی' : value === 'weight' ? 'تبدیل وزن فیزیکی' : value === 'purity' ? 'تبدیل عیار و وزن خالص' : calculatorCatalog[value].title;
+const toolLabel = (value: Tool) => value === 'marketWeight' ? 'گرم ۱۸ ↔ مثقال عرفی ۴٫۳۳۱۸' : value === 'weight' ? 'وزن واقعی · مثقال ۴٫۶۰۸' : value === 'purity' ? 'تبدیل عیار و وزن خالص' : calculatorCatalog[value].title;
 const DEFAULT_TOOL: Tool = 'marketWeight';
 const lockedProducts: Product[] = [];
 const popularByProduct: Record<Product, PopularPick[]> = {
   gold: [
-    { id: 'marketWeight', label: 'گرم ۱۸ ↔ مثقال عرفی', Icon: popularIcons.weight },
-    { id: 'weight', label: 'تبدیل وزن فیزیکی', Icon: popularIcons.weight },
+    { id: 'marketWeight', label: 'گرم ۱۸ ↔ مثقال عرفی ۴٫۳۳۱۸', Icon: popularIcons.weight },
+    { id: 'weight', label: 'وزن واقعی · مثقال ۴٫۶۰۸', Icon: popularIcons.weight },
     { id: 'mazaneh', label: 'مظنه ↔ گرم ۱۸', Icon: popularIcons.mazanehTo18k },
     { id: 'goldBubble', label: 'حباب طلا', Icon: popularIcons.goldBubble },
     { id: 'fineGold', label: 'طلای خالص', Icon: popularIcons.purity },
@@ -385,7 +385,7 @@ export function ProfessionalCalculator({
         ) : tool === 'marketWeight' ? (
           <MarketMesghalEquivalentWidget amount={weightAmount} onAmountChange={setWeightAmount} onPriceConversionClick={() => choose('market18kToMazaneh')} />
         ) : tool === 'weight' ? (
-          <WeightConvertWidget amount={weightAmount} onAmountChange={setWeightAmount} onPriceConversionClick={product === 'gold' ? () => choose('market18kToMazaneh') : undefined} />
+          <WeightConvertWidget amount={weightAmount} onAmountChange={setWeightAmount} onMarketEquivalentClick={product === 'gold' ? () => choose('marketWeight') : undefined} />
         ) : tool === 'purity' ? (
           <PurityConvertWidget key={product} product={product} amount={purityAmount} onAmountChange={setPurityAmount} />
         ) : spec ? (
