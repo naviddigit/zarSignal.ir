@@ -5,7 +5,7 @@ import {
   ArrowLeftRight, Banknote, ChartNoAxesColumn, CircleDollarSign, Coins, Delete,
   Gem, Info, LockKeyhole, Menu, Percent, Scale, X,
 } from 'lucide-react';
-import { convertWeight, convertPurityPrice, weightUnits, purityOptions, type WeightUnit, type Purity } from '@/lib/calculator-conversions';
+import { convertWeight, convertPurityWeight, weightUnits, purityOptions, type WeightUnit, type Purity } from '@/lib/calculator-conversions';
 import { formatNumericInput, sanitizeNumericInput } from '@/lib/numeric-input';
 import { isStale, type Snapshot, type Symbol } from '@/lib/market';
 import { mazanehTo18k } from '@/lib/mazaneh-to-18k';
@@ -248,7 +248,7 @@ export function CalculatorPopularRow({
 }
 
 /** Main conversion card — Mojtaba layout. */
-export function WeightConvertWidget({ amount, onAmountChange }: { amount: string; onAmountChange: (next: string) => void }) {
+export function WeightConvertWidget({ amount, onAmountChange, onPriceConversionClick }: { amount: string; onAmountChange: (next: string) => void; onPriceConversionClick?: () => void }) {
   const [from, setFrom] = useState<WeightUnit>('mesghal');
   const [to, setTo] = useState<WeightUnit>('gram');
 
@@ -274,7 +274,7 @@ export function WeightConvertWidget({ amount, onAmountChange }: { amount: string
 
       <div className="calc-weight-widget__pair">
         <div className="calc-weight-box is-out" aria-live="polite">
-          <span className="ds-field__label">نتیجه</span>
+          <span className="ds-field__label">وزن فیزیکی مقصد</span>
           <strong className="calc-weight-box__result" dir="ltr">{result == null ? '—' : fa(result)}</strong>
           <Select
             label="واحد مقصد"
@@ -332,12 +332,12 @@ export function WeightConvertWidget({ amount, onAmountChange }: { amount: string
           {result != null ? ` | ${fa(Number(amount), 2)} ${weightUnits[from].label} = ${fa(result)} ${weightUnits[to].label}` : null}
         </span>
       </p>
-      <p className="calc-weight-widget__hint">برای تبدیل <strong>قیمت مظنه و گرم ۱۸ عیار</strong>، ابزار «مظنه ↔ گرم ۱۸» با ضریب ۴٫۳۳۱۸ را انتخاب کنید.</p>
+      {onPriceConversionClick ? <button type="button" className="calc-weight-widget__price-link" onClick={onPriceConversionClick}>این عدد قیمت نیست؛ تبدیل قیمت مظنه و گرم ۱۸ عیار ←</button> : null}
     </section>
   );
 }
 
-/** Convert price between karat / silver fineness grades. */
+/** G02/S02: preserve fine-metal mass while converting gross weight between fineness grades. */
 export function PurityConvertWidget({ amount, onAmountChange, product = 'gold' }: { amount: string; onAmountChange: (next: string) => void; product?: CalcProduct }) {
   const silver = product === 'silver';
   const options = silver ? silverPurityOptions : goldPurityOptions;
@@ -347,39 +347,39 @@ export function PurityConvertWidget({ amount, onAmountChange, product = 'gold' }
   const result = useMemo(() => {
     const n = Number(amount);
     if (!Number.isFinite(n) || amount === '') return null;
-    try { return convertPurityPrice(n, from, to); } catch { return null; }
+    try { return convertPurityWeight(n, from, to); } catch { return null; }
   }, [amount, from, to]);
 
   function swap() {
     setFrom(to);
     setTo(from);
-    if (result != null) onAmountChange(String(Number(result.toFixed(4))));
+    if (result != null) onAmountChange(String(Number(result.targetWeight.toFixed(8))));
   }
 
   return (
     <section className="calc-weight-widget" aria-label="تبدیل عیار">
       <header className="calc-weight-widget__head">
         <strong>تبدیل عیار</strong>
-        <small>قیمت هم‌وزن بین دو خلوص</small>
+        <small>وزن معادل با حفظ مقدار فلز خالص؛ بدون قیمت بازار</small>
       </header>
       <div className="calc-weight-widget__pair">
         <div className="calc-weight-box is-out" aria-live="polite">
-          <span className="ds-field__label">قیمت مقصد</span>
-          <strong className="calc-weight-box__result" dir="ltr">{result == null ? '—' : fa(result)}</strong>
+          <span className="ds-field__label">وزن معادل مقصد · گرم</span>
+          <strong className="calc-weight-box__result" dir="ltr">{result == null ? '—' : fa(result.targetWeight, 6)}</strong>
           <Select label="عیار مقصد" className="calc-weight-box__select" value={to} onChange={value => setTo(value as Purity)} options={options} />
         </div>
         <button type="button" className="calc-weight-swap" aria-label="جابه‌جایی عیارها" onClick={swap}>
           <ArrowLeftRight size={15} />
         </button>
         <div className="calc-weight-box is-in">
-          <span className="ds-field__label">قیمت مبدأ</span>
+          <span className="ds-field__label">وزن مبدأ · گرم</span>
           <div className="calc-weight-box__input-wrap">
             <input
               className="ds-input calc-weight-box__input"
               dir="ltr"
               inputMode="none"
               autoComplete="off"
-              aria-label="قیمت مبدأ"
+              aria-label="وزن مبدأ به گرم"
               placeholder="0"
               value={formatNumericInput(amount)}
               onChange={event => onAmountChange(sanitizeNumericInput(event.target.value, 6))}
@@ -388,6 +388,7 @@ export function PurityConvertWidget({ amount, onAmountChange, product = 'gold' }
           <Select label="عیار مبدأ" className="calc-weight-box__select" value={from} onChange={value => setFrom(value as Purity)} options={options} />
         </div>
       </div>
+      <p className="calc-weight-widget__factor"><Info size={12} aria-hidden="true" /><span>فلز خالص: {result == null ? '—' : fa(result.fineWeight, 6)} گرم · این تبدیل وزن است، نه قیمت قابل معامله.</span></p>
     </section>
   );
 }

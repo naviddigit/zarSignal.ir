@@ -12,6 +12,9 @@ test('mazaneh price directions share one shortcut while physical weight stays se
   await page.getByRole('button', { name: 'تبدیل وزن فیزیکی' }).click();
   await expect(page.getByText('۱ مثقال = ۴٫۶۰۸ گرم')).toBeVisible();
   await expect(page.locator('.calc-weight-widget')).toBeVisible();
+  await page.getByRole('button', { name: 'تبدیل عیار' }).click();
+  await page.getByRole('textbox', { name: 'وزن مبدأ به گرم' }).fill('10');
+  await expect(page.getByText('فلز خالص: 7.5 گرم')).toBeVisible();
 });
 test('approved gold description and homepage calculator entry agree', async ({ page }) => {
   await page.goto('/markets/gold_melted');

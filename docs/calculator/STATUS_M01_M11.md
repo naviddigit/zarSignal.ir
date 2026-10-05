@@ -25,7 +25,7 @@ Product UI never shows M-codes. Auth P0 closed; this matrix is the production tr
 - Manual mode: clear to `0` + spinning neon ring (mode cue only)
 - Result boxes: visual left (`grid-area: out` + result panel in main column)
 - Mobile grid: no `1fr` stretch on main (removes empty gap in section)
-- Soft boot logo: MIN 2.8s / MAX 5.2s
+- Site content is no longer hidden behind a client-hydration logo; server output stays visible if client scripts fail.
 
 ## Funnel events (wired)
 

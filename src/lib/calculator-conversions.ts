@@ -35,3 +35,13 @@ export function convertPurityPrice(value: number, from: Purity, to: Purity) {
   if (!Number.isFinite(value) || value < 0) throw new Error('invalid_price');
   return value * purityOptions[to].value / purityOptions[from].value;
 }
+
+/** G02: conserve fine-metal mass when expressing a weight at another fineness. */
+export function convertPurityWeight(value: number, from: Purity, to: Purity) {
+  if (!Number.isFinite(value) || value < 0) throw new Error('invalid_weight');
+  const sourceFineness = purityOptions[from].value;
+  const targetFineness = purityOptions[to].value;
+  if (sourceFineness <= 0 || targetFineness <= 0) throw new Error('invalid_purity');
+  const fineWeight = value * sourceFineness / 1000;
+  return { fineWeight, targetWeight: fineWeight * 1000 / targetFineness };
+}

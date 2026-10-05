@@ -309,7 +309,7 @@ export function ProfessionalCalculator({
   const keypadTarget = tool === 'weight'
     ? 'مقدار وزن'
     : tool === 'purity'
-      ? 'قیمت عیار'
+      ? 'وزن مبدأ به گرم'
       : spec?.fields.find(field => field.key === activeField)?.label ?? 'ورودی را انتخاب کنید';
 
   return (
@@ -342,7 +342,7 @@ export function ProfessionalCalculator({
             {!toolGate.ok && (toolGate.code === 'forbidden' || toolGate.code === 'trial_expired') ? <Link href="/pricing">ارتقای حساب</Link> : null}
           </div>
         ) : tool === 'weight' ? (
-          <WeightConvertWidget amount={weightAmount} onAmountChange={setWeightAmount} />
+          <WeightConvertWidget amount={weightAmount} onAmountChange={setWeightAmount} onPriceConversionClick={product === 'gold' ? () => choose('market18kToMazaneh') : undefined} />
         ) : tool === 'purity' ? (
           <PurityConvertWidget key={product} product={product} amount={purityAmount} onAmountChange={setPurityAmount} />
         ) : spec ? (
