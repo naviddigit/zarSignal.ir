@@ -11,6 +11,7 @@ import { MarketTeaser } from '@/components/market-teaser';
 import { FunnelTrack } from '@/components/funnel-track';
 import { getPublicSnapshot } from '@/server/quotes';
 import { computeLiveBubbles } from '@/server/live-bubbles';
+import { computeHeroDollar } from '@/server/hero-dollar';
 import { auth } from '@/auth';
 import { articles } from '@/lib/articles';
 
@@ -21,6 +22,7 @@ export default async function Home() {
   const [snapshot, content, session] = await Promise.all([getPublicSnapshot(), getHomeContent(), auth().catch(() => null)]);
   const { texts, sections } = content;
   const bubbles = computeLiveBubbles(snapshot);
+  const heroBubbles = bubbles.map(card => card.key === 'USD_BUBBLE' ? computeHeroDollar(snapshot) : card);
   return (
     <main id="main" className="shell home-page">
       <FunnelTrack event={session?.user ? 'returning_user' : 'landing_view'} />
@@ -50,7 +52,7 @@ export default async function Home() {
             <span><Layers3 size={16} /> زبان ساده</span>
           </div>
         </div>}
-        {sections.radar && <MarketRadar bubbles={bubbles} />}
+        {sections.radar && <MarketRadar bubbles={heroBubbles} />}
       </section>}
 
       {sections.market && <MarketTeaser snapshot={snapshot} bubbles={bubbles} />}

@@ -24,7 +24,7 @@ const meta: Record<Focus, {
 }> = {
   GOLD_BUBBLE: { label: 'حباب طلا', short: 'طلا', token: 'Au', className: 'tone-gold', tint: 'gold', analysisHref: '/analysis/gold_melted' },
   SILVER_BUBBLE: { label: 'حباب نقره', short: 'نقره', token: 'Ag', className: 'tone-silver', tint: 'silver', analysisHref: '/analysis/silver_999' },
-  USD_BUBBLE: { label: 'فاصله دلار', short: 'دلار', token: '$', className: 'tone-dollar', tint: 'dollar', analysisHref: '/analysis/usd' },
+  USD_BUBBLE: { label: 'دلار نسبت به درهم', short: 'دلار', token: '$', className: 'tone-dollar', tint: 'dollar', analysisHref: '/analysis/usd' },
 };
 
 function formatPercent(value: number) {
