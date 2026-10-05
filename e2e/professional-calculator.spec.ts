@@ -1,6 +1,12 @@
 import { test, expect } from '@playwright/test';
 test('mazaneh price directions share one shortcut while physical weight stays separate', async ({ page }) => {
   await page.goto('/calculator');
+  await expect(page.getByRole('region', { name: 'ابزار انتخابی' })).toBeVisible();
+  await expect(page.getByRole('textbox', { name: 'مقدار گرم طلای ۱۸ عیار' })).toHaveValue('1');
+  await expect(page.getByText('0.230851')).toBeVisible();
+  await expect(page.getByText('ضریب ثابت بازار: ۴٫۳۳۱۸')).toBeVisible();
+  await page.getByRole('button', { name: 'تبدیل وزن فیزیکی' }).click();
+  await expect(page.getByText('1 گرم = 0.217014 مثقال وزنی')).toBeVisible();
   await expect(page.getByRole('button', { name: 'مظنه ↔ گرم ۱۸' })).toHaveCount(1);
   await page.getByRole('button', { name: 'مظنه ↔ گرم ۱۸' }).click();
   await expect(page.getByRole('button', { name: 'گرم ۱۸ به مظنه' })).toHaveAttribute('aria-pressed', 'true');
@@ -12,10 +18,10 @@ test('mazaneh price directions share one shortcut while physical weight stays se
   await page.getByRole('button', { name: 'تبدیل وزن فیزیکی' }).click();
   await expect(page.getByText('۱ مثقال = ۴٫۶۰۸ گرم')).toBeVisible();
   await expect(page.locator('.calc-weight-widget')).toBeVisible();
-  await page.getByRole('button', { name: 'ابزار انتخابی' }).click();
-  await page.getByRole('option', { name: 'تبدیل عیار و وزن خالص' }).click();
+  await page.getByRole('button', { name: 'تبدیل عیار و وزن خالص' }).click();
   await page.getByRole('textbox', { name: 'وزن مبدأ به گرم' }).fill('10');
   await expect(page.getByText('فلز خالص: 7.5 گرم')).toBeVisible();
+  await expect(page.getByText('یک مثقال طلای ۷۰۵ از نظر مقدار طلای خالص تقریباً معادل ۴٫۳۳۱۸ گرم طلای ۱۸ عیار است.', { exact: false })).toBeVisible();
 });
 test('approved gold description and homepage calculator entry agree', async ({ page }) => {
   await page.goto('/markets/gold_melted');
@@ -23,12 +29,10 @@ test('approved gold description and homepage calculator entry agree', async ({ p
   await page.goto('/');
   await expect(page.locator('#calculator a')).toHaveAttribute('href', '/calculator');
 });
-test('silver bar tool opens in the shared modal or drawer and computes from explicit inputs', async ({ page }) => {
+test('silver bar tool opens from its icon and computes from explicit inputs', async ({ page }) => {
   await page.goto('/calculator');
   await page.getByRole('tab', { name: 'نقره' }).click();
-  await page.getByRole('button', { name: 'ابزار انتخابی' }).click();
-  await expect(page.getByRole('dialog', { name: 'ابزار انتخابی' })).toBeVisible();
-  await page.getByRole('option', { name: 'ارزش فلز و بهای تمام‌شده شمش' }).click();
+  await page.getByRole('button', { name: 'شمش نقره' }).click();
   for (const [label, value] of [
     ['وزن شمش', '1000'], ['عیار شمش', '999'], ['اونس جهانی نقره', '32'],
     ['نرخ دلار', '100000'], ['اجرت ضرب اعلام‌شده', '500000'],

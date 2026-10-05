@@ -15,10 +15,10 @@ import { fetchJson } from '@/lib/fetch-json';
 import { mazanehTo18k } from '@/lib/mazaneh-to-18k';
 import { track } from '@/lib/analytics';
 import { OverlaySheet } from '@/components/ui/overlay-sheet';
-import { Select } from '@/components/ui/select';
 import {
   CalculatorKeypad,
   CalculatorLiveStrip,
+  MarketMesghalEquivalentWidget,
   CalculatorPopularRow,
   CalculatorProductTiles,
   PurityConvertWidget,
@@ -28,24 +28,24 @@ import {
 } from '@/components/calculator-mobile-kit';
 
 type Product = CalcProduct;
-type LocalTool = 'weight' | 'purity';
+type LocalTool = 'marketWeight' | 'weight' | 'purity';
 type Tool = LocalTool | CalculatorOperation;
 type Entry = { value: string; provenance: 'LIVE' | 'MANUAL'; observedAt?: string };
 type PopularPick = { id: string; label: string; Icon: typeof popularIcons.weight; locked?: boolean };
 
 const products: [Product, string][] = [['gold', 'طلا'], ['silver', 'نقره'], ['fx', 'دلار'], ['coin', 'سکه']];
 const toolsByProduct: Record<Product, Tool[]> = {
-  gold: ['weight', 'purity', 'mazanehTo18k', 'market18kToMazaneh', 'fineGold', 'goldBubble', 'uaeGold', 'capitalGold', 'meltedPnl', 'meltedTarget', 'meltedNewBuy', 'meltedTargetAverage', 'meltedPartialSell', 'meltedBreakEven', 'goldSilverSwap', 'percentageChange'],
+  gold: ['marketWeight', 'weight', 'purity', 'mazanehTo18k', 'market18kToMazaneh', 'fineGold', 'goldBubble', 'uaeGold', 'capitalGold', 'meltedPnl', 'meltedTarget', 'meltedNewBuy', 'meltedTargetAverage', 'meltedPartialSell', 'meltedBreakEven', 'goldSilverSwap', 'percentageChange'],
   silver: ['weight', 'purity', 'fineSilver', 'silverBarCost', 'silverMintPremium', 'capitalSilver', 'silverBubble', 'goldSilverSwap', 'percentageChange'],
   fx: ['usdGap', 'aedDerivedUsd', 'fxRateGap', 'rateCompare', 'percentageChange'],
   coin: ['coinBuy', 'coinSell', 'coinCapital', 'coinPnl', 'coinBreakEven', 'weight', 'purity', 'percentageChange'],
 };
-const toolLabel = (value: Tool) => value === 'weight' ? 'تبدیل وزن فیزیکی' : value === 'purity' ? 'تبدیل عیار و وزن خالص' : calculatorCatalog[value].title;
-/** Default open tool — تبدیل وزن کاربردی‌ترین ورودی عمومی است. */
-const DEFAULT_TOOL: Tool = 'weight';
+const toolLabel = (value: Tool) => value === 'marketWeight' ? 'گرم ۱۸ ↔ مثقال عرفی' : value === 'weight' ? 'تبدیل وزن فیزیکی' : value === 'purity' ? 'تبدیل عیار و وزن خالص' : calculatorCatalog[value].title;
+const DEFAULT_TOOL: Tool = 'marketWeight';
 const lockedProducts: Product[] = [];
 const popularByProduct: Record<Product, PopularPick[]> = {
   gold: [
+    { id: 'marketWeight', label: 'گرم ۱۸ ↔ مثقال عرفی', Icon: popularIcons.weight },
     { id: 'weight', label: 'تبدیل وزن فیزیکی', Icon: popularIcons.weight },
     { id: 'mazaneh', label: 'مظنه ↔ گرم ۱۸', Icon: popularIcons.mazanehTo18k },
     { id: 'goldBubble', label: 'حباب طلا', Icon: popularIcons.goldBubble },
@@ -75,7 +75,7 @@ const popularByProduct: Record<Product, PopularPick[]> = {
   ],
 };
 const number = (value: number) => new Intl.NumberFormat('en-US', { maximumFractionDigits: 4 }).format(value);
-const isLocalTool = (tool: string): tool is LocalTool => tool === 'weight' || tool === 'purity';
+const isLocalTool = (tool: string): tool is LocalTool => tool === 'marketWeight' || tool === 'weight' || tool === 'purity';
 const isOperation = (tool: string): tool is CalculatorOperation => !isLocalTool(tool) && tool in calculatorCatalog;
 const isMazanehOperation = (tool: Tool) => tool === 'mazanehTo18k' || tool === 'market18kToMazaneh';
 
@@ -145,7 +145,7 @@ export function ProfessionalCalculator({
 }) {
   const [product, setProduct] = useState<Product>('gold');
   const [tool, setTool] = useState<Tool>(DEFAULT_TOOL);
-  const [weightAmount, setWeightAmount] = useState('3.5');
+  const [weightAmount, setWeightAmount] = useState('1');
   const [purityAmount, setPurityAmount] = useState('');
   const [market, setMarket] = useState(snapshot);
   const [inputs, setInputs] = useState<Record<string, Entry>>(() => prefill('mazanehTo18k', snapshot));
@@ -184,7 +184,27 @@ export function ProfessionalCalculator({
   const toolGate = moduleAccess(tool);
   const operationAllowed = toolGate.ok;
   const spec = operation && operationAllowed ? calculatorCatalog[operation] : null;
-  const popular = popularByProduct[product].map(item => {
+  const featured = popularByProduct[product];
+  const featuredIds = new Set(featured.map(item => item.id));
+  const moreTools: PopularPick[] = available.filter(value =>
+    !(isMazanehOperation(value) ? featuredIds.has('mazaneh') : featuredIds.has(value)),
+  ).map(value => ({
+    id: value,
+    label: toolLabel(value),
+    Icon: value === 'purity' ? popularIcons.purity
+      : value === 'meltedTarget' || value === 'meltedTargetAverage' ? popularIcons.target
+        : value === 'meltedNewBuy' ? popularIcons.stack
+          : value === 'meltedPartialSell' ? popularIcons.sell
+            : value === 'meltedBreakEven' || value === 'coinBreakEven' ? popularIcons.wallet
+              : value === 'percentageChange' || value === 'rateCompare' ? popularIcons.trend
+                : value === 'goldSilverSwap' ? popularIcons.ratio
+                  : value === 'uaeGold' || value === 'aedDerivedUsd' ? popularIcons.usdGap
+                    : value === 'weight' ? popularIcons.weight
+                      : value.toLowerCase().includes('silver') ? popularIcons.silverBubble
+                        : value.toLowerCase().includes('coin') ? popularIcons.coin
+                          : popularIcons.goldBubble,
+  }));
+  const popular = [...featured, ...moreTools].map(item => {
     if (item.id === 'mazaneh') {
       return { ...item, locked: !moduleAccess('market18kToMazaneh').ok && !moduleAccess('mazanehTo18k').ok };
     }
@@ -324,9 +344,11 @@ export function ProfessionalCalculator({
     }
   }
 
-  const keypadValue = tool === 'weight' ? weightAmount : tool === 'purity' ? purityAmount : inputs[activeField]?.value ?? '';
-  const keypadTarget = tool === 'weight'
-    ? 'مقدار وزن'
+  const keypadValue = tool === 'marketWeight' || tool === 'weight' ? weightAmount : tool === 'purity' ? purityAmount : inputs[activeField]?.value ?? '';
+  const keypadTarget = tool === 'marketWeight'
+    ? 'مقدار معادل عرفی'
+    : tool === 'weight'
+      ? 'مقدار وزن'
     : tool === 'purity'
       ? 'وزن مبدأ به گرم'
       : spec?.fields.find(field => field.key === activeField)?.label ?? 'ورودی را انتخاب کنید';
@@ -353,13 +375,6 @@ export function ProfessionalCalculator({
       <CalculatorPopularRow items={popular} active={isMazanehOperation(tool) ? 'mazaneh' : tool} onPick={pickPopular} />
 
       <div className="calc-stage__main">
-        <Select
-          className="calc-tool-picker"
-          label="ابزار انتخابی"
-          value={tool}
-          options={available.map(value => ({ value, label: toolLabel(value) }))}
-          onChange={value => choose(value as Tool)}
-        />
         {!operationAllowed ? (
           <div className="calc-tool-panel calc-tool-panel--locked">
             <LockKeyhole size={22} />
@@ -367,6 +382,8 @@ export function ProfessionalCalculator({
             <p>{!toolGate.ok ? toolGate.message : ''}</p>
             {!toolGate.ok && (toolGate.code === 'forbidden' || toolGate.code === 'trial_expired') ? <Link href="/pricing">ارتقای حساب</Link> : null}
           </div>
+        ) : tool === 'marketWeight' ? (
+          <MarketMesghalEquivalentWidget amount={weightAmount} onAmountChange={setWeightAmount} onPriceConversionClick={() => choose('market18kToMazaneh')} />
         ) : tool === 'weight' ? (
           <WeightConvertWidget amount={weightAmount} onAmountChange={setWeightAmount} onPriceConversionClick={product === 'gold' ? () => choose('market18kToMazaneh') : undefined} />
         ) : tool === 'purity' ? (
@@ -461,7 +478,7 @@ export function ProfessionalCalculator({
         <div className={`calc-keypad-wrap${keypadCue ? ' is-keypad-cue' : ''}`}>
           <span className="calc-entry-target">{keypadTarget}</span>
           <CalculatorKeypad key={`${tool}-${activeField}`} value={keypadValue} onChange={value => {
-            if (tool === 'weight') { setWeightAmount(value); return; }
+            if (tool === 'marketWeight' || tool === 'weight') { setWeightAmount(value); return; }
             if (tool === 'purity') { setPurityAmount(value); return; }
             if (!activeField) return;
             invalidate();

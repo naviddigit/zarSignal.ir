@@ -12,6 +12,8 @@ Source: [3- طراحی ماشین حساب طلا](https://chatgpt.com/share/6ac
 
 `4.608` is forbidden **inside the melted-gold trading-price/transaction flow** (LOCK-V3-002); it remains the correct physical weight of a mesghal. A weight converter must not silently use `4.3318` as grams. G02 purity **weight** conversion preserves fine-metal mass: `fine = gross × source fineness / 1000`, then `target gross = fine × 1000 / target fineness`. Price conversion is a different operation.
 
+The default gold view is now **1 gram 18k → market mesghal equivalent** (`1 / 4.3318 ≈ 0.230851`); the separate physical-weight tool defaults to **1 gram → physical mesghal** (about `0.217014` using the approved `4.608 g` unit). Mojtaba reaffirmed on 2026-10-05 that `4.3318` is the fixed market convention for the 18k-equivalent workflow. It means one quoted 705-fineness mesghal is approximately equivalent to `4.3318 g` of 750-fineness gold by fine-gold content; it does **not** mean a physical mesghal weighs `4.3318 g`. The design chat explicitly keeps physical mesghal and quote factor separate. The calculator shows all available tools in the icon rail; the duplicated tool select has been removed.
+
 ## Current coverage against the design chat
 
 | Family | Present now | Remaining work before calling the family complete |

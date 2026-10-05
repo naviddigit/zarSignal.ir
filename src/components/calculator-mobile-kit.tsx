@@ -3,12 +3,12 @@
 import { useMemo, useState } from 'react';
 import {
   ArrowLeftRight, Banknote, ChartNoAxesColumn, CircleDollarSign, Coins, Delete,
-  Gem, Info, LockKeyhole, Menu, Percent, Scale, X,
+  Gem, Info, Layers3, LockKeyhole, Menu, Percent, Scale, Target, TrendingDown, TrendingUp, Wallet, X,
 } from 'lucide-react';
 import { convertWeight, convertPurityWeight, weightUnits, purityOptions, type WeightUnit, type Purity } from '@/lib/calculator-conversions';
 import { formatNumericInput, sanitizeNumericInput } from '@/lib/numeric-input';
 import { isStale, type Snapshot, type Symbol } from '@/lib/market';
-import { mazanehTo18k } from '@/lib/mazaneh-to-18k';
+import { MAZANEH_TO_18K_DIVISOR, mazanehTo18k } from '@/lib/mazaneh-to-18k';
 import { Select } from '@/components/ui/select';
 import { HScrollRail } from '@/components/ui/h-scroll-rail';
 import { keypadMath } from '@/lib/keypad-math';
@@ -218,11 +218,11 @@ export function CalculatorPopularRow({
   onPick: (id: string) => void;
 }) {
   return (
-    <section className="calc-popular" aria-label="محاسبات محبوب">
+    <section className="calc-popular" aria-label="ابزار انتخابی">
       <header>
-        <strong>محاسبات محبوب</strong><small className="calc-currency-note">محاسبات: تومانی</small>
+        <strong>ابزار انتخابی</strong><small className="calc-currency-note">محاسبات قیمت: تومانی</small>
       </header>
-      <HScrollRail className="calc-popular__rail" trackClassName="calc-popular__icons" label="محاسبات محبوب" step={120}>
+      <HScrollRail className="calc-popular__rail" trackClassName="calc-popular__icons" label="ابزار انتخابی" step={120}>
         {items.map(item => {
           const Icon = item.Icon;
           return (
@@ -247,10 +247,49 @@ export function CalculatorPopularRow({
   );
 }
 
-/** Main conversion card — Mojtaba layout. */
+/** 18k fine-metal equivalent used by the market quote, separate from physical mass. */
+export function MarketMesghalEquivalentWidget({ amount, onAmountChange, onPriceConversionClick }: { amount: string; onAmountChange: (next: string) => void; onPriceConversionClick: () => void }) {
+  const [reverse, setReverse] = useState(false);
+  const n = Number(amount);
+  const result = amount !== '' && Number.isFinite(n) && n >= 0
+    ? reverse ? n * MAZANEH_TO_18K_DIVISOR : n / MAZANEH_TO_18K_DIVISOR
+    : null;
+  const from = reverse ? 'مثقال عرفی مظنهٔ ۷۰۵' : 'گرم طلای ۱۸ عیار';
+  const to = reverse ? 'گرم طلای ۱۸ عیار' : 'مثقال عرفی مظنهٔ ۷۰۵';
+  return (
+    <section className="calc-weight-widget" aria-label="تبدیل معادل عرفی ۱۸ عیار">
+      <header className="calc-weight-widget__head">
+        <strong>تبدیل معادل عرفی ۱۸ عیار</strong>
+        <small>ضریب ثابت بازار: ۴٫۳۳۱۸</small>
+      </header>
+      <div className="calc-weight-widget__pair">
+        <div className="calc-weight-box is-out" aria-live="polite">
+          <span className="ds-field__label">{to}</span>
+          <strong className="calc-weight-box__result" dir="ltr">{result == null ? '—' : fa(result, 6)}</strong>
+        </div>
+        <button type="button" className="calc-weight-swap" aria-label="جابه‌جایی جهت تبدیل عرفی" onClick={() => {
+          setReverse(current => !current);
+          if (result != null) onAmountChange(String(Number(result.toFixed(8))));
+        }}><ArrowLeftRight size={15} /></button>
+        <div className="calc-weight-box is-in">
+          <span className="ds-field__label">{from}</span>
+          <div className="calc-weight-box__input-wrap">
+            <input className="ds-input calc-weight-box__input" dir="ltr" inputMode="decimal" autoComplete="off"
+              aria-label={`مقدار ${from}`} value={formatNumericInput(amount)}
+              onChange={event => onAmountChange(sanitizeNumericInput(event.target.value, 8))} />
+          </div>
+        </div>
+      </div>
+      <p className="calc-weight-widget__factor"><Info size={12} aria-hidden="true" /><span>۱ مثقال عرفی مظنهٔ ۷۰۵ از نظر مقدار طلا معادل ۴٫۳۳۱۸ گرم ۱۸ عیار است. وزن فیزیکی مثقال جداگانه محاسبه می‌شود.</span></p>
+      <button type="button" className="calc-weight-widget__price-link" onClick={onPriceConversionClick}>تبدیل قیمت مظنه و گرم ۱۸ عیار ←</button>
+    </section>
+  );
+}
+
+/** Main physical weight conversion card. */
 export function WeightConvertWidget({ amount, onAmountChange, onPriceConversionClick }: { amount: string; onAmountChange: (next: string) => void; onPriceConversionClick?: () => void }) {
-  const [from, setFrom] = useState<WeightUnit>('mesghal');
-  const [to, setTo] = useState<WeightUnit>('gram');
+  const [from, setFrom] = useState<WeightUnit>('gram');
+  const [to, setTo] = useState<WeightUnit>('mesghal');
 
   const result = useMemo(() => {
     const n = Number(amount);
@@ -275,7 +314,7 @@ export function WeightConvertWidget({ amount, onAmountChange, onPriceConversionC
       <div className="calc-weight-widget__pair">
         <div className="calc-weight-box is-out" aria-live="polite">
           <span className="ds-field__label">وزن فیزیکی مقصد</span>
-          <strong className="calc-weight-box__result" dir="ltr">{result == null ? '—' : fa(result)}</strong>
+          <strong className="calc-weight-box__result" dir="ltr">{result == null ? '—' : fa(result, 6)}</strong>
           <Select
             label="واحد مقصد"
             className="calc-weight-box__select"
@@ -328,7 +367,7 @@ export function WeightConvertWidget({ amount, onAmountChange, onPriceConversionC
       <p className="calc-weight-widget__factor">
         <Info size={12} aria-hidden="true" />
         <span>
-          1 {weightUnits[from].label} = {fa(factor, 4)} {weightUnits[to].label}
+          1 {weightUnits[from].label} = {fa(factor, 6)} {weightUnits[to].label}
           {result != null ? ` | ${fa(Number(amount), 2)} ${weightUnits[from].label} = ${fa(result)} ${weightUnits[to].label}` : null}
         </span>
       </p>
@@ -389,6 +428,7 @@ export function PurityConvertWidget({ amount, onAmountChange, product = 'gold' }
         </div>
       </div>
       <p className="calc-weight-widget__factor"><Info size={12} aria-hidden="true" /><span>فلز خالص: {result == null ? '—' : fa(result.fineWeight, 6)} گرم · این تبدیل وزن است، نه قیمت قابل معامله.</span></p>
+      {!silver ? <p className="calc-weight-widget__factor"><Info size={12} aria-hidden="true" /><span>یک مثقال طلای ۷۰۵ از نظر مقدار طلای خالص تقریباً معادل ۴٫۳۳۱۸ گرم طلای ۱۸ عیار است. این رابطهٔ عیار و قیمت است؛ وزن یک مثقال حدود ۴٫۶۰۸ گرم است.</span></p> : null}
     </section>
   );
 }
@@ -404,4 +444,9 @@ export const popularIcons = {
   usdGap: CircleDollarSign,
   silverBubble: Gem,
   ratio: ArrowLeftRight,
+  target: Target,
+  stack: Layers3,
+  sell: TrendingDown,
+  trend: TrendingUp,
+  wallet: Wallet,
 };

@@ -2,7 +2,7 @@ import type { AccessLevel } from '@/lib/capabilities';
 import { calculatorCatalog, type CalculatorOperation } from '@/lib/calculator-catalog';
 
 export type { CalculatorOperation };
-export type CalculatorModule = CalculatorOperation | 'weight' | 'purity';
+export type CalculatorModule = CalculatorOperation | 'marketWeight' | 'weight' | 'purity';
 export const CALCULATOR_ACCESS_SETTING_KEY = 'calculator-module-access-v1';
 
 /** Per-module access: free for everyone, restricted to listed levels, or fully disabled. */
@@ -20,6 +20,7 @@ const ALL_LEVELS: AccessLevel[] = ['FREE', 'HOME', 'PROFESSIONAL', 'ADVANCED_PRO
 
 /** Defaults preserve today's public catalog: all approved modules free. */
 export const defaultCalculatorAccessPolicy: CalculatorAccessPolicy = {
+  marketWeight: { mode: 'free', allowedLevels: [...ALL_LEVELS] },
   weight: { mode: 'free', allowedLevels: [...ALL_LEVELS] },
   purity: { mode: 'free', allowedLevels: [...ALL_LEVELS] },
   mazanehTo18k: { mode: 'free', allowedLevels: [...ALL_LEVELS] },
@@ -53,6 +54,7 @@ export const defaultCalculatorAccessPolicy: CalculatorAccessPolicy = {
 };
 
 export const CALCULATOR_MODULE_LABELS: Record<CalculatorModule, string> = {
+  marketWeight: 'مثقال عرفی بازار ↔ گرم ۱۸ عیار',
   weight: 'تبدیل واحد وزن',
   purity: 'تبدیل عیار طلا و نقره',
   ...Object.fromEntries((Object.keys(calculatorCatalog) as CalculatorOperation[]).map(op => [op, calculatorCatalog[op].title])),

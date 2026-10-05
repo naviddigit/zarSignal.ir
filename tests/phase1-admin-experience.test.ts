@@ -107,11 +107,14 @@ test('calculator module access: free / plans / disabled with trial and pending',
   }
 });
 
-test('local weight and purity tools use the same admin plan policy', () => {
+test('local market-equivalent, physical-weight and purity tools use the admin plan policy', () => {
   const policy = normalizeCalculatorAccessPolicy({
+    marketWeight: { mode: 'plans', allowedLevels: ['HOME', 'PROFESSIONAL'] },
     weight: { mode: 'plans', allowedLevels: ['HOME', 'PROFESSIONAL'] },
     purity: { mode: 'disabled', allowedLevels: [] },
   });
+  assert.equal(decideCalculatorModuleAccess('marketWeight', policy, 'FREE').ok, false);
+  assert.equal(decideCalculatorModuleAccess('marketWeight', policy, 'HOME', { statusLabel: 'آزمایشی' }).ok, true);
   assert.equal(decideCalculatorModuleAccess('weight', policy, 'FREE').ok, false);
   assert.equal(decideCalculatorModuleAccess('weight', policy, 'HOME', { statusLabel: 'آزمایشی' }).ok, true);
   assert.equal(decideCalculatorModuleAccess('purity', policy, 'PROFESSIONAL').ok, false);
