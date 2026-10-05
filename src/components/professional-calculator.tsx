@@ -40,13 +40,13 @@ const toolsByProduct: Record<Product, Tool[]> = {
   fx: ['usdGap', 'aedDerivedUsd', 'fxRateGap', 'rateCompare', 'percentageChange'],
   coin: ['coinBuy', 'coinSell', 'coinCapital', 'coinPnl', 'coinBreakEven', 'weight', 'purity', 'percentageChange'],
 };
-const toolLabel = (value: Tool) => value === 'marketWeight' ? 'گرم ۱۸ ↔ مثقال عرفی ۴٫۳۳۱۸' : value === 'weight' ? 'وزن واقعی · مثقال ۴٫۶۰۸' : value === 'purity' ? 'تبدیل عیار و وزن خالص' : calculatorCatalog[value].title;
+const toolLabel = (value: Tool) => value === 'marketWeight' ? 'معادل بازار' : value === 'weight' ? 'وزن واقعی' : value === 'purity' ? 'تبدیل عیار و وزن خالص' : calculatorCatalog[value].title;
 const DEFAULT_TOOL: Tool = 'marketWeight';
 const lockedProducts: Product[] = [];
 const popularByProduct: Record<Product, PopularPick[]> = {
   gold: [
-    { id: 'marketWeight', label: 'گرم ۱۸ ↔ مثقال عرفی ۴٫۳۳۱۸', Icon: popularIcons.weight },
-    { id: 'weight', label: 'وزن واقعی · مثقال ۴٫۶۰۸', Icon: popularIcons.weight },
+    { id: 'marketWeight', label: 'معادل بازار', Icon: popularIcons.weight },
+    { id: 'weight', label: 'وزن واقعی', Icon: popularIcons.weight },
     { id: 'mazaneh', label: 'مظنه ↔ گرم ۱۸', Icon: popularIcons.mazanehTo18k },
     { id: 'goldBubble', label: 'حباب طلا', Icon: popularIcons.goldBubble },
     { id: 'fineGold', label: 'طلای خالص', Icon: popularIcons.purity },
@@ -115,6 +115,7 @@ function liveEntry(field: (typeof calculatorCatalog)[CalculatorOperation]['field
         } catch { /* fall through */ }
       }
     }
+    return { value: '', provenance: 'MANUAL' };
   }
 
   const quote = snapshot.quotes.find(q => q.symbol === field.symbol);
@@ -315,8 +316,29 @@ export function ProfessionalCalculator({
     request.current = controller;
     setError('');
     setPending(true);
-    const timeout = window.setTimeout(() => controller.abort(), 15000);
+    const timeout = window.setTimeout(() => controller.abort(), 90000);
     try {
+      const liveFields = spec?.fields.filter(field => inputs[field.key]?.provenance === 'LIVE') ?? [];
+      let requestInputs = inputs;
+      if (liveFields.some(field => liveEntry(field, market).provenance !== 'LIVE')) {
+        let next: Snapshot;
+        try {
+          next = await fetchJson<Snapshot>('/api/public/markets', controller.signal, 60000);
+        } catch {
+          if (!controller.signal.aborted) setError('قیمت‌های زنده به‌روز نشدند. دوباره تلاش کنید یا «دستی» را انتخاب کنید.');
+          return;
+        }
+        if (controller.signal.aborted) return;
+        setMarket(next);
+        if (liveFields.some(field => liveEntry(field, next).provenance !== 'LIVE')) {
+          setError('برای این محاسبه قیمت زندهٔ تازه در دسترس نیست. مقدار دستی وارد کنید.');
+          return;
+        }
+        requestInputs = Object.fromEntries(spec!.fields.map(field => [field.key,
+          inputs[field.key]?.provenance === 'LIVE' ? liveEntry(field, next) : inputs[field.key],
+        ]));
+        setInputs(requestInputs);
+      }
       const response = await fetch('/api/public/calculator/professional', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -324,7 +346,7 @@ export function ProfessionalCalculator({
         signal: controller.signal,
         body: JSON.stringify({
           operation,
-          inputs: Object.fromEntries(Object.entries(inputs).map(([key, input]) => [key, { provenance: input.provenance, value: Number(input.value) }])),
+          inputs: Object.fromEntries(Object.entries(requestInputs).map(([key, input]) => [key, { provenance: input.provenance, value: Number(input.value) }])),
         }),
       });
       const data = await response.json();
@@ -346,7 +368,7 @@ export function ProfessionalCalculator({
 
   const keypadValue = tool === 'marketWeight' || tool === 'weight' ? weightAmount : tool === 'purity' ? purityAmount : inputs[activeField]?.value ?? '';
   const keypadTarget = tool === 'marketWeight'
-    ? 'مقدار معادل عرفی'
+    ? 'مقدار معادل بازار'
     : tool === 'weight'
       ? 'مقدار وزن'
     : tool === 'purity'

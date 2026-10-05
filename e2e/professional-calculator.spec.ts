@@ -5,9 +5,9 @@ test('mazaneh price directions share one shortcut while physical weight stays se
   await expect(page.getByRole('textbox', { name: 'مقدار گرم طلای ۱۸ عیار' })).toHaveValue('1');
   await expect(page.getByText('0.230851')).toBeVisible();
   await expect(page.getByText('ضریب ثابت بازار: ۴٫۳۳۱۸')).toBeVisible();
-  await page.getByRole('button', { name: 'وزن واقعی · مثقال ۴٫۶۰۸' }).click();
+  await page.getByRole('button', { name: 'وزن واقعی' }).click();
   await expect(page.getByText('1 گرم = 0.217014 مثقال وزنی')).toBeVisible();
-  await page.getByRole('button', { name: 'محاسبهٔ عرفی ۱۸ عیار با ضریب ۴٫۳۳۱۸' }).click();
+  await page.getByRole('button', { name: 'معادل بازارِ طلای ۱۸ عیار' }).click();
   await expect(page.getByText('0.230851')).toBeVisible();
   await expect(page.getByRole('button', { name: 'مظنه ↔ گرم ۱۸' })).toHaveCount(1);
   await page.getByRole('button', { name: 'مظنه ↔ گرم ۱۸' }).click();
@@ -15,9 +15,9 @@ test('mazaneh price directions share one shortcut while physical weight stays se
   await page.getByRole('button', { name: 'مظنه به گرم ۱۸' }).click();
   await page.getByRole('textbox', { name: 'مظنه آب‌شده ۷۰۵' }).fill('100000000');
   await page.getByRole('button', { name: 'محاسبه', exact: true }).click();
-  await expect(page.getByRole('dialog', { name: 'نتیجه محاسبه' })).toContainText('23,085,091');
+  await expect(page.getByRole('dialog', { name: 'نتیجه محاسبه' })).toContainText('23,085,091', { timeout: 20000 });
   await page.getByRole('button', { name: 'بستن' }).last().click();
-  await page.getByRole('button', { name: 'وزن واقعی · مثقال ۴٫۶۰۸' }).click();
+  await page.getByRole('button', { name: 'وزن واقعی' }).click();
   await expect(page.getByText('۱ مثقال = ۴٫۶۰۸ گرم')).toBeVisible();
   await expect(page.locator('.calc-weight-widget')).toBeVisible();
   await page.getByRole('button', { name: 'تبدیل عیار و وزن خالص' }).click();
@@ -41,5 +41,5 @@ test('silver bar tool opens from its icon and computes from explicit inputs', as
     ['مالیاتِ اجرت اعلام‌شده', '50000'], ['اختلاف خرید و فروش', '100000'], ['هزینه دیگر', '0'],
   ]) await page.getByRole('textbox', { name: label }).fill(value);
   await page.getByRole('button', { name: 'محاسبه', exact: true }).click();
-  await expect(page.getByRole('dialog', { name: 'نتیجه محاسبه' })).toContainText('نقره خالص شمش');
+  await expect(page.getByRole('dialog', { name: 'نتیجه محاسبه' })).toContainText('نقره خالص شمش', { timeout: 20000 });
 });

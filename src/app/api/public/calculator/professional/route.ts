@@ -37,9 +37,17 @@ export async function POST(request: Request) {
     const snapshot: Snapshot = live
       ? await getPublicSnapshot()
       : { mode: 'live', status: 'unavailable', quotes: [] };
-    return Response.json(calculateProfessional(body, snapshot), {
-      headers: { 'Cache-Control': 'no-store' },
-    });
+    try {
+      return Response.json(calculateProfessional(body, snapshot), {
+        headers: { 'Cache-Control': 'no-store' },
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'محاسبه ممکن نشد.';
+      return Response.json({ error: message }, {
+        status: 422,
+        headers: { 'Cache-Control': 'no-store' },
+      });
+    }
   } catch (error) {
     const detail = error instanceof Error && /^(مقدار «|میانگین هدف|مقدار فروش|تعداد سکه|هزینه‌ها باید)/.test(error.message)
       ? error.message

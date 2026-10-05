@@ -37,6 +37,15 @@ test('LIVE ignores forged client values and fails closed on demo, stale or wrong
   assert.throws(() => calculateProfessional({ operation: 'mazanehTo18k', inputs: { melted: manual(-1) } }, snapshot));
   assert.throws(() => calculateProfessional({ operation: 'mazanehTo18k', inputs: { melted: { provenance: 'CONSTANT', value: 1 } } }, snapshot));
 });
+test('18k live price is derived only from a fresh 705 mazaneh quote', () => {
+  const observedAt = new Date().toISOString();
+  const direct18k = { ...demoQuotes[1], observedAt, buy: '1', sell: '1' };
+  const request = { operation: 'market18kToMazaneh', inputs: { gram: { provenance: 'LIVE', value: 1 } } };
+  assert.throws(() => calculateProfessional(request, { mode: 'live', status: 'ok', quotes: [direct18k] }), /داده تازه و هم‌واحد/);
+  const melted = { ...demoQuotes[0], observedAt, buy: '43318000', sell: '43318000' };
+  const result = calculateProfessional(request, { mode: 'live', status: 'ok', quotes: [direct18k, melted] });
+  assert.equal(result.inputs[0].value, 10000000);
+});
 test('silver LIVE accepts a fresh one-sided watch price but rejects inverted bid and ask', () => {
   const observedAt = new Date().toISOString();
   const base = demoQuotes[0];

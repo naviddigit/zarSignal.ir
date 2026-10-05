@@ -28,6 +28,7 @@ function resolveLiveValue(field: (typeof calculatorCatalog)[CalculatorOperation]
         } catch { /* fall through */ }
       }
     }
+    return null;
   }
 
   const quote = snapshot.quotes.find(q => q.symbol === field.symbol);

@@ -254,12 +254,12 @@ export function MarketMesghalEquivalentWidget({ amount, onAmountChange, onPriceC
   const result = amount !== '' && Number.isFinite(n) && n >= 0
     ? reverse ? n * MAZANEH_TO_18K_DIVISOR : n / MAZANEH_TO_18K_DIVISOR
     : null;
-  const from = reverse ? 'مثقال عرفی مظنهٔ ۷۰۵' : 'گرم طلای ۱۸ عیار';
-  const to = reverse ? 'گرم طلای ۱۸ عیار' : 'مثقال عرفی مظنهٔ ۷۰۵';
+  const from = reverse ? 'واحد مظنهٔ بازار' : 'گرم طلای ۱۸ عیار';
+  const to = reverse ? 'گرم طلای ۱۸ عیار' : 'واحد مظنهٔ بازار';
   return (
-    <section className="calc-weight-widget" aria-label="تبدیل معادل عرفی ۱۸ عیار">
+    <section className="calc-weight-widget" aria-label="معادل بازار طلای ۱۸ عیار">
       <header className="calc-weight-widget__head">
-        <strong>تبدیل معادل عرفی ۱۸ عیار</strong>
+        <strong>معادل بازار طلای ۱۸ عیار</strong>
         <small>ضریب ثابت بازار: ۴٫۳۳۱۸</small>
       </header>
       <div className="calc-weight-widget__pair">
@@ -280,7 +280,7 @@ export function MarketMesghalEquivalentWidget({ amount, onAmountChange, onPriceC
           </div>
         </div>
       </div>
-      <p className="calc-weight-widget__factor"><Info size={12} aria-hidden="true" /><span>۱ مثقال عرفی مظنهٔ ۷۰۵ از نظر مقدار طلا معادل ۴٫۳۳۱۸ گرم ۱۸ عیار است. وزن فیزیکی مثقال جداگانه محاسبه می‌شود.</span></p>
+      <p className="calc-weight-widget__factor"><Info size={12} aria-hidden="true" /><span>در قیمت‌گذاری بازار، یک واحد مظنهٔ ۷۰۵ از نظر طلای خالص معادل ۴٫۳۳۱۸ گرم طلای ۱۸ عیار است. این تبدیل وزن واقعی مثقال نیست.</span></p>
       <button type="button" className="calc-weight-widget__price-link" onClick={onPriceConversionClick}>تبدیل قیمت مظنه و گرم ۱۸ عیار ←</button>
     </section>
   );
@@ -371,7 +371,7 @@ export function WeightConvertWidget({ amount, onAmountChange, onMarketEquivalent
           {result != null ? ` | ${fa(Number(amount), 2)} ${weightUnits[from].label} = ${fa(result)} ${weightUnits[to].label}` : null}
         </span>
       </p>
-      {onMarketEquivalentClick ? <button type="button" className="calc-weight-widget__price-link" onClick={onMarketEquivalentClick}>محاسبهٔ عرفی ۱۸ عیار با ضریب ۴٫۳۳۱۸ ←</button> : null}
+      {onMarketEquivalentClick ? <button type="button" className="calc-weight-widget__price-link" onClick={onMarketEquivalentClick}>معادل بازارِ طلای ۱۸ عیار ←</button> : null}
     </section>
   );
 }
