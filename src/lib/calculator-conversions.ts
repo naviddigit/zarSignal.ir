@@ -1,6 +1,6 @@
 export const weightUnits = {
   gram: { label: 'گرم', grams: 1 },
-  mesghal: { label: 'مثقال', grams: 4.608 },
+  mesghal: { label: 'مثقال وزنی', grams: 4.608 },
   seer: { label: 'سیر', grams: 75 },
   kilogram: { label: 'کیلوگرم', grams: 1000 },
   troyOunce: { label: 'اونس تروا', grams: 31.1035 },
