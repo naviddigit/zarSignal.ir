@@ -15,6 +15,7 @@ import { fetchJson } from '@/lib/fetch-json';
 import { mazanehTo18k } from '@/lib/mazaneh-to-18k';
 import { track } from '@/lib/analytics';
 import { OverlaySheet } from '@/components/ui/overlay-sheet';
+import { Select } from '@/components/ui/select';
 import {
   CalculatorKeypad,
   CalculatorLiveStrip,
@@ -34,11 +35,12 @@ type PopularPick = { id: string; label: string; Icon: typeof popularIcons.weight
 
 const products: [Product, string][] = [['gold', 'طلا'], ['silver', 'نقره'], ['fx', 'دلار'], ['coin', 'سکه']];
 const toolsByProduct: Record<Product, Tool[]> = {
-  gold: ['weight', 'mazanehTo18k', 'market18kToMazaneh', 'goldBubble', 'purity'],
-  silver: ['weight', 'silverBubble', 'purity'],
-  fx: ['usdGap'],
-  coin: ['weight', 'purity'],
+  gold: ['weight', 'purity', 'mazanehTo18k', 'market18kToMazaneh', 'fineGold', 'goldBubble', 'uaeGold', 'capitalGold', 'meltedPnl', 'goldSilverSwap', 'percentageChange'],
+  silver: ['weight', 'purity', 'fineSilver', 'silverBarCost', 'silverMintPremium', 'capitalSilver', 'silverBubble', 'goldSilverSwap', 'percentageChange'],
+  fx: ['usdGap', 'aedDerivedUsd', 'fxRateGap', 'rateCompare', 'percentageChange'],
+  coin: ['coinBuy', 'coinSell', 'coinCapital', 'coinPnl', 'coinBreakEven', 'weight', 'purity', 'percentageChange'],
 };
+const toolLabel = (value: Tool) => value === 'weight' ? 'تبدیل وزن فیزیکی' : value === 'purity' ? 'تبدیل عیار و وزن خالص' : calculatorCatalog[value].title;
 /** Default open tool — تبدیل وزن کاربردی‌ترین ورودی عمومی است. */
 const DEFAULT_TOOL: Tool = 'weight';
 const lockedProducts: Product[] = [];
@@ -47,32 +49,49 @@ const popularByProduct: Record<Product, PopularPick[]> = {
     { id: 'weight', label: 'تبدیل وزن فیزیکی', Icon: popularIcons.weight },
     { id: 'mazaneh', label: 'مظنه ↔ گرم ۱۸', Icon: popularIcons.mazanehTo18k },
     { id: 'goldBubble', label: 'حباب طلا', Icon: popularIcons.goldBubble },
-    { id: 'purity', label: 'تبدیل عیار', Icon: popularIcons.purity },
-    { id: 'jewelry', label: 'طلای زینتی', Icon: popularIcons.jewelry, locked: true },
+    { id: 'fineGold', label: 'طلای خالص', Icon: popularIcons.purity },
+    { id: 'meltedPnl', label: 'سود و زیان آب‌شده', Icon: popularIcons.goldBubble },
+    { id: 'capitalGold', label: 'سرمایه به طلا', Icon: popularIcons.mazanehTo18k },
   ],
   silver: [
     { id: 'weight', label: 'تبدیل وزن', Icon: popularIcons.weight },
     { id: 'silverBubble', label: 'حباب نقره', Icon: popularIcons.silverBubble },
-    { id: 'purity', label: 'عیار نقره', Icon: popularIcons.purity },
-    { id: 'ratio', label: 'نسبت طلا/نقره', Icon: popularIcons.ratio, locked: true },
-    { id: 'jewelry', label: 'زیور نقره', Icon: popularIcons.jewelry, locked: true },
+    { id: 'fineSilver', label: 'نقره خالص', Icon: popularIcons.purity },
+    { id: 'silverBarCost', label: 'شمش نقره', Icon: popularIcons.silverBubble },
+    { id: 'goldSilverSwap', label: 'تبدیل طلا به نقره', Icon: popularIcons.ratio },
+    { id: 'capitalSilver', label: 'سرمایه به نقره', Icon: popularIcons.silverBubble },
   ],
   fx: [
     { id: 'usdGap', label: 'فاصله دلار', Icon: popularIcons.usdGap },
-    { id: 'fxConvert', label: 'مبدل ارز', Icon: popularIcons.usdGap, locked: true },
+    { id: 'fxRateGap', label: 'مقایسه نرخ‌ها', Icon: popularIcons.ratio },
+    { id: 'aedDerivedUsd', label: 'دلار درهمی', Icon: popularIcons.usdGap },
   ],
   coin: [
-    { id: 'weight', label: 'تبدیل وزن', Icon: popularIcons.weight },
-    { id: 'purity', label: 'تبدیل عیار', Icon: popularIcons.purity },
-    { id: 'sekeBubble', label: 'حباب سکه', Icon: popularIcons.coin, locked: true },
-    { id: 'robSeke', label: 'ربع سکه', Icon: popularIcons.coin, locked: true },
-    { id: 'nimSeke', label: 'نیم سکه', Icon: popularIcons.coin, locked: true },
+    { id: 'coinBuy', label: 'هزینه خرید', Icon: popularIcons.coin },
+    { id: 'coinSell', label: 'خالص فروش', Icon: popularIcons.coin },
+    { id: 'coinBreakEven', label: 'سربه‌سر', Icon: popularIcons.coin },
+    { id: 'coinCapital', label: 'سرمایه به سکه', Icon: popularIcons.coin },
+    { id: 'coinPnl', label: 'سود و زیان', Icon: popularIcons.goldBubble },
   ],
 };
 const number = (value: number) => new Intl.NumberFormat('en-US', { maximumFractionDigits: 4 }).format(value);
 const isLocalTool = (tool: string): tool is LocalTool => tool === 'weight' || tool === 'purity';
 const isOperation = (tool: string): tool is CalculatorOperation => !isLocalTool(tool) && tool in calculatorCatalog;
 const isMazanehOperation = (tool: Tool) => tool === 'mazanehTo18k' || tool === 'market18kToMazaneh';
+
+function ResultDetails({ result }: { result: CalculatorResult }) {
+  return <details className="calc-result-details">
+    <summary>ورودی‌ها و منبع محاسبه</summary>
+    <div>
+      {result.inputs.map(input => <p key={input.key}>
+        <span>{input.label}</span>
+        <bdi dir="ltr">{number(input.value)} {input.unit}</bdi>
+        <small>{input.provenance === 'LIVE' ? `داده بازار · ${input.observedAt ? new Date(input.observedAt).toLocaleString('fa-IR', { timeZone: 'Asia/Tehran' }) : ''}` : 'ورودی دستی'}</small>
+      </p>)}
+      <small>فرمول {result.formulaId} · نسخه {result.version} · زمان محاسبه {new Date(result.calculatedAt).toLocaleString('fa-IR', { timeZone: 'Asia/Tehran' })}</small>
+    </div>
+  </details>;
+}
 
 function midQuote(quote: Quote) {
   const buy = Number(quote.buy);
@@ -83,7 +102,7 @@ function midQuote(quote: Quote) {
 
 /** Resolve a live calculator field from market quotes. ۱۸ عیار همیشه از مظنه ÷ ۴٫۳۳۱۸. */
 function liveEntry(field: (typeof calculatorCatalog)[CalculatorOperation]['fields'][number], snapshot: Snapshot): Entry {
-  if (snapshot.mode !== 'live') return { value: '', provenance: 'MANUAL' };
+  if (snapshot.mode !== 'live' || !field.symbol) return { value: field.allowZero ? '0' : '', provenance: 'MANUAL' };
 
   if (field.symbol === 'GOLD_18K') {
     const melted = snapshot.quotes.find(q => q.symbol === 'GOLD_MELTED');
@@ -104,7 +123,7 @@ function liveEntry(field: (typeof calculatorCatalog)[CalculatorOperation]['field
     if (mid != null) return { value: String(mid), provenance: 'LIVE', observedAt: quote.observedAt };
   }
 
-  return { value: '', provenance: 'MANUAL' };
+  return { value: field.allowZero ? '0' : '', provenance: 'MANUAL' };
 }
 
 function prefill(operation: CalculatorOperation, snapshot: Snapshot): Record<string, Entry> {
@@ -334,6 +353,13 @@ export function ProfessionalCalculator({
       <CalculatorPopularRow items={popular} active={isMazanehOperation(tool) ? 'mazaneh' : tool} onPick={pickPopular} />
 
       <div className="calc-stage__main">
+        <Select
+          className="calc-tool-picker"
+          label="ابزار انتخابی"
+          value={tool}
+          options={available.map(value => ({ value, label: toolLabel(value) }))}
+          onChange={value => choose(value as Tool)}
+        />
         {!operationAllowed ? (
           <div className="calc-tool-panel calc-tool-panel--locked">
             <LockKeyhole size={22} />
@@ -360,21 +386,22 @@ export function ProfessionalCalculator({
               </button>
             </div>
             {isMazanehOperation(tool) ? <p className="calc-conversion-note">این تبدیلِ قیمت با ضریب ۴٫۳۳۱۸ انجام می‌شود؛ وزن فیزیکی یک مثقال ۴٫۶۰۸ گرم است.</p> : null}
+            {spec.note ? <p className="calc-conversion-note">{spec.note}</p> : null}
             {spec.fields.map(field => {
               const input = inputs[field.key] ?? { value: '', provenance: 'MANUAL' as const };
-              const liveAvailable = market.mode === 'live' && liveEntry(field, market).provenance === 'LIVE';
+              const liveAvailable = Boolean(field.symbol) && market.mode === 'live' && liveEntry(field, market).provenance === 'LIVE';
               return (
                 <div className={`calc-tool-panel__field${input.provenance === 'LIVE' ? ' is-live' : ' is-manual'}`} key={field.key}>
                   <div className="calc-tool-panel__head">
                     <span className="calc-tool-panel__label">{field.label}</span>
-                    <div className="calc-mode" role="radiogroup" aria-label={`منبع ${field.label}`}>
+                    {field.symbol ? <div className="calc-mode" role="radiogroup" aria-label={`منبع ${field.label}`}>
                       <button type="button" role="radio" aria-checked={input.provenance === 'LIVE'} className={input.provenance === 'LIVE' ? 'is-on' : ''} disabled={!liveAvailable} onClick={() => setMode(field.key, 'LIVE')}>
                         لحظه‌ای
                       </button>
                       <button type="button" role="radio" aria-checked={input.provenance === 'MANUAL'} className={input.provenance === 'MANUAL' ? 'is-on' : ''} onClick={() => setMode(field.key, 'MANUAL')}>
                         دستی
                       </button>
-                    </div>
+                    </div> : <small className="calc-manual-source">ورودی شما</small>}
                   </div>
                   <div className="calc-tool-panel__control">
                     <input
@@ -416,6 +443,7 @@ export function ProfessionalCalculator({
                   </div>
                 ))}
                 <small className="calc-result-panel__ver">{result.formulaId} · {result.version}</small>
+                <ResultDetails result={result} />
               </div>
             ) : null}
           </form>
@@ -449,6 +477,7 @@ export function ProfessionalCalculator({
       >
         {result ? (
           <div className="ds-overlay__result" aria-live="polite">
+            {spec?.note ? <p className="calc-result-note">{spec.note}</p> : null}
             {result.outputs.map(output => (
               <div className="ds-overlay__result-row" key={output.label}>
                 <span>{output.label}</span>
@@ -458,6 +487,7 @@ export function ProfessionalCalculator({
                 </strong>
               </div>
             ))}
+            <ResultDetails result={result} />
           </div>
         ) : null}
       </OverlaySheet>

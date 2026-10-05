@@ -41,6 +41,11 @@ html.is-theme-switching body{
 .ds-choice input{accent-color:var(--brand-gold,#c6a15b);margin:0}
 .ds-choice.is-on{border-color:var(--brand-gold,#c6a15b);color:var(--text-primary);background:color-mix(in srgb,var(--brand-gold,#c6a15b) 12%,var(--surface-input))}
 .calc-access-module{display:grid;gap:8px;padding:14px;border:1px solid var(--border-subtle);border-radius:12px;background:var(--surface-raised,var(--surface))}
+.calc-access-form>.calc-access-module.wide{grid-column:span 2;align-content:start;min-width:0;padding:18px;gap:14px;background:var(--surface-card)}
+.calc-access-form>.calc-access-module .ds-choice-row{margin:0;gap:6px}
+.calc-access-form>.calc-access-module .ds-choice{padding:7px 10px;min-height:38px}
+.calc-access-form>.calc-access-module .ds-checks{gap:8px 14px;min-height:0;padding-top:10px;border-top:1px solid var(--border-subtle)}
+@media(max-width:600px){.calc-access-form>.calc-access-module.wide{grid-column:1/-1;padding:14px}}
 .calc-access-module__head{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:8px}
 .calc-access-module__head small{opacity:.65;font-family:ui-monospace,monospace}
 .calc-access-notice{display:grid;gap:12px;justify-items:center;padding:12px 16px 18px;text-align:center}

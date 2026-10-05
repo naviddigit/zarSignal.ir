@@ -16,15 +16,15 @@ Source: [3- طراحی ماشین حساب طلا](https://chatgpt.com/share/6ac
 
 | Family | Present now | Remaining work before calling the family complete |
 | --- | --- | --- |
-| G01–G09 Gold | Physical units, G02 fine-weight/equivalent-weight, G04 both price directions, gold bubble/value comparison | Full G01 quote/grade matrix, G02 target market price/metal value, standalone G03, G05–G09 outputs including bar, UAE and capital flows; each needs named inputs, units, rounding and fixture tests |
-| F01–F06 FX | Domestic USD quote and gold-implied USD gap | AED-derived USD and independent rate identity, general currency conversion/cross rates and their verified feeds |
-| C01–C14 Coins | Coin watch price only; no calculator result | Contracted coin specs, buy/sell sides, costs and transaction rules, golden fixtures; bubble belongs to Bubble Board per LOCK-V3-003 |
-| S01–S20 Silver | Direct 999 quote, V5.4-SILVER.1 bubble, physical units and fineness-weight conversion | Grain/bar and conversion flows, mint premium from data rather than fixed 1%, ratio/optimizer with bid/ask and costs |
-| A01–A14 Melted-gold trader | G04 price factor only | Position ledger, step buys, realized/unrealized P&L, cost basis, partial sells, scenarios and target calculations; this is a separate accounting product and must never use physical `4.608` as a price factor |
-| M12 Gold → silver swap | Not implemented | Both tradable sides and costs, synchronized quotes, explicit theoretical-only state when costs are incomplete |
-| T01–T06 Shared tools | Physical unit conversion and some percentages embedded in existing calculators | Unified scenario/ROI/formula-detail tools with explicit provenance |
+| G01–G09 Gold | Physical units, G02 fine-weight/equivalent-weight, G03 fine gold/metal value, G04 both price directions, G08 UAE comparison, G09 theoretical capital-to-gold, gold bubble | G01 quote/grade matrix, G02 target market price, G05–G07 bar flows; verified quotes and costs are needed |
+| F01–F06 FX | Domestic USD quote, gold-implied USD gap, F03 AED-derived USD via existing versioned peg, F04 manual rate gap, F06 rate comparison | F05 registry-backed currency conversion and verified feeds; F03 is theoretical, not executable FX |
+| C01–C14 Coins | C01 buy cost, C02 whole-coin capital, C03 net sale, C08 P&L, C09 break-even from explicit prices/fees | Coin specification registry, remaining scenarios and reliable bid/ask feeds; bubble belongs to Bubble Board per LOCK-V3-003 |
+| S01–S20 Silver | Direct 999 quote, V5.4 bubble, S03 fine silver, S07 theoretical capital-to-silver, S08–S09 theoretical bar metal/final cost with explicit mint/tax/spread, S10 bar/metal price gap | Grain/bar conversions, separately sourced mint premium, bid/ask and cost-aware optimizer; no fixed 1% premium |
+| A01–A14 Melted-gold trader | G04 price factor and A02/A13 **theoretical preview** from manual average, position and costs | Actual position ledger, unlimited step buys, realized cost basis, partial sells, scenarios and targets; must never use physical `4.608` as a price factor |
+| M12 Gold → silver swap | Market-reference and theoretical comparisons, purity scaling and gap math | Executable bid/ask mode, costs, complete output metadata; current result is **not** a trade instruction |
+| T01–T06 Shared tools | Physical unit conversion and T02 percentage change | Scenario/ROI and richer formula-detail presentation with explicit provenance |
 
-The shared chat describes many more calculations than the current product implements. Do not represent the entire calculator as complete. In particular, a locked tile is not an implemented paid tool. Existing `STATUS_M01_M11.md` tracks the older subset and must be read with this wider V3.0 inventory.
+The shared chat describes many more calculations than the current product implements. Do not represent the entire calculator as complete or turn missing tools into paid locks. Existing `STATUS_M01_M11.md` tracks the older subset and must be read with this wider V3.0 inventory. New formula-backed tools have server-side plan access in `/admin/analysis-settings`; this is access control, not evidence that the remaining family is complete.
 
 ## Release rule
 

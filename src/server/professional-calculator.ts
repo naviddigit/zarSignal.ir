@@ -1,7 +1,7 @@
 import { calculatorCatalog, type CalculatorOperation, type CalculatorResult } from '@/lib/calculator-catalog';
 import { isStale, type Quote, type Snapshot } from '@/lib/market';
 import { mazanehTo18k, market18kToMazaneh } from './mazaneh-to-18k';
-import { goldBubble, silverBubbleV54, usdGap } from './bubble-formulas';
+import { goldBubble, silverBubbleV54, usdGap, usdFromAedGap, TROY_OZ_GRAMS } from './bubble-formulas';
 
 function midQuote(quote: Quote) {
   const buy = Number(quote.buy);
@@ -11,7 +11,7 @@ function midQuote(quote: Quote) {
 }
 
 function resolveLiveValue(field: (typeof calculatorCatalog)[CalculatorOperation]['fields'][number], snapshot: Snapshot) {
-  if (snapshot.mode !== 'live') return null;
+  if (snapshot.mode !== 'live' || !field.symbol) return null;
 
   // ۱۸ عیار برای حباب/تبدیل همیشه از مظنه زنده ÷ ۴٫۳۳۱۸ — نه قیمت جداگانهٔ دیده‌بان.
   if (field.symbol === 'GOLD_18K') {
@@ -51,14 +51,89 @@ export function calculateProfessional(body: unknown, snapshot: Snapshot): Calcul
       if (!live) throw new Error('داده تازه و هم‌واحد در دسترس نیست؛ مقدار دستی وارد کنید.');
       return { key: field.key, label: field.label, value: live.value, unit: field.unit, provenance: 'LIVE', observedAt: live.observedAt, source: live.source };
     }
-    if (typeof input.value !== 'number' || !Number.isFinite(input.value) || input.value <= 0 || input.value > 1e15) throw new Error('برای هر ورودی عدد مثبت و معتبر وارد کنید.');
+    if (typeof input.value !== 'number' || !Number.isFinite(input.value) || input.value < (field.allowZero ? 0 : Number.MIN_VALUE) || input.value > (field.max ?? 1e15)) throw new Error(`مقدار «${field.label}» معتبر نیست.`);
     return { key: field.key, label: field.label, value: input.value, unit: field.unit, provenance: 'MANUAL', observedAt: null, source: 'ورودی شما' };
   });
   const liveTimes = inputs.filter(i => i.observedAt).map(i => Date.parse(i.observedAt!));
   if (liveTimes.length > 1 && Math.max(...liveTimes) - Math.min(...liveTimes) > 15 * 60_000) throw new Error('زمان ورودی‌های زنده هم‌خوان نیست.');
   const v = Object.fromEntries(inputs.map(i => [i.key, i.value]));
   let outputs: CalculatorResult['outputs'];
-  if (request.operation === 'mazanehTo18k') outputs = [{ label: 'قیمت مشتق گرم ۱۸ عیار', value: mazanehTo18k(v.melted).market18k, unit: 'تومان / گرم' }];
+  const output = (label: string, value: number, unit: string) => ({ label, value, unit });
+  if (request.operation === 'fineGold') {
+    const fine = v.weight * v.purity / 1000;
+    const equivalent18 = fine / .75;
+    outputs = [output('طلای خالص', fine, 'گرم'), output('معادل ۱۸ عیار', equivalent18, 'گرم'), output('ارزش محاسباتی فلز', equivalent18 * v.gram, 'تومان')];
+  } else if (request.operation === 'uaeGold') {
+    const uae24Irt = v.uae24 * v.aed;
+    const uae18Irt = uae24Irt * 750 / 999;
+    const gap = v.gram - uae18Irt;
+    outputs = [output('۲۴ عیار امارات', uae24Irt, 'تومان / گرم'), output('معادل ۱۸ عیار امارات', uae18Irt, 'تومان / گرم'), output('فاصله ایران و امارات', gap, 'تومان / گرم'), output('فاصله نسبی', gap / uae18Irt * 100, 'درصد')];
+  } else if (request.operation === 'fxRateGap' || request.operation === 'rateCompare') {
+    const first = request.operation === 'fxRateGap' ? v.implied : v.rateA;
+    const second = request.operation === 'fxRateGap' ? v.derived : v.rateB;
+    outputs = [output('اختلاف نرخ', first - second, 'تومان'), output('اختلاف نسبت به نرخ دوم', (first - second) / second * 100, 'درصد')];
+  } else if (request.operation === 'coinBuy' || request.operation === 'coinSell') {
+    if (!Number.isInteger(v.quantity)) throw new Error('تعداد سکه باید عدد صحیح باشد.');
+    const gross = v.price * v.quantity;
+    const total = request.operation === 'coinBuy' ? gross + v.cost : gross - v.cost;
+    outputs = [output('ارزش ناخالص', gross, 'تومان'), output(request.operation === 'coinBuy' ? 'هزینه نهایی خرید' : 'دریافتی خالص فروش', total, 'تومان'), output('ارزش هر سکه پس از هزینه', total / v.quantity, 'تومان')];
+  } else if (request.operation === 'coinBreakEven') {
+    if (!Number.isInteger(v.quantity)) throw new Error('تعداد سکه باید عدد صحیح باشد.');
+    outputs = [output('قیمت سربه‌سر فروش هر سکه', v.buyPrice + v.cost / v.quantity, 'تومان')];
+  } else if (request.operation === 'fineSilver') {
+    outputs = [output('نقره خالص', v.weight * v.purity / 1000, 'گرم')];
+  } else if (request.operation === 'silverBarCost') {
+    const fine = v.weight * v.purity / 1000;
+    const metal = fine / TROY_OZ_GRAMS * v.xag * v.usd;
+    outputs = [output('نقره خالص شمش', fine, 'گرم'), output('ارزش محاسباتی فلز', metal, 'تومان'), output('بهای تمام‌شده با هزینه‌های واردشده', metal + v.mint + v.tax + v.spread + v.cost, 'تومان')];
+  } else if (request.operation === 'meltedPnl') {
+    const position = v.melted * v.quantity;
+    const invested = v.average * v.quantity;
+    const gross = position - invested;
+    outputs = [output('ارزش نظری موقعیت', position, 'تومان'), output('سود/زیان ناخالص', gross, 'تومان'), output('هزینه‌های واردشده', v.cost, 'تومان'), output('سود/زیان خالص نظری', gross - v.cost, 'تومان'), output('بازده خالص', (gross - v.cost) / (invested + v.cost) * 100, 'درصد')];
+  } else if (request.operation === 'percentageChange') {
+    outputs = [output('تغییر مقدار', v.after - v.before, 'تومان'), output('تغییر درصدی', (v.after - v.before) / v.before * 100, 'درصد')];
+  } else if (request.operation === 'goldSilverSwap') {
+    const silverPurity = v.purity / 1000;
+    const theoreticalPerGram = v.xau * .75 / (v.xag * silverPurity);
+    // Other purities are metal-value equivalents from the 999 quote, not executable market quotes.
+    const silverSelected = v.silver999 * v.purity / 999;
+    const marketPerGram = v.gram / silverSelected;
+    const goldTheoretical = v.xau / TROY_OZ_GRAMS * v.usd * .75;
+    const silverTheoretical = v.xag / TROY_OZ_GRAMS * v.usd * silverPurity;
+    outputs = [
+      output('نسبت جهانی اونس طلا به نقره', v.xau / v.xag, 'برابر'),
+      output('نقره نظری به ازای هر گرم طلای ۱۸', theoreticalPerGram, 'گرم'),
+      output('نقره نظری کل', theoreticalPerGram * v.weight, 'گرم'),
+      output(v.purity === 999 ? 'قیمت بازار نقره ۹۹۹' : 'ارزش محاسباتی نقره با عیار انتخابی', silverSelected, 'تومان / گرم'),
+      output('نقره معادل بازار به ازای هر گرم طلای ۱۸', marketPerGram, 'گرم'),
+      output('نقره معادل بازار کل', marketPerGram * v.weight, 'گرم'),
+      output('تفاوت وزن بازار و نظری', (marketPerGram - theoreticalPerGram) * v.weight, 'گرم'),
+      output('اختلاف نسبی تبدیل', (marketPerGram / theoreticalPerGram - 1) * 100, 'درصد'),
+      output('فاصله طلای ۱۸ با ارزش جهانی', (v.gram / goldTheoretical - 1) * 100, 'درصد'),
+      output('فاصله نقره با ارزش جهانی', (silverSelected / silverTheoretical - 1) * 100, 'درصد'),
+    ];
+  } else if (request.operation === 'capitalGold' || request.operation === 'capitalSilver') {
+    if (v.cost >= v.capital) throw new Error('هزینه‌ها باید کمتر از سرمایه باشند.');
+    const gold = request.operation === 'capitalGold';
+    const price = gold ? v.gram : v.silver999;
+    outputs = [output('وزن نظری قابل تهیه', (v.capital - v.cost) / price, 'گرم'), output('سرمایه به‌کاررفته در فلز', v.capital - v.cost, 'تومان'), output('هزینه‌های واردشده', v.cost, 'تومان')];
+  } else if (request.operation === 'coinCapital') {
+    const quantity = Math.floor(v.capital / (v.price + v.cost));
+    const used = quantity * (v.price + v.cost);
+    outputs = [output('تعداد کامل قابل تهیه', quantity, 'سکه'), output('سرمایه مصرف‌شده', used, 'تومان'), output('مانده نقد', v.capital - used, 'تومان')];
+  } else if (request.operation === 'coinPnl') {
+    if (!Number.isInteger(v.quantity)) throw new Error('تعداد سکه باید عدد صحیح باشد.');
+    const invested = v.buyPrice * v.quantity;
+    const gross = (v.sellPrice - v.buyPrice) * v.quantity;
+    outputs = [output('سود/زیان ناخالص', gross, 'تومان'), output('کل هزینه‌ها', v.cost, 'تومان'), output('سود/زیان خالص', gross - v.cost, 'تومان'), output('بازده خالص', (gross - v.cost) / (invested + v.cost) * 100, 'درصد')];
+  } else if (request.operation === 'silverMintPremium') {
+    const difference = v.barPrice - v.metalValue;
+    outputs = [output('اختلاف قیمت شمش با ارزش فلز', difference, 'تومان'), output('اختلاف نسبی', difference / v.metalValue * 100, 'درصد')];
+  } else if (request.operation === 'aedDerivedUsd') {
+    const result = usdFromAedGap({ aedToman: v.aed, usdMarket: v.usd });
+    outputs = [output('دلار مشتق از درهم', result.usdFromAed, 'تومان / دلار'), output('اختلاف دلار بازار', result.gap, 'تومان / دلار'), output('اختلاف نسبی', result.percent, 'درصد')];
+  } else if (request.operation === 'mazanehTo18k') outputs = [{ label: 'قیمت مشتق گرم ۱۸ عیار', value: mazanehTo18k(v.melted).market18k, unit: 'تومان / گرم' }];
   else if (request.operation === 'market18kToMazaneh') outputs = [{ label: 'مظنه محاسبه‌شده', value: market18kToMazaneh(v.gram), unit: 'تومان / مثقال (مثقال فیزیکی)' }];
   else if (request.operation === 'silverBubble') {
     const result = silverBubbleV54({ xagUsd: v.xag, usdIrt: v.usd, silver999Market: v.silver999 });

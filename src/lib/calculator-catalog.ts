@@ -1,18 +1,41 @@
 import type { Symbol } from '@/lib/market';
-export type CalculatorOperation = 'mazanehTo18k' | 'market18kToMazaneh' | 'goldBubble' | 'usdGap' | 'silverBubble';
-export type CalculatorField = { key: string; label: string; unit: string; symbol: Symbol; currency: string; quoteUnit: string };
+export type CalculatorOperation = 'mazanehTo18k' | 'market18kToMazaneh' | 'goldBubble' | 'usdGap' | 'silverBubble'
+  | 'fineGold' | 'uaeGold' | 'fxRateGap' | 'rateCompare' | 'coinBuy' | 'coinSell'
+  | 'coinBreakEven' | 'coinCapital' | 'coinPnl' | 'fineSilver' | 'silverBarCost' | 'silverMintPremium'
+  | 'meltedPnl' | 'percentageChange' | 'goldSilverSwap' | 'capitalGold' | 'capitalSilver' | 'aedDerivedUsd';
+export type CalculatorField = { key: string; label: string; unit: string; symbol?: Symbol; currency?: string; quoteUnit?: string; allowZero?: boolean; max?: number };
+const manual = (key: string, label: string, unit: string, options: Pick<CalculatorField, 'allowZero' | 'max'> = {}): CalculatorField => ({ key, label, unit, ...options });
 const melted: CalculatorField = { key: 'melted', label: 'مظنه آب‌شده ۷۰۵', unit: 'تومان / مثقال (مثقال فیزیکی)', symbol: 'GOLD_MELTED', currency: 'TMN', quoteUnit: 'مثقال' };
 const gram: CalculatorField = { key: 'gram', label: 'قیمت گرم طلای ۱۸ عیار', unit: 'تومان / گرم', symbol: 'GOLD_18K', currency: 'TMN', quoteUnit: 'گرم' };
 const xau: CalculatorField = { key: 'xau', label: 'اونس جهانی طلا', unit: 'دلار / اونس تروا', symbol: 'XAU_USD', currency: 'USD', quoteUnit: 'اونس تروا' };
 const xag: CalculatorField = { key: 'xag', label: 'اونس جهانی نقره', unit: 'دلار / اونس تروا', symbol: 'XAG_USD', currency: 'USD', quoteUnit: 'اونس تروا' };
 const usd: CalculatorField = { key: 'usd', label: 'نرخ دلار', unit: 'تومان / دلار', symbol: 'USD', currency: 'TMN', quoteUnit: 'دلار' };
+const aed: CalculatorField = { key: 'aed', label: 'نرخ درهم', unit: 'تومان / درهم', symbol: 'AED', currency: 'TMN', quoteUnit: 'درهم' };
 const silver999: CalculatorField = { key: 'silver999', label: 'گرم نقره ۹۹۹', unit: 'تومان / گرم', symbol: 'SILVER_999', currency: 'TMN', quoteUnit: 'گرم' };
-export const calculatorCatalog: Record<CalculatorOperation, { title: string; formulaId: string; version: string; fields: CalculatorField[] }> = {
+export const calculatorCatalog: Record<CalculatorOperation, { title: string; formulaId: string; version: string; fields: CalculatorField[]; note?: string }> = {
   mazanehTo18k: { title: 'مظنه به گرم ۱۸ عیار', formulaId: 'MAZANEH_TO_18K', version: '1.1', fields: [melted] },
   market18kToMazaneh: { title: 'گرم ۱۸ عیار به مظنه', formulaId: 'MAZANEH_TO_18K', version: '1.1', fields: [gram] },
   goldBubble: { title: 'ارزش محاسباتی و حباب طلا', formulaId: 'GOLD_BUBBLE', version: '1.0', fields: [melted, xau, usd] },
   usdGap: { title: 'فاصله دلار با دلار ضمنی طلا', formulaId: 'USD_GAP', version: '1.0', fields: [melted, xau, usd] },
   silverBubble: { title: 'ارزش محاسباتی و حباب نقره ۹۹۹', formulaId: 'SILVER_BUBBLE', version: 'V5.4-SILVER.1', fields: [xag, usd, silver999] },
+  fineGold: { title: 'طلای خالص و ارزش فلز', formulaId: 'G03_FINE_GOLD', version: 'LOCK-V3', fields: [manual('weight', 'وزن ناخالص', 'گرم'), manual('purity', 'عیار', 'از ۱۰۰۰', { max: 1000 }), gram] },
+  uaeGold: { title: 'مقایسه طلای ایران و امارات', formulaId: 'G08_UAE_GOLD', version: 'LOCK-V3', fields: [manual('uae24', 'گرم طلای ۲۴ عیار امارات', 'درهم / گرم'), manual('aed', 'نرخ درهم', 'تومان / درهم'), gram], note: 'مقایسه نظری است؛ هزینه تبدیل ارز، مالیات، حمل و قیمت اجرایی را شامل نمی‌شود.' },
+  fxRateGap: { title: 'فاصله دلار ضمنی و دلار درهمی', formulaId: 'F04_FX_GAP', version: 'LOCK-V3', fields: [manual('implied', 'دلار ضمنی طلا', 'تومان / دلار'), manual('derived', 'دلار مشتق از درهم', 'تومان / دلار')] },
+  rateCompare: { title: 'مقایسه دو نرخ ارز', formulaId: 'F06_RATE_COMPARISON', version: 'LOCK-V3', fields: [manual('rateA', 'نرخ اول', 'تومان'), manual('rateB', 'نرخ دوم', 'تومان')] },
+  coinBuy: { title: 'هزینه خرید سکه', formulaId: 'C01_BUY_COIN', version: 'LOCK-V3', fields: [manual('price', 'قیمت هر سکه', 'تومان'), manual('quantity', 'تعداد سکه', 'عدد'), manual('cost', 'جمع کارمزد و هزینه', 'تومان', { allowZero: true })], note: 'قیمت خرید و همه هزینه‌ها را خودتان وارد کنید؛ قیمت تابلو لزوماً قیمت اجرایی نیست.' },
+  coinSell: { title: 'خالص فروش سکه', formulaId: 'C03_SELL_COIN', version: 'LOCK-V3', fields: [manual('price', 'قیمت فروش هر سکه', 'تومان'), manual('quantity', 'تعداد سکه', 'عدد'), manual('cost', 'جمع کارمزد و هزینه', 'تومان', { allowZero: true })], note: 'قیمت فروش و همه هزینه‌های واقعی را وارد کنید.' },
+  coinBreakEven: { title: 'قیمت سربه‌سر سکه', formulaId: 'C09_COIN_BREAK_EVEN', version: 'LOCK-V3', fields: [manual('buyPrice', 'هزینه خرید هر سکه', 'تومان'), manual('quantity', 'تعداد سکه', 'عدد'), manual('cost', 'هزینه فروش کل', 'تومان', { allowZero: true })] },
+  fineSilver: { title: 'نقره خالص', formulaId: 'S03_FINE_SILVER', version: 'LOCK-V3', fields: [manual('weight', 'وزن ناخالص نقره', 'گرم'), manual('purity', 'عیار نقره', 'از ۱۰۰۰', { max: 1000 })] },
+  silverBarCost: { title: 'ارزش فلز و بهای تمام‌شده شمش', formulaId: 'S08_S09_SILVER_BAR', version: 'LOCK-V3', fields: [manual('weight', 'وزن شمش', 'گرم'), manual('purity', 'عیار شمش', 'از ۱۰۰۰', { max: 1000 }), xag, usd, manual('mint', 'اجرت ضرب اعلام‌شده', 'تومان', { allowZero: true }), manual('tax', 'مالیاتِ اجرت اعلام‌شده', 'تومان', { allowZero: true }), manual('spread', 'اختلاف خرید و فروش', 'تومان', { allowZero: true }), manual('cost', 'هزینه دیگر', 'تومان', { allowZero: true })], note: 'ارزش فلز از اونس و دلار محاسبه می‌شود؛ اجرت، مالیات و اختلاف قیمت فقط از ارقام واردشده شماست.' },
+  meltedPnl: { title: 'سود و زیان نظری آب‌شده', formulaId: 'A02_A13_MELTED_PNL', version: 'LOCK-V3', fields: [manual('average', 'میانگین خرید', 'تومان / مثقال'), melted, manual('quantity', 'موقعیت', 'مثقال'), manual('cost', 'جمع هزینه و کارمزد', 'تومان', { allowZero: true })], note: 'پیش‌نمایش با قیمت مرجع است، نه تسویه واقعی؛ نرخ فروش و کل هزینه‌های اجرایی را برای تصمیم واقعی بررسی کنید.' },
+  percentageChange: { title: 'تغییر درصدی قیمت', formulaId: 'T02_PERCENTAGE_CHANGE', version: 'LOCK-V3', fields: [manual('before', 'مقدار قبلی', 'تومان'), manual('after', 'مقدار جدید', 'تومان')] },
+  goldSilverSwap: { title: 'مقایسه تبدیل طلا به نقره', formulaId: 'M12_GOLD_SILVER_SWAP', version: 'LOCK-V3', fields: [manual('weight', 'وزن طلای ۱۸ عیار', 'گرم'), manual('purity', 'عیار نقره مقصد', 'از ۱۰۰۰', { max: 1000 }), xau, xag, usd, gram, silver999], note: 'این نسبت بر پایه قیمت مرجع است؛ بدون مظنه خرید/فروش دوطرفه و هزینه تبدیل، فرصت معامله تأیید نمی‌شود.' },
+  capitalGold: { title: 'سرمایه به گرم طلای ۱۸', formulaId: 'G09_CAPITAL_TO_GOLD', version: 'LOCK-V3', fields: [manual('capital', 'سرمایه', 'تومان'), gram, manual('cost', 'کل هزینه‌های اعلام‌شده', 'تومان', { allowZero: true })], note: 'وزن نظری با قیمت واحد و هزینه‌های واردشده محاسبه می‌شود؛ حداقل معامله و اختلاف خرید و فروش لحاظ نشده است.' },
+  capitalSilver: { title: 'سرمایه به گرم نقره ۹۹۹', formulaId: 'S07_CAPITAL_TO_SILVER', version: 'LOCK-V3', fields: [manual('capital', 'سرمایه', 'تومان'), silver999, manual('cost', 'کل هزینه‌های اعلام‌شده', 'تومان', { allowZero: true })], note: 'وزن نظری است؛ اجرت ضرب و اختلاف خرید و فروش را در هزینه‌ها وارد کنید.' },
+  coinCapital: { title: 'تعداد سکه با سرمایه مشخص', formulaId: 'C02_CAPITAL_TO_COIN', version: 'LOCK-V3', fields: [manual('capital', 'سرمایه', 'تومان'), manual('price', 'قیمت خرید هر سکه', 'تومان'), manual('cost', 'هزینه هر سکه', 'تومان', { allowZero: true })], note: 'تنها تعداد صحیح سکه با قیمت و هزینه واردشده محاسبه می‌شود.' },
+  coinPnl: { title: 'سود و زیان سکه', formulaId: 'C08_COIN_PNL', version: 'LOCK-V3', fields: [manual('buyPrice', 'قیمت خرید هر سکه', 'تومان'), manual('sellPrice', 'قیمت فروش هر سکه', 'تومان'), manual('quantity', 'تعداد سکه', 'عدد'), manual('cost', 'کل هزینه‌ها', 'تومان', { allowZero: true })], note: 'پیش‌نمایش با قیمت فروش واردشده است؛ قیمت تابلو لزوماً قابل معامله نیست.' },
+  silverMintPremium: { title: 'اجرت/اضافه‌قیمت شمش', formulaId: 'S10_MINT_PREMIUM', version: 'LOCK-V3', fields: [manual('barPrice', 'قیمت اعلام‌شده شمش', 'تومان'), manual('metalValue', 'ارزش محاسباتی فلز', 'تومان')], note: 'این اختلاف می‌تواند اجرت، مالیات، بسته‌بندی و حاشیه فروش را در بر بگیرد؛ اجرت ضرب مستقل فقط با اعلام فروشنده مشخص می‌شود.' },
+  aedDerivedUsd: { title: 'دلار مشتق از درهم', formulaId: 'F03_AED_DERIVED_USD', version: 'V5.7-USD_AED.1', fields: [aed, usd], note: 'با نسبت مرجع نسخه‌دار دلار/درهم محاسبه می‌شود؛ نرخ اجرایی تبدیل ارز نیست.' },
 };
 export const formulaRegistry = {
   GOLD_BUBBLE: { approved: true, description: 'فرمول حباب طلا تأیید شده است؛ قیمت ۱۸ عیار از تبدیل تأییدشده مظنه به دست می‌آید. خروجی محاسباتی پیشنهاد خرید یا فروش نیست. محدوده خنثی و آستانه معاملاتی هنوز فعال نیستند.' },
