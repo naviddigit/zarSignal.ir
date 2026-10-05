@@ -44,9 +44,8 @@ const DEFAULT_TOOL: Tool = 'weight';
 const lockedProducts: Product[] = [];
 const popularByProduct: Record<Product, PopularPick[]> = {
   gold: [
-    { id: 'weight', label: 'تبدیل وزن', Icon: popularIcons.weight },
-    { id: 'market18kToMazaneh', label: '۱۸ به مظنه', Icon: popularIcons.market18kToMazaneh },
-    { id: 'mazanehTo18k', label: 'مظنه ÷ ۴٫۳۳۱۸', Icon: popularIcons.mazanehTo18k },
+    { id: 'weight', label: 'تبدیل وزن فیزیکی', Icon: popularIcons.weight },
+    { id: 'mazaneh', label: 'مظنه ↔ گرم ۱۸', Icon: popularIcons.mazanehTo18k },
     { id: 'goldBubble', label: 'حباب طلا', Icon: popularIcons.goldBubble },
     { id: 'purity', label: 'تبدیل عیار', Icon: popularIcons.purity },
     { id: 'jewelry', label: 'طلای زینتی', Icon: popularIcons.jewelry, locked: true },
@@ -73,6 +72,7 @@ const popularByProduct: Record<Product, PopularPick[]> = {
 const number = (value: number) => new Intl.NumberFormat('en-US', { maximumFractionDigits: 4 }).format(value);
 const isLocalTool = (tool: string): tool is LocalTool => tool === 'weight' || tool === 'purity';
 const isOperation = (tool: string): tool is CalculatorOperation => !isLocalTool(tool) && tool in calculatorCatalog;
+const isMazanehOperation = (tool: Tool) => tool === 'mazanehTo18k' || tool === 'market18kToMazaneh';
 
 function midQuote(quote: Quote) {
   const buy = Number(quote.buy);
@@ -166,6 +166,9 @@ export function ProfessionalCalculator({
   const operationAllowed = toolGate.ok;
   const spec = operation && operationAllowed ? calculatorCatalog[operation] : null;
   const popular = popularByProduct[product].map(item => {
+    if (item.id === 'mazaneh') {
+      return { ...item, locked: !moduleAccess('market18kToMazaneh').ok && !moduleAccess('mazanehTo18k').ok };
+    }
     if (!available.includes(item.id as Tool)) return item;
     const decision = moduleAccess(item.id as CalculatorModule);
     return { ...item, locked: item.locked || !decision.ok };
@@ -213,6 +216,11 @@ export function ProfessionalCalculator({
   function pickPopular(id: string) {
     const item = popular.find(entry => entry.id === id);
     if (!item) return;
+    if (id === 'mazaneh') {
+      const next = moduleAccess('market18kToMazaneh').ok ? 'market18kToMazaneh' : moduleAccess('mazanehTo18k').ok ? 'mazanehTo18k' : 'market18kToMazaneh';
+      choose(next);
+      return;
+    }
     if (available.includes(id as Tool)) choose(id as Tool);
     else setLockedNotice({ title: item.label, message: 'این ابزار هنوز فرمول و دادهٔ تأییدشده برای انتشار ندارد. خرید اشتراک هم فعلاً آن را فعال نمی‌کند.', upgrade: false });
   }
@@ -323,7 +331,7 @@ export function ProfessionalCalculator({
       </div>
       <CalculatorProductTiles value={product} onChange={chooseProduct} locked={lockedProducts} />
 
-      <CalculatorPopularRow items={popular} active={tool} onPick={pickPopular} />
+      <CalculatorPopularRow items={popular} active={isMazanehOperation(tool) ? 'mazaneh' : tool} onPick={pickPopular} />
 
       <div className="calc-stage__main">
         {!operationAllowed ? (
@@ -339,12 +347,19 @@ export function ProfessionalCalculator({
           <PurityConvertWidget key={product} product={product} amount={purityAmount} onAmountChange={setPurityAmount} />
         ) : spec ? (
           <form className="calc-tool-panel" onSubmit={calculate}>
+            {isMazanehOperation(tool) ? (
+              <div className="calc-conversion-direction" role="group" aria-label="جهت تبدیل قیمت مظنه و گرم ۱۸ عیار">
+                <button type="button" className={tool === 'market18kToMazaneh' ? 'is-on' : ''} aria-pressed={tool === 'market18kToMazaneh'} onClick={() => choose('market18kToMazaneh')}>گرم ۱۸ به مظنه</button>
+                <button type="button" className={tool === 'mazanehTo18k' ? 'is-on' : ''} aria-pressed={tool === 'mazanehTo18k'} onClick={() => choose('mazanehTo18k')}>مظنه به گرم ۱۸</button>
+              </div>
+            ) : null}
             <div className="calc-tool-panel__toolbar">
               <strong className="calc-tool-panel__title">{spec.title}</strong>
               <button type="button" className="calc-tool-panel__refresh" onClick={refresh} disabled={pending} aria-label="تازه‌سازی قیمت‌ها">
                 <RefreshCw size={15} />
               </button>
             </div>
+            {isMazanehOperation(tool) ? <p className="calc-conversion-note">این تبدیلِ قیمت با ضریب ۴٫۳۳۱۸ انجام می‌شود؛ وزن فیزیکی یک مثقال ۴٫۶۰۸ گرم است.</p> : null}
             {spec.fields.map(field => {
               const input = inputs[field.key] ?? { value: '', provenance: 'MANUAL' as const };
               const liveAvailable = market.mode === 'live' && liveEntry(field, market).provenance === 'LIVE';

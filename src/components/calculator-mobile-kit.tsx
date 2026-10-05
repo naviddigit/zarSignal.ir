@@ -269,7 +269,7 @@ export function WeightConvertWidget({ amount, onAmountChange }: { amount: string
   return (
     <section className="calc-weight-widget" aria-label="تبدیل واحد وزن">
       <header className="calc-weight-widget__head">
-        <strong>تبدیل واحد وزن <small>(مثقال فیزیکی = ۴٫۶۰۸ گرم)</small></strong>
+        <strong>تبدیل وزن فیزیکی <small>(۱ مثقال = ۴٫۶۰۸ گرم)</small></strong>
       </header>
 
       <div className="calc-weight-widget__pair">
@@ -332,6 +332,7 @@ export function WeightConvertWidget({ amount, onAmountChange }: { amount: string
           {result != null ? ` | ${fa(Number(amount), 2)} ${weightUnits[from].label} = ${fa(result)} ${weightUnits[to].label}` : null}
         </span>
       </p>
+      <p className="calc-weight-widget__hint">برای تبدیل <strong>قیمت مظنه و گرم ۱۸ عیار</strong>، ابزار «مظنه ↔ گرم ۱۸» با ضریب ۴٫۳۳۱۸ را انتخاب کنید.</p>
     </section>
   );
 }

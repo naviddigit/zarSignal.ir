@@ -1,15 +1,16 @@
 import { test, expect } from '@playwright/test';
-test('manual calculation and open silver/coin popular tools', async ({ page }) => {
+test('mazaneh price directions share one shortcut while physical weight stays separate', async ({ page }) => {
   await page.goto('/calculator');
-  await page.getByRole('button', { name: 'مظنه ÷ ۴٫۳۳۱۸' }).click();
+  await expect(page.getByRole('button', { name: 'مظنه ↔ گرم ۱۸' })).toHaveCount(1);
+  await page.getByRole('button', { name: 'مظنه ↔ گرم ۱۸' }).click();
+  await expect(page.getByRole('button', { name: 'گرم ۱۸ به مظنه' })).toHaveAttribute('aria-pressed', 'true');
+  await page.getByRole('button', { name: 'مظنه به گرم ۱۸' }).click();
   await page.getByRole('textbox', { name: 'مظنه آب‌شده ۷۰۵' }).fill('100000000');
   await page.getByRole('button', { name: 'محاسبه', exact: true }).click();
-  await expect(page.locator('.calc-result-slot')).toContainText('23,085,091');
-  await page.getByRole('tab', { name: 'نقره' }).click();
-  await expect(page.getByRole('button', { name: 'تبدیل وزن' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'عیار نقره' })).toBeVisible();
-  await page.getByRole('tab', { name: 'سکه' }).click();
-  await expect(page.getByRole('button', { name: 'حباب سکه' })).toBeDisabled();
+  await expect(page.getByRole('dialog', { name: 'نتیجه محاسبه' })).toContainText('23,085,091');
+  await page.getByRole('button', { name: 'بستن' }).last().click();
+  await page.getByRole('button', { name: 'تبدیل وزن فیزیکی' }).click();
+  await expect(page.getByText('۱ مثقال = ۴٫۶۰۸ گرم')).toBeVisible();
   await expect(page.locator('.calc-weight-widget')).toBeVisible();
 });
 test('approved gold description and homepage calculator entry agree', async ({ page }) => {
