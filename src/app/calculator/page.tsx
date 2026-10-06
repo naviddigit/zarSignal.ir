@@ -11,7 +11,7 @@ import './calculator.css';
 export const dynamic = 'force-dynamic';
 export const metadata: Metadata = {
   title: 'ماشین‌حساب حرفه‌ای طلا، نقره، سکه و ارز',
-  description: 'تبدیل مظنه، قیمت ۱۸ عیار و محاسبه حباب طلا با ورودی دستی یا زنده و جزئیات منبع و نسخه.',
+  description: 'تبدیل مثقال، قیمت ۱۸ عیار و محاسبه حباب طلا با ورودی دستی یا زنده و جزئیات منبع و نسخه.',
   alternates: { canonical: '/calculator' },
 };
 

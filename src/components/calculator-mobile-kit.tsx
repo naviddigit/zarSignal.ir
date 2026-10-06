@@ -102,12 +102,12 @@ export function CalculatorProductTiles({
   );
 }
 
-/** Live prices as compact market cards — ۱۸ عیار همیشه از مظنه ÷ ۴٫۳۳۱۸. */
+/** Live prices as compact market cards — ۱۸ عیار همیشه از مثقال ÷ ۴٫۳۳۱۸. */
 export function CalculatorLiveStrip({ snapshot }: { snapshot: Snapshot }) {
   const cells = [
     { symbol: 'XAU_USD' as const, label: 'اونس طلا', unit: 'دلار' },
     { symbol: 'USD' as const, label: 'دلار آزاد', unit: 'تومان' },
-    { symbol: 'GOLD_MELTED' as const, label: 'مظنه تهران', unit: 'تومان' },
+    { symbol: 'GOLD_MELTED' as const, label: 'مثقال تهران', unit: 'تومان' },
     { symbol: 'GOLD_18K' as const, label: 'گرم ۱۸ عیار', unit: 'تومان' },
     { symbol: 'SILVER_999' as const, label: 'نقره ۹۹۹', unit: 'تومان' },
     { symbol: 'SEKE_CASH' as const, label: 'سکه نقدی', unit: 'تومان' },
@@ -258,12 +258,12 @@ export function CalculatorPopularRow({
         <div className="calc-popular__heading">
           <strong>ابزار انتخابی</strong>
           <small className="calc-currency-note">محاسبات قیمت: تومانی</small>
+          {onOpenFullList ? (
+            <button type="button" className="calc-popular__all" onClick={onOpenFullList}>
+              لیست کامل
+            </button>
+          ) : null}
         </div>
-        {onOpenFullList ? (
-          <button type="button" className="calc-popular__all" onClick={onOpenFullList}>
-            لیست کامل
-          </button>
-        ) : null}
       </header>
       <HScrollRail className="calc-popular__rail" trackClassName="calc-popular__icons" label="ابزار انتخابی" step={120}>
         {items.map(item => {
@@ -343,15 +343,19 @@ export function CalculatorToolsSheet({
   );
 }
 
-/** 18k fine-metal equivalent used by the market quote, separate from physical mass. */
+/**
+ * Market fine-metal equivalent (مثقال ۷۰۵ ↔ گرم ۱۸ عیار) via coefficient ۴٫۳۳۱۸.
+ * Default: input on the right = مثقال → output گرم.
+ */
 export function MarketMesghalEquivalentWidget({ amount, onAmountChange, onPriceConversionClick, favoriteSlot }: { amount: string; onAmountChange: (next: string) => void; onPriceConversionClick: () => void; favoriteSlot?: ReactNode }) {
+  /** false = مثقال → گرم (default); true = گرم → مثقال */
   const [reverse, setReverse] = useState(false);
   const n = Number(amount);
   const result = amount !== '' && Number.isFinite(n) && n >= 0
-    ? reverse ? n * MAZANEH_TO_18K_DIVISOR : n / MAZANEH_TO_18K_DIVISOR
+    ? reverse ? n / MAZANEH_TO_18K_DIVISOR : n * MAZANEH_TO_18K_DIVISOR
     : null;
-  const from = reverse ? 'واحد مظنهٔ بازار' : 'گرم طلای ۱۸ عیار';
-  const to = reverse ? 'گرم طلای ۱۸ عیار' : 'واحد مظنهٔ بازار';
+  const from = reverse ? 'گرم طلای ۱۸ عیار' : 'مثقال';
+  const to = reverse ? 'مثقال' : 'گرم طلای ۱۸ عیار';
   return (
     <section className="calc-weight-widget" aria-label="معادل بازار طلای ۱۸ عیار">
       <header className="calc-weight-widget__head">
@@ -366,7 +370,7 @@ export function MarketMesghalEquivalentWidget({ amount, onAmountChange, onPriceC
           <span className="ds-field__label">{to}</span>
           <strong className="calc-weight-box__result" dir="ltr">{result == null ? '—' : fa(result, 6)}</strong>
         </div>
-        <button type="button" className="calc-weight-swap" aria-label="جابه‌جایی جهت تبدیل عرفی" onClick={() => {
+        <button type="button" className="calc-weight-swap" aria-label="جابه‌جایی جهت تبدیل" onClick={() => {
           setReverse(current => !current);
           if (result != null) onAmountChange(String(Number(result.toFixed(8))));
         }}><ArrowLeftRight size={15} /></button>
@@ -379,8 +383,8 @@ export function MarketMesghalEquivalentWidget({ amount, onAmountChange, onPriceC
           </div>
         </div>
       </div>
-      <p className="calc-weight-widget__factor"><Info size={12} aria-hidden="true" /><span>در قیمت‌گذاری بازار، یک واحد مظنهٔ ۷۰۵ از نظر طلای خالص معادل ۴٫۳۳۱۸ گرم طلای ۱۸ عیار است. این تبدیل وزن واقعی مثقال نیست.</span></p>
-      <button type="button" className="calc-weight-widget__price-link" onClick={onPriceConversionClick}>تبدیل قیمت مظنه و گرم ۱۸ عیار ←</button>
+      <p className="calc-weight-widget__factor"><Info size={12} aria-hidden="true" /><span>در قیمت‌گذاری بازار، یک مثقال با عیار ۷۰۵ از نظر طلای خالص معادل ۴٫۳۳۱۸ گرم طلای ۱۸ عیار است. این تبدیل وزن فیزیکی مثقال (۴٫۶۰۸ گرم) نیست.</span></p>
+      <button type="button" className="calc-weight-widget__price-link" onClick={onPriceConversionClick}>تبدیل قیمت مثقال و گرم ۱۸ عیار ←</button>
     </section>
   );
 }

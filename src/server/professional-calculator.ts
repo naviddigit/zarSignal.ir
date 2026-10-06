@@ -13,7 +13,7 @@ function midQuote(quote: Quote) {
 function resolveLiveValue(field: (typeof calculatorCatalog)[CalculatorOperation]['fields'][number], snapshot: Snapshot) {
   if (snapshot.mode !== 'live' || !field.symbol) return null;
 
-  // ۱۸ عیار برای حباب/تبدیل همیشه از مظنه زنده ÷ ۴٫۳۳۱۸ — نه قیمت جداگانهٔ دیده‌بان.
+  // ۱۸ عیار برای حباب/تبدیل همیشه از مثقال زنده ÷ ۴٫۳۳۱۸ — نه قیمت جداگانهٔ دیده‌بان.
   if (field.symbol === 'GOLD_18K') {
     const melted = snapshot.quotes.find(q => q.symbol === 'GOLD_MELTED');
     if (melted && !isStale(melted) && melted.currency === 'TMN') {
@@ -23,7 +23,7 @@ function resolveLiveValue(field: (typeof calculatorCatalog)[CalculatorOperation]
           return {
             value: mazanehTo18k(mid).market18k,
             observedAt: melted.observedAt,
-            source: 'زرسیگنال · مشتق از مظنه زنده با ÷ ۴٫۳۳۱۸',
+            source: 'زرسیگنال · مشتق از مثقال زنده با ÷ ۴٫۳۳۱۸',
           };
         } catch { /* fall through */ }
       }
@@ -157,7 +157,7 @@ export function calculateProfessional(body: unknown, snapshot: Snapshot): Calcul
     const price = v.average + v.cost / v.quantity;
     outputs = [output('قیمت سربه‌سر هر مثقال', price, 'تومان / مثقال'), output('معادل گرم ۱۸ عیار', mazanehTo18k(price).market18k, 'تومان / گرم'), output('فاصله سربه‌سر از قیمت فعلی', (price / v.melted - 1) * 100, 'درصد')];
   } else if (request.operation === 'mazanehTo18k') outputs = [{ label: 'قیمت مشتق گرم ۱۸ عیار', value: mazanehTo18k(v.melted).market18k, unit: 'تومان / گرم' }];
-  else if (request.operation === 'market18kToMazaneh') outputs = [{ label: 'مظنه محاسبه‌شده', value: market18kToMazaneh(v.gram), unit: 'تومان / مثقال (مثقال فیزیکی)' }];
+  else if (request.operation === 'market18kToMazaneh') outputs = [{ label: 'مثقال محاسبه‌شده', value: market18kToMazaneh(v.gram), unit: 'تومان / مثقال' }];
   else if (request.operation === 'silverBubble') {
     const result = silverBubbleV54({ xagUsd: v.xag, usdIrt: v.usd, silver999Market: v.silver999 });
     outputs = [

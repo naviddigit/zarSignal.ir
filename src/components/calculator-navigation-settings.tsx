@@ -6,7 +6,7 @@ import { ArrowDown, ArrowUp, Star } from 'lucide-react';
 import { CALCULATOR_MODULE_LABELS } from '@/lib/calculator-access';
 import { calculatorProductLabels, visibleCalculatorTools, type CalculatorNavigation, type CalculatorProduct } from '@/lib/calculator-navigation';
 
-const label = (id: string) => id === 'mazaneh' ? 'مظنه ↔ گرم ۱۸ عیار' : CALCULATOR_MODULE_LABELS[id as keyof typeof CALCULATOR_MODULE_LABELS] ?? id;
+const label = (id: string) => id === 'mazaneh' ? 'مثقال ↔ گرم ۱۸ عیار' : CALCULATOR_MODULE_LABELS[id as keyof typeof CALCULATOR_MODULE_LABELS] ?? id;
 const move = <T,>(items: T[], from: number, to: number) => {
   const copy = [...items];
   if (to < 0 || to >= copy.length) return copy;

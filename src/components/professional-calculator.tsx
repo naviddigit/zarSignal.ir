@@ -45,7 +45,7 @@ const popularByProduct: Record<Product, PopularPick[]> = {
   gold: [
     { id: 'marketWeight', label: 'معادل بازار', Icon: popularIcons.weight },
     { id: 'weight', label: 'وزن واقعی', Icon: popularIcons.weight },
-    { id: 'mazaneh', label: 'مظنه ↔ گرم ۱۸', Icon: popularIcons.mazanehTo18k },
+    { id: 'mazaneh', label: 'مثقال ↔ گرم ۱۸', Icon: popularIcons.mazanehTo18k },
     { id: 'goldBubble', label: 'حباب طلا', Icon: popularIcons.goldBubble },
     { id: 'fineGold', label: 'طلای خالص', Icon: popularIcons.purity },
     { id: 'meltedPnl', label: 'سود و زیان آب‌شده', Icon: popularIcons.goldBubble },
@@ -98,7 +98,7 @@ function midQuote(quote: Quote) {
   return buy > 0 ? buy : sell > 0 ? sell : null;
 }
 
-/** Resolve a live calculator field from market quotes. ۱۸ عیار همیشه از مظنه ÷ ۴٫۳۳۱۸. */
+/** Resolve a live calculator field from market quotes. ۱۸ عیار همیشه از مثقال ÷ ۴٫۳۳۱۸. */
 function liveEntry(field: (typeof calculatorCatalog)[CalculatorOperation]['fields'][number], snapshot: Snapshot): Entry {
   if (snapshot.mode !== 'live' || !field.symbol) return { value: field.allowZero ? '0' : '', provenance: 'MANUAL' };
 
@@ -416,7 +416,7 @@ export function ProfessionalCalculator({
 
   const keypadValue = tool === 'marketWeight' || tool === 'weight' ? weightAmount : tool === 'purity' ? purityAmount : inputs[activeField]?.value ?? '';
   const keypadTarget = tool === 'marketWeight'
-    ? 'مقدار معادل بازار'
+    ? 'مقدار مثقال (ورودی راست)'
     : tool === 'weight'
       ? 'مقدار وزن'
     : tool === 'purity'
@@ -471,9 +471,9 @@ export function ProfessionalCalculator({
         ) : spec ? (
           <form className="calc-tool-panel" onSubmit={calculate}>
             {isMazanehOperation(tool) ? (
-              <div className="calc-conversion-direction" role="group" aria-label="جهت تبدیل قیمت مظنه و گرم ۱۸ عیار">
-                <button type="button" className={tool === 'market18kToMazaneh' ? 'is-on' : ''} aria-pressed={tool === 'market18kToMazaneh'} onClick={() => choose('market18kToMazaneh')}>گرم ۱۸ به مظنه</button>
-                <button type="button" className={tool === 'mazanehTo18k' ? 'is-on' : ''} aria-pressed={tool === 'mazanehTo18k'} onClick={() => choose('mazanehTo18k')}>مظنه به گرم ۱۸</button>
+              <div className="calc-conversion-direction" role="group" aria-label="جهت تبدیل قیمت مثقال و گرم ۱۸ عیار">
+                <button type="button" className={tool === 'market18kToMazaneh' ? 'is-on' : ''} aria-pressed={tool === 'market18kToMazaneh'} onClick={() => choose('market18kToMazaneh')}>گرم ۱۸ به مثقال</button>
+                <button type="button" className={tool === 'mazanehTo18k' ? 'is-on' : ''} aria-pressed={tool === 'mazanehTo18k'} onClick={() => choose('mazanehTo18k')}>مثقال به گرم ۱۸</button>
               </div>
             ) : null}
             <div className="calc-tool-panel__toolbar">
