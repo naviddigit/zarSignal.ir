@@ -62,16 +62,27 @@
 .calc-weight-widget__head small{display:inline;font:600 12px Vazirmatn;color:var(--text-muted);margin:0 6px 0 0}
 .calc-weight-widget__titles>small{display:block;margin:4px 0 0}
 .calc-fav-toggle{display:inline-grid;place-items:center;width:36px;height:36px;min-width:36px;padding:0;border:1px solid var(--border-subtle);border-radius:10px;background:var(--surface-soft);color:var(--text-muted);cursor:pointer;flex:none}
-.calc-fav-toggle:hover{color:var(--accent);border-color:color-mix(in srgb,var(--accent) 40%,var(--border-subtle))}
-.calc-fav-toggle.is-on{color:var(--accent);border-color:color-mix(in srgb,var(--accent) 45%,var(--border-subtle));background:color-mix(in srgb,var(--accent) 10%,var(--surface-card))}
-.calc-tools-sheet{display:grid;gap:6px;padding-bottom:8px}
-.calc-tools-sheet__row{display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px;align-items:center;padding:4px;border:1px solid transparent;border-radius:12px}
+.calc-fav-toggle.is-box:hover{color:var(--accent);border-color:color-mix(in srgb,var(--accent) 40%,var(--border-subtle))}
+.calc-fav-toggle.is-box.is-on{color:var(--accent);border-color:color-mix(in srgb,var(--accent) 45%,var(--border-subtle));background:color-mix(in srgb,var(--accent) 10%,var(--surface-card))}
+/* List/sheet star: plain glyph, not another icon tile */
+.calc-fav-toggle.is-ghost{width:40px;height:40px;min-width:40px;border:0;border-radius:999px;background:transparent;color:color-mix(in srgb,var(--text-muted) 85%,transparent)}
+.calc-fav-toggle.is-ghost:hover{color:var(--accent);background:color-mix(in srgb,var(--accent) 8%,transparent)}
+.calc-fav-toggle.is-ghost.is-on{color:var(--accent);background:transparent}
+.calc-tools-sheet{display:grid;gap:2px;padding:4px 8px 12px;max-height:min(58vh,480px);overflow:auto;scrollbar-width:thin;scrollbar-color:color-mix(in srgb,var(--border-strong) 70%,transparent) transparent}
+.calc-tools-sheet::-webkit-scrollbar{width:5px}
+.calc-tools-sheet::-webkit-scrollbar-track{background:transparent}
+.calc-tools-sheet::-webkit-scrollbar-thumb{background:color-mix(in srgb,var(--border-strong) 65%,transparent);border-radius:999px}
+.calc-tools-sheet::-webkit-scrollbar-thumb:hover{background:color-mix(in srgb,var(--accent) 45%,var(--border-strong))}
+.calc-tools-sheet__row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px;align-items:center;padding:2px 2px 2px 4px;border:1px solid transparent;border-radius:12px}
 .calc-tools-sheet__row.is-on{border-color:color-mix(in srgb,var(--accent) 40%,var(--border-subtle));background:color-mix(in srgb,var(--accent) 8%,var(--surface-card))}
 .calc-tools-sheet__pick{display:flex;align-items:center;gap:10px;min-width:0;min-height:48px;padding:8px 10px;border:0;border-radius:10px;background:transparent;color:var(--text-primary);text-align:right;cursor:pointer;width:100%}
 .calc-tools-sheet__icon{width:34px;height:34px;display:grid;place-items:center;border-radius:10px;background:var(--surface-soft);color:var(--text-muted);flex:none}
 .calc-tools-sheet__label{flex:1 1 auto;min-width:0;font:700 13px Vazirmatn}
 .calc-tools-sheet__lock{color:var(--accent);flex:none}
 .calc-tools-sheet__row.is-locked .calc-tools-sheet__label{color:var(--text-secondary)}
+/* Hide the panel’s own thick scrollbar; the list body scrolls instead */
+.ds-overlay__panel:has(.calc-tools-sheet){overflow:hidden}
+.ds-overlay__panel:has(.calc-tools-sheet) .ds-overlay__body{overflow:hidden;padding-inline:0;padding-bottom:4px}
 .calc-weight-widget__pair{
   display:grid;
   grid-template-columns:minmax(0,1fr) 40px minmax(0,1fr);

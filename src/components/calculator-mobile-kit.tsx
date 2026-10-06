@@ -216,15 +216,18 @@ export function CalculatorFavoriteButton({
   starred,
   label,
   onToggle,
+  variant = 'box',
 }: {
   starred: boolean;
   label: string;
   onToggle: () => void;
+  /** Ghost = list/sheet control; box = module header. */
+  variant?: 'box' | 'ghost';
 }) {
   return (
     <button
       type="button"
-      className={`calc-fav-toggle${starred ? ' is-on' : ''}`}
+      className={`calc-fav-toggle is-${variant}${starred ? ' is-on' : ''}`}
       aria-pressed={starred}
       aria-label={starred ? `حذف ${label} از دلخواه` : `افزودن ${label} به دلخواه`}
       title={starred ? 'حذف از دلخواه' : 'افزودن به دلخواه'}
@@ -233,7 +236,7 @@ export function CalculatorFavoriteButton({
         onToggle();
       }}
     >
-      <Star size={16} fill={starred ? 'currentColor' : 'none'} aria-hidden />
+      <Star size={variant === 'ghost' ? 18 : 16} strokeWidth={variant === 'ghost' ? 1.75 : 2} fill={starred ? 'currentColor' : 'none'} aria-hidden />
     </button>
   );
 }
@@ -312,11 +315,6 @@ export function CalculatorToolsSheet({
           const Icon = item.Icon;
           return (
             <div key={item.id} className={`calc-tools-sheet__row${active === item.id ? ' is-on' : ''}${item.locked ? ' is-locked' : ''}`} role="listitem">
-              <CalculatorFavoriteButton
-                starred={Boolean(item.starred)}
-                label={item.label}
-                onToggle={() => onToggleFavorite(item.id)}
-              />
               <button
                 type="button"
                 className="calc-tools-sheet__pick"
@@ -331,6 +329,12 @@ export function CalculatorToolsSheet({
                 <span className="calc-tools-sheet__label">{item.label}</span>
                 {item.locked ? <LockKeyhole size={15} className="calc-tools-sheet__lock" aria-label="قفل" /> : null}
               </button>
+              <CalculatorFavoriteButton
+                variant="ghost"
+                starred={Boolean(item.starred)}
+                label={item.label}
+                onToggle={() => onToggleFavorite(item.id)}
+              />
             </div>
           );
         })}
