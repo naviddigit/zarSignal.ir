@@ -1,11 +1,13 @@
 import { Activity, Database, KeyRound, UsersRound } from 'lucide-react';
 import { getAdminOverview } from '@/server/admin-overview';
 import { getMaintenanceSettings } from '@/server/maintenance';
+import { requireAdmin } from '@/server/admin-auth';
 import Link from 'next/link';
 
 const display = (value: number) => new Intl.NumberFormat('fa-IR').format(value);
 
 export default async function AdminHome() {
+  await requireAdmin();
   const [data, maintenance] = await Promise.all([getAdminOverview(), getMaintenanceSettings()]);
   const stats = [
     { label: 'رکوردهای قیمت', value: data.quoteCount, icon: Database },

@@ -1,10 +1,12 @@
 import { getMaintenanceSettings } from '@/server/maintenance';
+import { requireAdmin } from '@/server/admin-auth';
 import { updateMaintenance } from './actions';
 import '../admin-settings.css';
 
 export const dynamic = 'force-dynamic';
 
 export default async function MaintenanceAdminPage({ searchParams }: { searchParams: Promise<{ saved?: string; error?: string }> }) {
+  await requireAdmin();
   const [settings, params] = await Promise.all([getMaintenanceSettings(), searchParams]);
   return <>
     <header className="admin-title"><div><span className="eyebrow">SITE STATUS</span><h1>وضعیت سایت</h1><p>هنگام تعمیر، بازدیدکنندگان پیام موقت می‌بینند و مدیریت از مسیر /admin باز می‌ماند.</p></div></header>
