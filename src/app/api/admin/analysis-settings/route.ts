@@ -2,6 +2,7 @@ import { adminIdentity } from '@/server/admin-auth';
 import { persistWarningPolicy } from '@/server/time-reliability';
 import { persistAnalysisReadingSettings } from '@/server/analysis-reading-settings';
 import { persistCalculatorAccessPolicy } from '@/server/calculator-access';
+import { persistCalculatorNavigation } from '@/server/calculator-navigation';
 import { validWarningWindow } from '@/lib/time-reliability';
 import { normalizeAnalysisReadingSettings } from '@/lib/analysis-reading-settings';
 import { normalizeCalculatorAccessPolicy } from '@/lib/calculator-access';
@@ -39,6 +40,11 @@ export async function POST(request: Request) {
       const calculatorAccess = await persistCalculatorAccessPolicy(actor, body.calculatorAccess);
       void normalizeCalculatorAccessPolicy(body.calculatorAccess);
       return Response.json({ calculatorAccess }, { headers: { 'Cache-Control': 'no-store' } });
+    }
+
+    if ('calculatorNavigation' in body) {
+      const calculatorNavigation = await persistCalculatorNavigation(actor, body.calculatorNavigation);
+      return Response.json({ calculatorNavigation }, { headers: { 'Cache-Control': 'no-store' } });
     }
 
     return Response.json({ error: 'unknown_payload' }, { status: 400 });

@@ -229,6 +229,7 @@
 .calc-access-notice>svg{color:var(--accent)}
 .calc-access-notice p{margin:0;line-height:1.9}
 .calc-popular__icon .calc-lock-badge{position:absolute;top:-4px;left:-4px;width:16px;height:16px;padding:2px;border-radius:999px;background:var(--surface-card);box-shadow:0 0 0 1px var(--border-subtle);color:var(--accent)}
+.calc-popular__icon .calc-star-badge{position:absolute;top:-4px;right:-4px;width:16px;height:16px;padding:2px;border-radius:999px;background:var(--surface-card);box-shadow:0 0 0 1px var(--border-subtle);color:var(--accent)}
 .calc-popular__chips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none}
 .calc-popular__chips::-webkit-scrollbar{display:none}
 .calc-popular__chips button{flex:0 0 auto;min-height:34px;padding:0 12px;border:1px solid var(--border-subtle);border-radius:999px;background:var(--surface-soft);color:var(--text-secondary);font:700 12px Vazirmatn;white-space:nowrap}

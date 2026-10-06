@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import {
   ArrowLeftRight, Banknote, ChartNoAxesColumn, CircleDollarSign, Coins, Delete,
-  Gem, Info, Layers3, LockKeyhole, Menu, Percent, Scale, Target, TrendingDown, TrendingUp, Wallet, X,
+  Gem, Info, Layers3, LockKeyhole, Menu, Percent, Scale, Star, Target, TrendingDown, TrendingUp, Wallet, X,
 } from 'lucide-react';
 import { convertWeight, convertPurityWeight, weightUnits, purityOptions, type WeightUnit, type Purity } from '@/lib/calculator-conversions';
 import { formatNumericInput, sanitizeNumericInput } from '@/lib/numeric-input';
@@ -67,14 +67,17 @@ export function CalculatorProductTiles({
   value,
   onChange,
   locked = [],
+  order,
 }: {
   value: CalcProduct;
   onChange: (next: CalcProduct) => void;
   locked?: CalcProduct[];
+  order?: CalcProduct[];
 }) {
   return (
     <div className="calc-product-tiles" role="tablist" aria-label="نوع دارایی">
-      {productMeta.map(item => {
+      {(order ?? productMeta.map(item => item.key)).map(key => {
+        const item = productMeta.find(entry => entry.key === key)!;
         const Icon = item.Icon;
         const isLocked = locked.includes(item.key);
         return (
@@ -206,7 +209,7 @@ export function CalculatorKeypad({ value, onChange }: { value: string; onChange:
   );
 }
 
-type PopularItem = { id: string; label: string; Icon: typeof Scale; locked?: boolean };
+type PopularItem = { id: string; label: string; Icon: typeof Scale; locked?: boolean; starred?: boolean };
 
 export function CalculatorPopularRow({
   items,
@@ -231,12 +234,13 @@ export function CalculatorPopularRow({
               type="button"
               className={`${active === item.id ? 'is-on' : ''}${item.locked ? ' is-locked' : ''}`.trim()}
               title={item.locked ? 'مشاهده وضعیت دسترسی' : undefined}
-              aria-label={item.locked ? `${item.label} · قفل` : item.label}
+              aria-label={`${item.label}${item.starred ? ' · ستاره‌دار' : ''}${item.locked ? ' · قفل' : ''}`}
               onClick={() => onPick(item.id)}
             >
               <span className="calc-popular__icon">
                 <Icon size={16} strokeWidth={1.9} />
                 {item.locked ? <LockKeyhole className="calc-lock-badge" size={11} aria-hidden /> : null}
+                {item.starred ? <Star className="calc-star-badge" size={11} fill="currentColor" aria-hidden /> : null}
               </span>
               <small>{item.label}</small>
             </button>

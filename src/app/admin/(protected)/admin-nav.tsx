@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 
 const LINKS = [
   { href: '/admin', label: 'نمای کلی', exact: true },
+  { href: '/admin/maintenance', label: 'وضعیت سایت' },
   { href: '/admin/data', label: 'داده و دریافت' },
   { href: '/admin/integrations', label: 'اتصال‌ها و API' },
   { href: '/admin/customers', label: 'مشتری‌ها' },
@@ -13,6 +14,7 @@ const LINKS = [
   { href: '/admin/products', label: 'اشتراک و مشتریان API' },
   { href: '/admin/analysis', label: 'مدل تحلیل' },
   { href: '/admin/analysis-settings', label: 'تنظیمات تحلیل' },
+  { href: '/admin/calculator-layout', label: 'چیدمان ماشین‌حساب' },
   { href: '/admin/content', label: 'محتوای صفحه اصلی' },
   { href: '/admin/seo', label: 'جست‌وجو و محتوا' },
 ] as const;

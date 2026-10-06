@@ -3,6 +3,7 @@ import { ProfessionalCalculator } from '@/components/professional-calculator';
 import { FunnelTrack } from '@/components/funnel-track';
 import { getPublicSnapshot } from '@/server/quotes';
 import { getCalculatorAccessPolicy } from '@/server/calculator-access';
+import { getCalculatorNavigation } from '@/server/calculator-navigation';
 import { resolveAccountEntitlement } from '@/server/account-entitlement';
 import { auth } from '@/auth';
 import './calculator.css';
@@ -16,9 +17,10 @@ export const metadata: Metadata = {
 
 export default async function CalculatorPage() {
   const session = await auth().catch(() => null);
-  const [snapshot, calcAccess, entitlement] = await Promise.all([
+  const [snapshot, calcAccess, navigation, entitlement] = await Promise.all([
     getPublicSnapshot(),
     getCalculatorAccessPolicy(),
+    getCalculatorNavigation(),
     session?.user?.id
       ? resolveAccountEntitlement(session.user.id).catch(() => null)
       : Promise.resolve(null),
@@ -36,6 +38,7 @@ export default async function CalculatorPage() {
       <ProfessionalCalculator
         snapshot={snapshot}
         accessPolicy={policy}
+        navigation={navigation}
         accessAvailable={available}
         accessLevel={entitlement?.level ?? 'FREE'}
         statusLabel={entitlement?.statusLabel ?? 'رایگان'}

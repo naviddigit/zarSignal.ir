@@ -1,10 +1,12 @@
 import { Activity, Database, KeyRound, UsersRound } from 'lucide-react';
 import { getAdminOverview } from '@/server/admin-overview';
+import { getMaintenanceSettings } from '@/server/maintenance';
+import Link from 'next/link';
 
 const display = (value: number) => new Intl.NumberFormat('fa-IR').format(value);
 
 export default async function AdminHome() {
-  const data = await getAdminOverview();
+  const [data, maintenance] = await Promise.all([getAdminOverview(), getMaintenanceSettings()]);
   const stats = [
     { label: 'رکوردهای قیمت', value: data.quoteCount, icon: Database },
     { label: 'کاربران', value: data.userCount, icon: UsersRound },
@@ -23,6 +25,7 @@ export default async function AdminHome() {
     </div>}
     {data.database === 'local' && <div className="admin-message is-ok" role="status"><strong>اجرای محلی آماده است.</strong> داده بازار در ذخیره محلی توسعه نگهداری می‌شود؛ PostgreSQL هنگام استقرار جایگزین آن خواهد شد.</div>}
     <div className="admin-stats">{stats.map(({ label, value, icon: Icon }) => <article className="admin-stat" key={label}><Icon size={19}/><span>{label}</span><strong>{display(value)}</strong></article>)}</div>
+    <div className={`admin-message ${maintenance.enabled ? '' : 'is-ok'}`} role="status"><strong>سایت {maintenance.enabled ? 'در حال تعمیر است' : 'باز است'}</strong> · <Link href="/admin/maintenance">تغییر وضعیت و متن پیام</Link></div>
     <div className="admin-grid">
       <article className="admin-card"><span className="eyebrow">MARKET PIPELINE</span><h2>آخرین دریافت داده</h2>{data.lastRun ? <><strong className={`run-status ${data.lastRun.status.toLowerCase()}`}>{data.lastRun.status}</strong><p>{display(data.lastRun.count)} رکورد ثبت شده</p>{data.lastRun.error && <p className="form-error">{data.lastRun.error}</p>}</> : <p>هنوز دریافت واقعی ثبت نشده است. حالت فعلی: {data.sourceMode === 'demo' ? 'دادهٔ نمایشی' : 'دادهٔ زنده بدون رکورد'}.</p>}<a href="/admin/data">مدیریت داده ←</a></article>
       <article className="admin-card"><span className="eyebrow">RELEASE CHECK</span><h2>پیش از انتشار</h2><ul><li>{data.sourceMode === 'live' ? 'حالت دادهٔ زنده فعال است.' : 'دادهٔ زنده هنوز فعال نیست.'}</li><li>فرمول حباب در وضعیت انتظار است.</li><li>درگاه و ورود کاربر باید پیش از فروش فعال شوند.</li></ul><a href="/admin/seo">آماده‌سازی جستجو ←</a></article>

@@ -9,6 +9,7 @@ import {
   type CalculatorModule,
 } from '@/lib/calculator-access';
 import type { AccessLevel } from '@/lib/capabilities';
+import { calculatorToolsByProduct, calculatorProductLabels, visibleCalculatorTools, type CalculatorNavigation } from '@/lib/calculator-navigation';
 import { isStale, type Quote, type Snapshot } from '@/lib/market';
 import { formatNumericInput, sanitizeNumericInput } from '@/lib/numeric-input';
 import { fetchJson } from '@/lib/fetch-json';
@@ -31,15 +32,9 @@ type Product = CalcProduct;
 type LocalTool = 'marketWeight' | 'weight' | 'purity';
 type Tool = LocalTool | CalculatorOperation;
 type Entry = { value: string; provenance: 'LIVE' | 'MANUAL'; observedAt?: string };
-type PopularPick = { id: string; label: string; Icon: typeof popularIcons.weight; locked?: boolean };
+type PopularPick = { id: string; label: string; Icon: typeof popularIcons.weight; locked?: boolean; starred?: boolean };
 
-const products: [Product, string][] = [['gold', 'طلا'], ['silver', 'نقره'], ['fx', 'دلار'], ['coin', 'سکه']];
-const toolsByProduct: Record<Product, Tool[]> = {
-  gold: ['marketWeight', 'weight', 'purity', 'mazanehTo18k', 'market18kToMazaneh', 'fineGold', 'goldBubble', 'uaeGold', 'capitalGold', 'meltedPnl', 'meltedTarget', 'meltedNewBuy', 'meltedTargetAverage', 'meltedPartialSell', 'meltedBreakEven', 'goldSilverSwap', 'percentageChange'],
-  silver: ['weight', 'purity', 'fineSilver', 'silverBarCost', 'silverMintPremium', 'capitalSilver', 'silverBubble', 'goldSilverSwap', 'percentageChange'],
-  fx: ['usdGap', 'aedDerivedUsd', 'fxRateGap', 'rateCompare', 'percentageChange'],
-  coin: ['coinBuy', 'coinSell', 'coinCapital', 'coinPnl', 'coinBreakEven', 'weight', 'purity', 'percentageChange'],
-};
+const toolsByProduct = calculatorToolsByProduct;
 const toolLabel = (value: Tool) => value === 'marketWeight' ? 'معادل بازار' : value === 'weight' ? 'وزن واقعی' : value === 'purity' ? 'تبدیل عیار و وزن خالص' : calculatorCatalog[value].title;
 const DEFAULT_TOOL: Tool = 'marketWeight';
 const lockedProducts: Product[] = [];
@@ -134,12 +129,14 @@ function prefill(operation: CalculatorOperation, snapshot: Snapshot): Record<str
 export function ProfessionalCalculator({
   snapshot,
   accessPolicy,
+  navigation,
   accessAvailable = true,
   accessLevel = 'FREE',
   statusLabel = 'رایگان',
 }: {
   snapshot: Snapshot;
   accessPolicy: CalculatorAccessPolicy;
+  navigation: CalculatorNavigation;
   accessAvailable?: boolean;
   accessLevel?: AccessLevel;
   statusLabel?: string | null;
@@ -205,13 +202,15 @@ export function ProfessionalCalculator({
                         : value.toLowerCase().includes('coin') ? popularIcons.coin
                           : popularIcons.goldBubble,
   }));
-  const popular = [...featured, ...moreTools].map(item => {
+  const unsorted = [...featured, ...moreTools];
+  const byId = new Map(unsorted.map(item => [item.id, item]));
+  const popular = visibleCalculatorTools(product, navigation).map(id => byId.get(id)).filter((item): item is PopularPick => Boolean(item)).map(item => {
     if (item.id === 'mazaneh') {
-      return { ...item, locked: !moduleAccess('market18kToMazaneh').ok && !moduleAccess('mazanehTo18k').ok };
+      return { ...item, starred: navigation.starred[product].includes(item.id), locked: !moduleAccess('market18kToMazaneh').ok && !moduleAccess('mazanehTo18k').ok };
     }
     if (!available.includes(item.id as Tool)) return item;
     const decision = moduleAccess(item.id as CalculatorModule);
-    return { ...item, locked: item.locked || !decision.ok };
+    return { ...item, starred: navigation.starred[product].includes(item.id), locked: item.locked || !decision.ok };
   });
 
   function invalidate() {
@@ -378,7 +377,7 @@ export function ProfessionalCalculator({
   return (
     <section className={`professional-calculator${isLocalTool(tool) ? ' is-weight' : ''}`} aria-label="ماشین‌حساب حرفه‌ای">
       <div className="calc-products" role="group" aria-label="نوع دارایی">
-        {products.map(([key, label]) => (
+        {navigation.categories.map(key => (
           <button
             type="button"
             key={key}
@@ -387,14 +386,14 @@ export function ProfessionalCalculator({
             className={lockedProducts.includes(key) ? 'is-locked' : undefined}
             onClick={() => chooseProduct(key)}
           >
-            {label}
+            {calculatorProductLabels[key]}
             {lockedProducts.includes(key) ? <LockKeyhole size={12} aria-hidden /> : null}
           </button>
         ))}
       </div>
-      <CalculatorProductTiles value={product} onChange={chooseProduct} locked={lockedProducts} />
+      <CalculatorProductTiles value={product} onChange={chooseProduct} locked={lockedProducts} order={navigation.categories} />
 
-      <CalculatorPopularRow items={popular} active={isMazanehOperation(tool) ? 'mazaneh' : tool} onPick={pickPopular} />
+      <CalculatorPopularRow key={product} items={popular} active={isMazanehOperation(tool) ? 'mazaneh' : tool} onPick={pickPopular} />
 
       <div className="calc-stage__main">
         {!operationAllowed ? (
