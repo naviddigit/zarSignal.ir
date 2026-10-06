@@ -47,7 +47,7 @@ export function CalculatorNavigationSettings({ initial, writable }: { initial: C
     } catch (error) { setMessage(error instanceof Error ? error.message : 'ذخیره نشد.'); }
     finally { setPending(false); }
   }}>
-    <p>با پیکان‌ها ترتیب دسته‌ها و ابزارها را تغییر دهید. ستاره، ابزار را در ابتدای فهرست همان دسته پین می‌کند. تغییرات پس از ذخیره برای همهٔ کاربران نمایش داده می‌شود.</p>
+    <p>با پیکان‌ها ترتیب پیش‌فرض دسته‌ها و ابزارها را برای همه تنظیم کنید. دلخواه/ستارهٔ هر کاربر در خود ماشین‌حساب (مرورگر) ذخیره می‌شود و اینجا فقط ترتیب پایه را مشخص می‌کند.</p>
     {draft.categories.map((product, categoryIndex) => {
       const items = visibleCalculatorTools(product, draft);
       return <section className="calc-layout-admin__category" key={product}>

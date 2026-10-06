@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import {
   ArrowLeftRight, Banknote, ChartNoAxesColumn, CircleDollarSign, Coins, Delete,
   Gem, Info, Layers3, LockKeyhole, Menu, Percent, Scale, Star, Target, TrendingDown, TrendingUp, Wallet, X,
@@ -11,6 +11,7 @@ import { isStale, type Snapshot, type Symbol } from '@/lib/market';
 import { MAZANEH_TO_18K_DIVISOR, mazanehTo18k } from '@/lib/mazaneh-to-18k';
 import { Select } from '@/components/ui/select';
 import { HScrollRail } from '@/components/ui/h-scroll-rail';
+import { OverlaySheet } from '@/components/ui/overlay-sheet';
 import { keypadMath } from '@/lib/keypad-math';
 import { sparkPriceTone, useMarketSparks } from '@/components/use-market-sparks';
 
@@ -211,19 +212,55 @@ export function CalculatorKeypad({ value, onChange }: { value: string; onChange:
 
 type PopularItem = { id: string; label: string; Icon: typeof Scale; locked?: boolean; starred?: boolean };
 
+export function CalculatorFavoriteButton({
+  starred,
+  label,
+  onToggle,
+}: {
+  starred: boolean;
+  label: string;
+  onToggle: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      className={`calc-fav-toggle${starred ? ' is-on' : ''}`}
+      aria-pressed={starred}
+      aria-label={starred ? `حذف ${label} از دلخواه` : `افزودن ${label} به دلخواه`}
+      title={starred ? 'حذف از دلخواه' : 'افزودن به دلخواه'}
+      onClick={event => {
+        event.stopPropagation();
+        onToggle();
+      }}
+    >
+      <Star size={16} fill={starred ? 'currentColor' : 'none'} aria-hidden />
+    </button>
+  );
+}
+
 export function CalculatorPopularRow({
   items,
   active,
   onPick,
+  onOpenFullList,
 }: {
   items: PopularItem[];
   active: string;
   onPick: (id: string) => void;
+  onOpenFullList?: () => void;
 }) {
   return (
     <section className="calc-popular" aria-label="ابزار انتخابی">
       <header>
-        <strong>ابزار انتخابی</strong><small className="calc-currency-note">محاسبات قیمت: تومانی</small>
+        <div className="calc-popular__heading">
+          <strong>ابزار انتخابی</strong>
+          <small className="calc-currency-note">محاسبات قیمت: تومانی</small>
+        </div>
+        {onOpenFullList ? (
+          <button type="button" className="calc-popular__all" onClick={onOpenFullList}>
+            لیست کامل
+          </button>
+        ) : null}
       </header>
       <HScrollRail className="calc-popular__rail" trackClassName="calc-popular__icons" label="ابزار انتخابی" step={120}>
         {items.map(item => {
@@ -234,7 +271,7 @@ export function CalculatorPopularRow({
               type="button"
               className={`${active === item.id ? 'is-on' : ''}${item.locked ? ' is-locked' : ''}`.trim()}
               title={item.locked ? 'مشاهده وضعیت دسترسی' : undefined}
-              aria-label={`${item.label}${item.starred ? ' · ستاره‌دار' : ''}${item.locked ? ' · قفل' : ''}`}
+              aria-label={`${item.label}${item.starred ? ' · دلخواه' : ''}${item.locked ? ' · قفل' : ''}`}
               onClick={() => onPick(item.id)}
             >
               <span className="calc-popular__icon">
@@ -251,8 +288,59 @@ export function CalculatorPopularRow({
   );
 }
 
+export function CalculatorToolsSheet({
+  open,
+  title,
+  items,
+  active,
+  onClose,
+  onPick,
+  onToggleFavorite,
+}: {
+  open: boolean;
+  title: string;
+  items: PopularItem[];
+  active: string;
+  onClose: () => void;
+  onPick: (id: string) => void;
+  onToggleFavorite: (id: string) => void;
+}) {
+  return (
+    <OverlaySheet open={open} title={title} onClose={onClose}>
+      <div className="calc-tools-sheet" role="list">
+        {items.map(item => {
+          const Icon = item.Icon;
+          return (
+            <div key={item.id} className={`calc-tools-sheet__row${active === item.id ? ' is-on' : ''}${item.locked ? ' is-locked' : ''}`} role="listitem">
+              <CalculatorFavoriteButton
+                starred={Boolean(item.starred)}
+                label={item.label}
+                onToggle={() => onToggleFavorite(item.id)}
+              />
+              <button
+                type="button"
+                className="calc-tools-sheet__pick"
+                onClick={() => {
+                  onPick(item.id);
+                  onClose();
+                }}
+              >
+                <span className="calc-tools-sheet__icon" aria-hidden>
+                  <Icon size={16} strokeWidth={1.9} />
+                </span>
+                <span className="calc-tools-sheet__label">{item.label}</span>
+                {item.locked ? <LockKeyhole size={15} className="calc-tools-sheet__lock" aria-label="قفل" /> : null}
+              </button>
+            </div>
+          );
+        })}
+      </div>
+    </OverlaySheet>
+  );
+}
+
 /** 18k fine-metal equivalent used by the market quote, separate from physical mass. */
-export function MarketMesghalEquivalentWidget({ amount, onAmountChange, onPriceConversionClick }: { amount: string; onAmountChange: (next: string) => void; onPriceConversionClick: () => void }) {
+export function MarketMesghalEquivalentWidget({ amount, onAmountChange, onPriceConversionClick, favoriteSlot }: { amount: string; onAmountChange: (next: string) => void; onPriceConversionClick: () => void; favoriteSlot?: ReactNode }) {
   const [reverse, setReverse] = useState(false);
   const n = Number(amount);
   const result = amount !== '' && Number.isFinite(n) && n >= 0
@@ -263,8 +351,11 @@ export function MarketMesghalEquivalentWidget({ amount, onAmountChange, onPriceC
   return (
     <section className="calc-weight-widget" aria-label="معادل بازار طلای ۱۸ عیار">
       <header className="calc-weight-widget__head">
-        <strong>معادل بازار طلای ۱۸ عیار</strong>
-        <small>ضریب ثابت بازار: ۴٫۳۳۱۸</small>
+        <div className="calc-weight-widget__titles">
+          <strong>معادل بازار طلای ۱۸ عیار</strong>
+          <small>ضریب ثابت بازار: ۴٫۳۳۱۸</small>
+        </div>
+        {favoriteSlot}
       </header>
       <div className="calc-weight-widget__pair">
         <div className="calc-weight-box is-out" aria-live="polite">
@@ -291,7 +382,7 @@ export function MarketMesghalEquivalentWidget({ amount, onAmountChange, onPriceC
 }
 
 /** Main physical weight conversion card. */
-export function WeightConvertWidget({ amount, onAmountChange, onMarketEquivalentClick }: { amount: string; onAmountChange: (next: string) => void; onMarketEquivalentClick?: () => void }) {
+export function WeightConvertWidget({ amount, onAmountChange, onMarketEquivalentClick, favoriteSlot }: { amount: string; onAmountChange: (next: string) => void; onMarketEquivalentClick?: () => void; favoriteSlot?: ReactNode }) {
   const [from, setFrom] = useState<WeightUnit>('gram');
   const [to, setTo] = useState<WeightUnit>('mesghal');
 
@@ -313,6 +404,7 @@ export function WeightConvertWidget({ amount, onAmountChange, onMarketEquivalent
     <section className="calc-weight-widget" aria-label="تبدیل واحد وزن">
       <header className="calc-weight-widget__head">
         <strong>تبدیل وزن فیزیکی <small>(۱ مثقال = ۴٫۶۰۸ گرم)</small></strong>
+        {favoriteSlot}
       </header>
 
       <div className="calc-weight-widget__pair">
@@ -381,7 +473,7 @@ export function WeightConvertWidget({ amount, onAmountChange, onMarketEquivalent
 }
 
 /** G02/S02: preserve fine-metal mass while converting gross weight between fineness grades. */
-export function PurityConvertWidget({ amount, onAmountChange, product = 'gold' }: { amount: string; onAmountChange: (next: string) => void; product?: CalcProduct }) {
+export function PurityConvertWidget({ amount, onAmountChange, product = 'gold', favoriteSlot }: { amount: string; onAmountChange: (next: string) => void; product?: CalcProduct; favoriteSlot?: ReactNode }) {
   const silver = product === 'silver';
   const options = silver ? silverPurityOptions : goldPurityOptions;
   const [from, setFrom] = useState<Purity>(silver ? 'silver999' : '18k');
@@ -402,8 +494,11 @@ export function PurityConvertWidget({ amount, onAmountChange, product = 'gold' }
   return (
     <section className="calc-weight-widget" aria-label="تبدیل عیار">
       <header className="calc-weight-widget__head">
-        <strong>تبدیل عیار</strong>
-        <small>وزن معادل با حفظ مقدار فلز خالص؛ بدون قیمت بازار</small>
+        <div className="calc-weight-widget__titles">
+          <strong>تبدیل عیار</strong>
+          <small>وزن معادل با حفظ مقدار فلز خالص؛ بدون قیمت بازار</small>
+        </div>
+        {favoriteSlot}
       </header>
       <div className="calc-weight-widget__pair">
         <div className="calc-weight-box is-out" aria-live="polite">

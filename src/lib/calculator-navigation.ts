@@ -28,7 +28,8 @@ export type CalculatorNavigation = {
 export const defaultCalculatorNavigation: CalculatorNavigation = {
   categories: [...calculatorProducts],
   tools: Object.fromEntries(calculatorProducts.map(product => [product, [...featured[product], ...displayTools(product).filter(id => !featured[product].includes(id))]])) as CalculatorNavigation['tools'],
-  starred: Object.fromEntries(calculatorProducts.map(product => [product, [...featured[product]]])) as CalculatorNavigation['starred'],
+  /** Personal favorites live in the browser; server default stays empty. */
+  starred: { gold: [], silver: [], fx: [], coin: [] },
 };
 
 export function normalizeCalculatorNavigation(input: unknown): CalculatorNavigation {
@@ -44,12 +45,22 @@ export function normalizeCalculatorNavigation(input: unknown): CalculatorNavigat
     tools[product] = ordered(raw.tools?.[product], defaultCalculatorNavigation.tools[product]);
     starred[product] = Array.isArray(raw.starred?.[product])
       ? [...new Set(raw.starred[product].filter(id => tools[product].includes(id)))]
-      : [...defaultCalculatorNavigation.starred[product]];
+      : [];
   }
   return { categories, tools, starred };
 }
 
-export function visibleCalculatorTools(product: CalculatorProduct, navigation: CalculatorNavigation): string[] {
-  const starred = new Set(navigation.starred[product]);
-  return [...navigation.tools[product].filter(id => starred.has(id)), ...navigation.tools[product].filter(id => !starred.has(id))];
+/** Order: user favorites → open tools → locked tools (admin tool order preserved inside each group). */
+export function visibleCalculatorTools(
+  product: CalculatorProduct,
+  navigation: CalculatorNavigation,
+  options?: { favorites?: string[]; lockedIds?: Iterable<string> },
+): string[] {
+  const order = navigation.tools[product];
+  const favorites = new Set((options?.favorites ?? navigation.starred[product]).filter(id => order.includes(id)));
+  const locked = new Set(options?.lockedIds ?? []);
+  const favored = order.filter(id => favorites.has(id));
+  const open = order.filter(id => !favorites.has(id) && !locked.has(id));
+  const closed = order.filter(id => !favorites.has(id) && locked.has(id));
+  return [...favored, ...open, ...closed];
 }

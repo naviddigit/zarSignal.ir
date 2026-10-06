@@ -1,6 +1,6 @@
 'use client';
 import Link from 'next/link';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { LockKeyhole, RefreshCw, ArrowUpLeft } from 'lucide-react';
 import { calculatorCatalog, type CalculatorOperation, type CalculatorResult } from '@/lib/calculator-catalog';
 import {
@@ -9,7 +9,8 @@ import {
   type CalculatorModule,
 } from '@/lib/calculator-access';
 import type { AccessLevel } from '@/lib/capabilities';
-import { calculatorToolsByProduct, calculatorProductLabels, visibleCalculatorTools, type CalculatorNavigation } from '@/lib/calculator-navigation';
+import { calculatorToolsByProduct, calculatorProductLabels, visibleCalculatorTools, type CalculatorNavigation, type CalculatorProduct } from '@/lib/calculator-navigation';
+import { readCalculatorFavorites, toggleCalculatorFavorite, writeCalculatorFavorites } from '@/lib/calculator-favorites';
 import { isStale, type Quote, type Snapshot } from '@/lib/market';
 import { formatNumericInput, sanitizeNumericInput } from '@/lib/numeric-input';
 import { fetchJson } from '@/lib/fetch-json';
@@ -17,11 +18,13 @@ import { mazanehTo18k } from '@/lib/mazaneh-to-18k';
 import { track } from '@/lib/analytics';
 import { OverlaySheet } from '@/components/ui/overlay-sheet';
 import {
+  CalculatorFavoriteButton,
   CalculatorKeypad,
   CalculatorLiveStrip,
   MarketMesghalEquivalentWidget,
   CalculatorPopularRow,
   CalculatorProductTiles,
+  CalculatorToolsSheet,
   PurityConvertWidget,
   WeightConvertWidget,
   popularIcons,
@@ -154,8 +157,13 @@ export function ProfessionalCalculator({
   const [activeField, setActiveField] = useState('');
   const [keypadCue, setKeypadCue] = useState(false);
   const [lockedNotice, setLockedNotice] = useState<{ title: string; message: string; upgrade: boolean } | null>(null);
+  const [toolsOpen, setToolsOpen] = useState(false);
+  const [favorites, setFavorites] = useState<Record<CalculatorProduct, string[]>>({ gold: [], silver: [], fx: [], coin: [] });
   const request = useRef<AbortController | null>(null);
   const cueTimer = useRef<number | null>(null);
+  useEffect(() => {
+    setFavorites(readCalculatorFavorites());
+  }, []);
   useEffect(() => () => {
     request.current?.abort();
     if (cueTimer.current) window.clearTimeout(cueTimer.current);
@@ -165,6 +173,18 @@ export function ProfessionalCalculator({
     return decideCalculatorModuleAccess(op, accessPolicy, accessLevel, {
       statusLabel,
       settingsAvailable: accessAvailable,
+    });
+  }
+
+  function favoriteIdFor(toolId: string) {
+    return isMazanehOperation(toolId as Tool) ? 'mazaneh' : toolId;
+  }
+
+  function toggleFavorite(id: string) {
+    setFavorites(current => {
+      const next = toggleCalculatorFavorite(current, product, id);
+      writeCalculatorFavorites(next);
+      return next;
     });
   }
 
@@ -204,14 +224,43 @@ export function ProfessionalCalculator({
   }));
   const unsorted = [...featured, ...moreTools];
   const byId = new Map(unsorted.map(item => [item.id, item]));
-  const popular = visibleCalculatorTools(product, navigation).map(id => byId.get(id)).filter((item): item is PopularPick => Boolean(item)).map(item => {
-    if (item.id === 'mazaneh') {
-      return { ...item, starred: navigation.starred[product].includes(item.id), locked: !moduleAccess('market18kToMazaneh').ok && !moduleAccess('mazanehTo18k').ok };
+  const lockedIds = useMemo(() => {
+    const locked = new Set<string>();
+    for (const id of navigation.tools[product]) {
+      if (id === 'mazaneh') {
+        if (!moduleAccess('market18kToMazaneh').ok && !moduleAccess('mazanehTo18k').ok) locked.add(id);
+        continue;
+      }
+      if (!available.includes(id as Tool)) {
+        locked.add(id);
+        continue;
+      }
+      if (!moduleAccess(id as CalculatorModule).ok) locked.add(id);
     }
-    if (!available.includes(item.id as Tool)) return item;
-    const decision = moduleAccess(item.id as CalculatorModule);
-    return { ...item, starred: navigation.starred[product].includes(item.id), locked: item.locked || !decision.ok };
+    return locked;
+    // accessPolicy / level drive moduleAccess; product switches the tool set.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [product, navigation, accessPolicy, accessLevel, accessAvailable, statusLabel, available]);
+
+  const popular = visibleCalculatorTools(product, navigation, {
+    favorites: favorites[product],
+    lockedIds,
+  }).map(id => byId.get(id)).filter((item): item is PopularPick => Boolean(item)).map(item => {
+    if (item.id === 'mazaneh') {
+      return { ...item, starred: favorites[product].includes(item.id), locked: lockedIds.has(item.id) };
+    }
+    if (!available.includes(item.id as Tool)) return { ...item, starred: favorites[product].includes(item.id), locked: true };
+    return { ...item, starred: favorites[product].includes(item.id), locked: lockedIds.has(item.id) };
   });
+
+  const activeFavoriteId = favoriteIdFor(tool);
+  const activeFavoriteSlot = (
+    <CalculatorFavoriteButton
+      starred={favorites[product].includes(activeFavoriteId)}
+      label={toolLabel(isMazanehOperation(tool) ? 'mazanehTo18k' : tool)}
+      onToggle={() => toggleFavorite(activeFavoriteId)}
+    />
+  );
 
   function invalidate() {
     request.current?.abort();
@@ -393,22 +442,32 @@ export function ProfessionalCalculator({
       </div>
       <CalculatorProductTiles value={product} onChange={chooseProduct} locked={lockedProducts} order={navigation.categories} />
 
-      <CalculatorPopularRow key={product} items={popular} active={isMazanehOperation(tool) ? 'mazaneh' : tool} onPick={pickPopular} />
+      <CalculatorPopularRow
+        key={product}
+        items={popular}
+        active={isMazanehOperation(tool) ? 'mazaneh' : tool}
+        onPick={pickPopular}
+        onOpenFullList={() => setToolsOpen(true)}
+      />
 
       <div className="calc-stage__main">
         {!operationAllowed ? (
           <div className="calc-tool-panel calc-tool-panel--locked">
+            <div className="calc-tool-panel__toolbar">
+              <strong className="calc-tool-panel__title">{toolLabel(tool)}</strong>
+              {activeFavoriteSlot}
+            </div>
             <LockKeyhole size={22} />
             <strong>دسترسی لازم است</strong>
             <p>{!toolGate.ok ? toolGate.message : ''}</p>
             {!toolGate.ok && (toolGate.code === 'forbidden' || toolGate.code === 'trial_expired') ? <Link href="/pricing">ارتقای حساب</Link> : null}
           </div>
         ) : tool === 'marketWeight' ? (
-          <MarketMesghalEquivalentWidget amount={weightAmount} onAmountChange={setWeightAmount} onPriceConversionClick={() => choose('market18kToMazaneh')} />
+          <MarketMesghalEquivalentWidget amount={weightAmount} onAmountChange={setWeightAmount} onPriceConversionClick={() => choose('market18kToMazaneh')} favoriteSlot={activeFavoriteSlot} />
         ) : tool === 'weight' ? (
-          <WeightConvertWidget amount={weightAmount} onAmountChange={setWeightAmount} onMarketEquivalentClick={product === 'gold' ? () => choose('marketWeight') : undefined} />
+          <WeightConvertWidget amount={weightAmount} onAmountChange={setWeightAmount} onMarketEquivalentClick={product === 'gold' ? () => choose('marketWeight') : undefined} favoriteSlot={activeFavoriteSlot} />
         ) : tool === 'purity' ? (
-          <PurityConvertWidget key={product} product={product} amount={purityAmount} onAmountChange={setPurityAmount} />
+          <PurityConvertWidget key={product} product={product} amount={purityAmount} onAmountChange={setPurityAmount} favoriteSlot={activeFavoriteSlot} />
         ) : spec ? (
           <form className="calc-tool-panel" onSubmit={calculate}>
             {isMazanehOperation(tool) ? (
@@ -419,6 +478,7 @@ export function ProfessionalCalculator({
             ) : null}
             <div className="calc-tool-panel__toolbar">
               <strong className="calc-tool-panel__title">{spec.title}</strong>
+              {activeFavoriteSlot}
               <button type="button" className="calc-tool-panel__refresh" onClick={refresh} disabled={pending} aria-label="تازه‌سازی قیمت‌ها">
                 <RefreshCw size={15} />
               </button>
@@ -536,6 +596,15 @@ export function ProfessionalCalculator({
           {lockedNotice?.upgrade ? <Link className="button" href="/pricing">حساب خود را ارتقا دهید</Link> : null}
         </div>
       </OverlaySheet>
+      <CalculatorToolsSheet
+        open={toolsOpen}
+        title={`لیست کامل · ${calculatorProductLabels[product]}`}
+        items={popular}
+        active={isMazanehOperation(tool) ? 'mazaneh' : tool}
+        onClose={() => setToolsOpen(false)}
+        onPick={pickPopular}
+        onToggleFavorite={toggleFavorite}
+      />
     </section>
   );
 }
