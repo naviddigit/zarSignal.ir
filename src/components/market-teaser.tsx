@@ -82,7 +82,7 @@ export function MarketTeaser({ snapshot, bubbles }: { snapshot: Snapshot; bubble
         </div>
         <div className="market-teaser__actions">
           <LayoutToggle value={layout} onChange={setLayout} />
-          <Link className="button" href="/markets">تخته کامل <ArrowUpLeft size={16} /></Link>
+          <Link className="market-teaser__all" href="/markets">تخته کامل <ArrowUpLeft size={14} aria-hidden /></Link>
         </div>
       </header>
 
