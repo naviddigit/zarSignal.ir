@@ -1,8 +1,10 @@
 import type { Metadata, Viewport } from 'next';
 import Link from 'next/link';
+import { Activity } from 'lucide-react';
 import { Header } from '@/components/header';
 import { MobileTabBar } from '@/components/mobile-tab-bar';
 import { JsonLd } from '@/components/json-ld';
+import { SiteBoot } from '@/components/site-boot';
 import './globals.css';
 import './theme.css';
 import './product-quality.css';
@@ -26,16 +28,25 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
-const themeBootScript = `try{const t=localStorage.getItem('zarsignal-theme');const p=t==='light'||t==='dark'?t:'system';const v=p==='system'?(matchMedia('(prefers-color-scheme:light)').matches?'light':'dark'):p;const r=document.documentElement;r.dataset.themePreference=p;r.dataset.theme=v;r.style.colorScheme=v}catch{const r=document.documentElement;r.dataset.theme='dark';r.dataset.themePreference='system'}`;
+const themeBootScript = `try{const t=localStorage.getItem('zarsignal-theme');const p=t==='light'||t==='dark'?t:'system';const v=p==='system'?(matchMedia('(prefers-color-scheme:light)').matches?'light':'dark'):p;const r=document.documentElement;r.dataset.themePreference=p;r.dataset.theme=v;r.style.colorScheme=v;r.classList.add('is-booting')}catch{const r=document.documentElement;r.dataset.theme='dark';r.dataset.themePreference='system';r.classList.add('is-booting')}`;
 
 export default function Layout({ children }: Readonly<{ children: React.ReactNode }>) {
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://zarsignal.ir';
   return (
-    <html lang="fa" dir="rtl" suppressHydrationWarning data-scroll-behavior="smooth">
+    <html lang="fa" dir="rtl" suppressHydrationWarning data-scroll-behavior="smooth" className="is-booting">
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeBootScript }} />
+        <noscript>
+          <style>{`html.is-booting,html.is-booting body{overflow:auto!important;height:auto!important}html.is-booting body>:not(#boot-splash){visibility:visible!important;pointer-events:auto!important}#boot-splash{display:none!important}`}</style>
+        </noscript>
       </head>
       <body className="has-mobile-tabs">
+        <div id="boot-splash" role="status" aria-live="polite" aria-label="در حال آماده‌سازی زرسیگنال">
+          <span className="boot-splash__mark" aria-hidden="true"><Activity size={28} /></span>
+          <strong className="boot-splash__brand">زر<span>سیگنال</span></strong>
+          <small>ZARSIGNAL</small>
+        </div>
+        <SiteBoot />
         <JsonLd data={{ '@context': 'https://schema.org', '@type': 'WebSite', name: 'زرسیگنال', url: siteUrl, inLanguage: 'fa-IR', description: 'دیده‌بان فارسی بازار طلا، نقره و ارز با زمان و منبع مشخص داده.' }} />
         <a href="#main" className="skip-link">رفتن به محتوای اصلی</a>
         <Header />

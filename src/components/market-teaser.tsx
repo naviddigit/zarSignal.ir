@@ -77,7 +77,6 @@ export function MarketTeaser({ snapshot, bubbles }: { snapshot: Snapshot; bubble
     <section className="panel market-teaser" aria-label="خلاصه نبض بازار">
       <header className="market-teaser__head">
         <div>
-          <span className="eyebrow">تابلوی بازار</span>
           <h2>نرخ‌های تابلو</h2>
         </div>
         <div className="market-teaser__actions">

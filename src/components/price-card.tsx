@@ -93,7 +93,13 @@ export function PriceCard({ item, href }: { item: PriceCardModel; href: string }
             <span className="price-card__bubble-slot">
               <BubbleBadge item={item} />
             </span>
-            {item.quote ? <RelativeTime value={item.quote.observedAt} /> : <span className="price-card__time-slot" aria-hidden="true" />}
+            {item.quote ? (
+              <span className="price-card__time">
+                <RelativeTime value={item.quote.observedAt} />
+              </span>
+            ) : (
+              <span className="price-card__time-slot" aria-hidden="true" />
+            )}
           </footer>
         </div>
         <aside className="price-card__side">

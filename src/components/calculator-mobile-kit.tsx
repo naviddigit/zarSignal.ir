@@ -257,7 +257,7 @@ export function CalculatorPopularRow({
       <header>
         <div className="calc-popular__heading">
           <strong>ابزار انتخابی</strong>
-          <small className="calc-currency-note">محاسبات قیمت: تومانی</small>
+          <small className="calc-currency-note">تومانی</small>
           {onOpenFullList ? (
             <button type="button" className="calc-popular__all" onClick={onOpenFullList}>
               لیست کامل
