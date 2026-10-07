@@ -29,3 +29,20 @@ test('mobile market and bubbles use compact two-column cards',async({page})=>{
   await expect(page.locator('.bubble-grid')).toHaveCSS('grid-template-columns',/\d.*px \d.*px/);
   await page.locator('#bubbles').screenshot({path:'artifacts/bubbles-mobile-completion.png'});
 });
+
+test('calculator waits beyond twelve seconds for a fresh quote without another click',async({page})=>{
+  await page.goto('/calculator');
+  await page.getByRole('button',{name:'مثقال ↔ گرم ۱۸',exact:true}).click();
+  await page.getByRole('button',{name:'مثقال به گرم ۱۸',exact:true}).click();
+  await page.clock.install();
+  let release!: (route: import('@playwright/test').Route) => void;
+  const requested = new Promise<import('@playwright/test').Route>(resolve=>{release=resolve;});
+  await page.route('**/api/public/markets?fresh=1',route=>release(route));
+  await page.getByRole('button',{name:'تازه‌سازی قیمت‌ها'}).click();
+  const route = await requested;
+  await page.clock.fastForward(13000);
+  const now = new Date().toISOString();
+  await route.fulfill({json:{mode:'live',status:'ok',quotes:[{symbol:'GOLD_MELTED',buy:'100000000',sell:'100000000',currency:'TMN',unit:'مثقال',observedAt:now,fetchedAt:now,source:'زرسیگنال',sourceUrl:null}]}});
+  await expect(page.getByRole('textbox',{name:'مثقال آب‌شده ۷۰۵'})).toHaveValue('100,000,000');
+  await expect(page.locator('.calc-error')).toHaveCount(0);
+});

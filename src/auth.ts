@@ -1,4 +1,5 @@
 import NextAuth from 'next-auth';
+import { cache } from 'react';
 import Google from 'next-auth/providers/google';
 import Credentials from 'next-auth/providers/credentials';
 import { PrismaAdapter } from '@auth/prisma-adapter';
@@ -10,7 +11,7 @@ function validGoogleCredentials(clientId?: string | null, clientSecret?: string 
   return Boolean(clientId?.endsWith('.apps.googleusercontent.com') && clientSecret && clientSecret.length >= 20);
 }
 
-async function googleCredentials() {
+const googleCredentials = cache(async () => {
   try {
     const setting = await db.integrationSetting.findUnique({ where: { key: 'google_oauth' } });
     if (setting?.enabled && setting.publicValue && setting.valueEncrypted) {
@@ -22,7 +23,7 @@ async function googleCredentials() {
     return { clientId: process.env.GOOGLE_CLIENT_ID, clientSecret: process.env.GOOGLE_CLIENT_SECRET };
   }
   return null;
-}
+});
 
 export async function getAuthCapabilities() {
   return {

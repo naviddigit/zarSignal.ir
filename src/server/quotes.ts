@@ -65,7 +65,7 @@ export async function getSnapshot(fresh = false): Promise<Snapshot> {
     }
   }
   try {
-    let snapshot = await withDeadline(fresh ? readLiveQuotes() : liveQuotes(), 5_000);
+    let snapshot = await withDeadline(fresh ? readLiveQuotes() : liveQuotes(), fresh ? 10_000 : 5_000);
     const needsRefresh = snapshot.status !== 'ok'
       || snapshot.quotes.length < instruments.length
       || snapshot.quotes.some(quote => isStale(quote));

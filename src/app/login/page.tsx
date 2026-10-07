@@ -69,7 +69,12 @@ export default async function LoginPage({
                     <span>ادامه با گوگل</span>
                   </PendingButton>
                 </form>
-              ) : null}
+              ) : (
+                <div className="auth-google-unavailable">
+                  <button type="button" className="google-button" disabled><GoogleMark size={20} /><span>ادامه با گوگل</span></button>
+                  <small>اتصال گوگل موقتاً در دسترس نیست؛ با ایمیل وارد شوید.</small>
+                </div>
+              )}
 
               {authCapabilities.google && emailReady ? (
                 <div className="auth-divider"><span>یا با ایمیل</span></div>

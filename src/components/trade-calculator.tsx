@@ -28,7 +28,7 @@ export function TradeCalculator({operation,snapshot,favoriteSlot}:{operation:Cal
   const input=(key:string,label:string,unit='تومان / گرم')=><label className="trade-field"><span>{label}</span><input className="ds-input" inputMode="decimal" dir="ltr" value={formatNumericInput(fields[key]??'')} onChange={e=>update(key,sanitizeNumericInput(e.target.value,6))} aria-label={label}/><small>{unit}</small></label>;
   async function refresh() {
     setPending(true);setError('');
-    try { const next=await fetchJson<Snapshot>('/api/public/markets?fresh=1',new AbortController().signal,45000);setMarket(next);if(!resolveCalculatorLiveValue(calculatorCatalog.quickTrade.fields[0],next)) setError('قیمت تازه موجود نیست؛ ورود دستی در دسترس است.'); }
+    try { const next=await fetchJson<Snapshot>('/api/public/markets?fresh=1',new AbortController().signal,60000);setMarket(next);if(!resolveCalculatorLiveValue(calculatorCatalog.quickTrade.fields[0],next)) setError('قیمت تازه موجود نیست؛ ورود دستی در دسترس است.'); }
     catch {setError('دریافت قیمت ناموفق بود.');} finally {setPending(false);}
   }
   return <form className="calc-tool-panel trade-calculator" onSubmit={async e=>{

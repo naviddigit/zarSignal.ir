@@ -1,5 +1,6 @@
 import { getPublicSnapshot } from '@/server/quotes';
 export const dynamic = 'force-dynamic';
+export const maxDuration = 60;
 export async function GET(request: Request) {
   const fresh = new URL(request.url).searchParams.get('fresh') === '1';
   const snapshot = await getPublicSnapshot(fresh);

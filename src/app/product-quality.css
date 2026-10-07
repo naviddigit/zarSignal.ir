@@ -311,3 +311,31 @@
  .auth-card>small{font-size:9px;line-height:1.7;margin-top:12px}
  body:has(.auth-page)>.footer{display:none!important}
 }
+/* Login uses one uninterrupted surface, with Google as the first graphical action. */
+body:has(.auth-page){background:var(--surface-page);background-image:none}
+.auth-page{background:transparent;min-height:calc(100dvh - 180px);padding:32px 20px;place-items:center}
+.auth-card{padding:26px;box-shadow:0 12px 36px var(--shadow)}
+.auth-card>p{margin:4px 0 20px}
+.auth-card>.brand{display:none}
+.auth-card .google-button{min-height:48px;border-color:var(--border-subtle);background:var(--surface-raised);border-radius:12px;box-shadow:none;gap:12px}
+.auth-card .google-button:disabled{opacity:.65;cursor:not-allowed}
+.auth-google-unavailable{display:grid;gap:6px}.auth-google-unavailable>small{font-size:10px;color:var(--text-muted);line-height:1.6}
+.auth-config-note{color:var(--text-secondary)!important}.auth-config-note a{color:var(--accent)}
+@media(max-width:760px){
+ .auth-page{min-height:calc(100dvh - 150px);padding:20px 16px 28px;place-items:start center}
+ .auth-card{padding:20px;margin:0;box-shadow:none;width:100%;max-width:400px}
+ .auth-card h1{font-size:22px}
+ .auth-card .google-button{font-size:13px}
+ .home-page .product-grid{gap:10px;margin-block:18px}
+ .home-page .product-grid>.panel{padding:16px;border-radius:14px;min-width:0}
+ .home-page .product-grid h2,.home-page .product-grid h3{font-size:16px;margin:6px 0}
+ .home-page .product-grid p{font-size:12px;line-height:1.7;margin:6px 0 10px}
+ .home-page .product-grid .button{min-height:44px;padding:10px 14px;font-size:12px}
+ .home-page .feature-card>svg{width:20px;height:20px;margin:0}
+ .home-page .feature-card>code{font-size:11px;padding:8px 10px;margin-top:10px}
+ .home-page .feature-card>a{display:inline-flex;align-items:center;gap:4px;min-height:44px;font-size:11px;margin-top:0;margin-inline-end:14px}
+ .home-page .feature-card .platforms{font-size:12px;margin-top:8px}
+ .home-page .principles{padding:16px;gap:10px;margin-block:18px;align-items:start}
+ .home-page .principles h3{font-size:14px;margin:0 0 6px}
+ .home-page .principles p{font-size:11px;line-height:1.7;margin:0}
+}

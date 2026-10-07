@@ -260,11 +260,6 @@ export function CalculatorPopularRow({
         trackClassName="calc-popular__icons"
         label="ابزار انتخابی"
         step={120}
-        endSlot={onOpenFullList ? (
-          <button type="button" className="calc-popular__all" onClick={onOpenFullList}>
-            لیست کامل
-          </button>
-        ) : undefined}
       >
         {items.map(item => {
           const Icon = item.Icon;
@@ -286,6 +281,10 @@ export function CalculatorPopularRow({
             </button>
           );
         })}
+        {onOpenFullList && <button type="button" className="calc-popular__full-list" onClick={onOpenFullList}>
+          <span className="calc-popular__icon"><Menu size={16} strokeWidth={1.9} /></span>
+          <small>لیست کامل</small>
+        </button>}
       </HScrollRail>
     </section>
   );

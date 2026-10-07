@@ -390,3 +390,6 @@ body:has(.calc-app-page)>.footer{display:none!important}
  .calc-popular__icons>button .calc-popular__icon{width:22px;height:22px;border-radius:7px}
  .calc-popular__icons>button .calc-popular__icon>svg:not(.calc-lock-badge):not(.calc-star-badge){width:16px;height:16px}
 }
+/* Full-list tile belongs to the scrolling tools, not a fixed end slot. */
+.calc-popular__rail.h-scroll-rail{grid-template-columns:24px minmax(0,1fr) 24px}
+.calc-popular__icons>button.calc-popular__full-list{border-style:solid;background:var(--surface-soft);color:var(--accent)}

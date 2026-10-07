@@ -294,7 +294,7 @@ export function ProfessionalCalculator({
     if (mode === 'LIVE' && requested && !resolveCalculatorLiveValue(requested, market)) {
       const controller = new AbortController(); request.current = controller;
       setPending(true);
-      try { nextMarket = await fetchJson<Snapshot>('/api/public/markets?fresh=1', controller.signal, 45000); if (controller.signal.aborted) return; setMarket(nextMarket); }
+      try { nextMarket = await fetchJson<Snapshot>('/api/public/markets?fresh=1', controller.signal, 60000); if (controller.signal.aborted) return; setMarket(nextMarket); }
       catch { if (!controller.signal.aborted) setError('دریافت قیمت ممکن نشد؛ دوباره تلاش کنید.'); return; }
       finally { if (request.current === controller) setPending(false); }
       if (!resolveCalculatorLiveValue(requested, nextMarket)) { setError(`قیمت لحظه‌ای «${requested.label}» موجود نیست.`); return; }
@@ -315,7 +315,7 @@ export function ProfessionalCalculator({
     request.current = controller;
     setPending(true);
     try {
-      const next = await fetchJson<Snapshot>('/api/public/markets?fresh=1', controller.signal, 12000);
+      const next = await fetchJson<Snapshot>('/api/public/markets?fresh=1', controller.signal, 60000);
       if (controller.signal.aborted) return;
       setMarket(next);
       if (spec) {
