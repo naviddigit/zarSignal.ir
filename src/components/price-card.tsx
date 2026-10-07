@@ -87,7 +87,8 @@ export function PriceCard({ item, href }: { item: PriceCardModel; href: string }
             </span>
           </header>
           <div className="price-card__price">
-            <bdi className={tone ? `is-${tone}` : undefined}>{item.quote ? formatPrice(item.quote.sell, item.quote.currency) : '—'}</bdi>
+            <bdi className={tone ? `is-${tone}` : undefined}>{item.quote ? formatPrice(item.quote.sell, item.quote.currency).replace(/\s\S+$/, '') : '—'}</bdi>
+            {item.quote && <small>{item.quote.currency === 'TMN' ? 'تومان' : 'دلار'}</small>}
           </div>
           <footer className="price-card__foot">
             <span className="price-card__bubble-slot">

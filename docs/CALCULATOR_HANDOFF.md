@@ -13,3 +13,4 @@
 - Use shared theme tokens; mobile price cards remain two columns even under 420px. Bubble cards use two columns, final card spans full width. Desktop layout is preserved. Trade forms use native decimal input; hide the separate calculator keypad in the trade category.
 
 Checks: `npm run typecheck`; `npm test`; `npx playwright test e2e/site-boot.spec.ts e2e/calculator-completion.spec.ts e2e/professional-calculator.spec.ts --project=mobile`; `npm run build`.
+- Quote-card units stay inline with their number, not inside the same wrapping text node. Keep equal card heights and matching calculator category/tool icon sizes (20px desktop, 18px phone; badges remain smaller).

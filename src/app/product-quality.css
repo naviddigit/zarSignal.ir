@@ -247,3 +247,25 @@
   .market-board-window .price-card-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
   .price-card__title{min-width:0}.price-card__title strong{overflow-wrap:anywhere}
 }
+/* Shared quote cards: keep the value and its unit together, with equal row heights. */
+.price-card-grid{grid-auto-rows:1fr}
+.price-card__title strong{font-size:12px}
+.price-card__price{display:flex;align-items:baseline;gap:4px;white-space:nowrap;min-width:0}
+.price-card__price bdi{min-width:0}
+.price-card__price small{font-size:10px;color:var(--text-muted);flex:none}
+@media(max-width:760px){
+ .market-teaser__head h2{font-size:14px}
+ .price-card__main{grid-template-columns:minmax(0,1fr) 32px;grid-template-rows:auto auto auto;min-height:108px;align-content:space-between;row-gap:6px}
+ .price-card__body{display:contents}
+ .price-card__head{grid-column:1;grid-row:1}
+ .price-card__head .market-asset-mark{width:28px;height:28px;border-radius:9px}
+ .price-card__head .market-asset-mark svg{width:18px;height:18px}
+ .price-card__title strong{font-size:10px}
+ .price-card__side{grid-column:2;grid-row:1;width:32px;align-content:center;padding-top:0}
+ .price-card__spark{width:32px}
+ .price-card__price{grid-column:1/-1;grid-row:2;gap:3px}
+ .price-card__price bdi{font-size:12px;line-height:1.4}
+ .price-card__price small{font-size:9px}
+ .price-card__foot{grid-column:1/-1;grid-row:3}
+ .price-card__time{min-width:0;flex:1;text-align:end}
+}

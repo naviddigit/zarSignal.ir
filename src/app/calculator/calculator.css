@@ -297,7 +297,7 @@
 .professional-calculator{grid-template-areas:"tiles tiles" "popular popular" "main side";gap:18px;align-items:start}
 .calc-products{display:none}.calc-product-tiles{display:flex;grid-area:tiles}
 .calc-product-tiles>button{min-height:72px;padding:10px}.calc-product-tiles>button small{font-size:13px}
-.calc-product-tiles__icon{width:36px;height:36px}.calc-product-tiles__icon svg{width:24px;height:24px}
+.calc-product-tiles__icon,.calc-popular__icon{width:36px;height:36px}.calc-product-tiles__icon>svg,.calc-popular__icon>svg:not(.calc-lock-badge):not(.calc-star-badge){width:20px;height:20px}
 .calc-stage__side{display:flex;flex-direction:column;gap:10px;position:sticky;top:90px}
 .calc-keypad-wrap{padding:12px}.calc-keypad{direction:ltr;grid-template-rows:repeat(5,48px);gap:6px}
 .calc-keypad button{min-height:0;height:100%;font-size:21px}
@@ -371,3 +371,12 @@ body:has(.calc-app-page)>.footer{display:none!important}
 @media(max-width:760px){.trade-calculator{gap:10px}.trade-fields{gap:8px}.trade-price,.trade-step{padding:10px}.trade-field{font-size:11px}.trade-calculator .calc-result-details{font-size:11px}.calc-tool-panel__unit{max-width:none;white-space:nowrap}.calc-tool-panel__head{min-width:0}.calc-tool-panel__label{line-height:1.5}.calc-tool-panel__toolbar{min-width:0}.calc-tool-panel__title{min-width:0;font-size:13px}}
 .professional-calculator.is-trade .calc-stage__main{grid-column:1/-1}
 @media(max-width:760px){.calc-product-tiles>button small{font-size:10px;line-height:1.2}.calc-product-tiles>button{padding-inline:2px}.trade-calculator .ds-select__trigger{min-height:44px}}
+/* Both tool rows share icon sizing; titles use the next smaller DS text step. */
+.calc-product-tiles>button small{font-size:12px}
+.calc-tool-panel__title,.calc-weight-widget__head strong{font-size:13px}
+@media(max-width:760px){
+ .calc-product-tiles__icon,.calc-popular__icons>button .calc-popular__icon{width:26px;height:26px}
+ .calc-product-tiles__icon>svg,.calc-popular__icons>button .calc-popular__icon>svg:not(.calc-lock-badge):not(.calc-star-badge){width:18px;height:18px}
+ .calc-product-tiles>button small{font-size:10px}
+ .calc-tool-panel__title,.calc-weight-widget__head strong{font-size:12px}
+}
