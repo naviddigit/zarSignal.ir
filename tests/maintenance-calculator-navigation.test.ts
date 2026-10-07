@@ -20,7 +20,7 @@ test('calculator layout keeps valid categories, removes injected tools, and pins
     tools: { gold: ['fineGold', 'fineGold', 'unapproved'] },
     starred: { gold: ['goldBubble', 'unapproved'] },
   });
-  assert.deepEqual(navigation.categories, ['coin', 'gold', 'silver', 'fx']);
+  assert.deepEqual(navigation.categories, ['coin', 'gold', 'silver', 'fx', 'trade']);
   assert.equal(navigation.tools.gold[0], 'fineGold');
   assert.equal(navigation.tools.gold.includes('unapproved'), false);
   assert.deepEqual(navigation.starred.gold, ['goldBubble']);
@@ -30,5 +30,5 @@ test('calculator layout keeps valid categories, removes injected tools, and pins
     visibleCalculatorTools('gold', navigation, { favorites: [], lockedIds: ['fineGold'] })[0] !== 'fineGold',
     true,
   );
-  assert.equal(defaultCalculatorNavigation.categories.length, 4);
+  assert.equal(defaultCalculatorNavigation.categories.length, 5);
 });

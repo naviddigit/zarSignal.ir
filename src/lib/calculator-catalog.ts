@@ -1,5 +1,5 @@
 import type { Symbol } from '@/lib/market';
-export type CalculatorOperation = 'mazanehTo18k' | 'market18kToMazaneh' | 'goldBubble' | 'usdGap' | 'silverBubble'
+export type CalculatorOperation = 'quickTrade' | 'scaleIn' | 'positionManager' | 'scaleOut' | 'tradeSimulator' | 'mazanehTo18k' | 'market18kToMazaneh' | 'goldBubble' | 'usdGap' | 'silverBubble'
   | 'fineGold' | 'uaeGold' | 'fxRateGap' | 'rateCompare' | 'coinBuy' | 'coinSell'
   | 'coinBreakEven' | 'coinCapital' | 'coinPnl' | 'fineSilver' | 'silverBarCost' | 'silverMintPremium'
   | 'meltedPnl' | 'percentageChange' | 'goldSilverSwap' | 'capitalGold' | 'capitalSilver' | 'aedDerivedUsd'
@@ -14,13 +14,18 @@ const usd: CalculatorField = { key: 'usd', label: 'نرخ دلار', unit: 'تو
 const aed: CalculatorField = { key: 'aed', label: 'نرخ درهم', unit: 'تومان / درهم', symbol: 'AED', currency: 'TMN', quoteUnit: 'درهم' };
 const silver999: CalculatorField = { key: 'silver999', label: 'گرم نقره ۹۹۹', unit: 'تومان / گرم', symbol: 'SILVER_999', currency: 'TMN', quoteUnit: 'گرم' };
 export const calculatorCatalog: Record<CalculatorOperation, { title: string; formulaId: string; version: string; fields: CalculatorField[]; note?: string }> = {
+  quickTrade: { title: 'خرید/فروش سریع', formulaId: 'quickTrade', version: '1.0', fields: [gram] },
+  scaleIn: { title: 'خرید پله‌ای', formulaId: 'scaleIn', version: '1.0', fields: [gram] },
+  positionManager: { title: 'مدیریت پوزیشن', formulaId: 'positionManager', version: '1.0', fields: [gram] },
+  scaleOut: { title: 'فروش پله‌ای', formulaId: 'scaleOut', version: '1.0', fields: [gram] },
+  tradeSimulator: { title: 'سناریوساز', formulaId: 'tradeSimulator', version: '1.0', fields: [gram] },
   mazanehTo18k: { title: 'مثقال به گرم ۱۸ عیار', formulaId: 'MAZANEH_TO_18K', version: '1.1', fields: [melted] },
   market18kToMazaneh: { title: 'گرم ۱۸ عیار به مثقال', formulaId: 'MAZANEH_TO_18K', version: '1.1', fields: [gram] },
   goldBubble: { title: 'ارزش محاسباتی و حباب طلا', formulaId: 'GOLD_BUBBLE', version: '1.0', fields: [melted, xau, usd] },
   usdGap: { title: 'فاصله دلار با دلار ضمنی طلا', formulaId: 'USD_GAP', version: '1.0', fields: [melted, xau, usd] },
   silverBubble: { title: 'ارزش محاسباتی و حباب نقره ۹۹۹', formulaId: 'SILVER_BUBBLE', version: 'V5.4-SILVER.1', fields: [xag, usd, silver999] },
   fineGold: { title: 'طلای خالص و ارزش فلز', formulaId: 'G03_FINE_GOLD', version: 'LOCK-V3', fields: [manual('weight', 'وزن ناخالص', 'گرم'), manual('purity', 'عیار', 'از ۱۰۰۰', { max: 1000 }), gram] },
-  uaeGold: { title: 'مقایسه طلای ایران و امارات', formulaId: 'G08_UAE_GOLD', version: 'LOCK-V3', fields: [manual('uae24', 'گرم طلای ۲۴ عیار امارات', 'درهم / گرم'), manual('aed', 'نرخ درهم', 'تومان / درهم'), gram], note: 'مقایسه نظری است؛ هزینه تبدیل ارز، مالیات، حمل و قیمت اجرایی را شامل نمی‌شود.' },
+  uaeGold: { title: 'مقایسه طلای ایران و امارات', formulaId: 'UAE18K_GAP', version: 'V5.7-UAE', fields: [{ ...xau, key: 'uae18', label: 'گرم طلای ۱۸ عیار امارات', unit: 'درهم / گرم' }, aed, gram] },
   fxRateGap: { title: 'فاصله دلار ضمنی و دلار درهمی', formulaId: 'F04_FX_GAP', version: 'LOCK-V3', fields: [manual('implied', 'دلار ضمنی طلا', 'تومان / دلار'), manual('derived', 'دلار مشتق از درهم', 'تومان / دلار')] },
   rateCompare: { title: 'مقایسه دو نرخ ارز', formulaId: 'F06_RATE_COMPARISON', version: 'LOCK-V3', fields: [manual('rateA', 'نرخ اول', 'تومان'), manual('rateB', 'نرخ دوم', 'تومان')] },
   coinBuy: { title: 'هزینه خرید سکه', formulaId: 'C01_BUY_COIN', version: 'LOCK-V3', fields: [manual('price', 'قیمت هر سکه', 'تومان'), manual('quantity', 'تعداد سکه', 'عدد'), manual('cost', 'جمع کارمزد و هزینه', 'تومان', { allowZero: true })], note: 'قیمت خرید و همه هزینه‌ها را خودتان وارد کنید؛ قیمت تابلو لزوماً قیمت اجرایی نیست.' },

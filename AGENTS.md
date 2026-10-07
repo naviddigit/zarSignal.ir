@@ -7,3 +7,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
 
 <!-- END:nextjs-agent-rules -->
+
+
+## Shared change contract (Codex / Cursor)
+Read `docs/CALCULATOR_HANDOFF.md` before changing the calculator, boot splash or mobile market cards. Inspect the current working diff and preserve unrelated in-progress edits. Do not revert files to an older design to fix a local issue. Keep the shared live-price resolver and run the relevant regression checks before pushing.

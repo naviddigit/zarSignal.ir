@@ -363,3 +363,11 @@ body:has(.calc-app-page)>.footer{display:none!important}
  .calc-product-tiles{min-height:50px}.calc-product-tiles>button{min-height:50px;padding:6px 3px 8px}
  .calc-keypad{grid-template-rows:repeat(5,30px);gap:3px}.calc-keypad button{font-size:14px}
 }
+.trade-calculator{display:grid;gap:14px}.trade-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.trade-field{display:grid;gap:5px;min-width:0;font-size:12px}.trade-field .ds-input{width:100%;min-width:0;min-height:44px;font-size:16px;padding:8px 10px}.trade-field small{color:var(--text-muted);font-size:10px}
+.trade-price,.trade-step{border:1px solid var(--border-subtle);background:var(--surface-soft);border-radius:12px;padding:12px;display:grid;gap:8px}
+.trade-price__head,.trade-step>header,.trade-steps>header{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12px}.trade-price__number{font-size:24px;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}.trade-price__number small,.trade-step__value{font-size:10px;color:var(--text-muted)}
+.trade-steps{display:grid;gap:10px}.trade-steps .chart-retry{width:fit-content}.professional-calculator .calc-stage__side[hidden]{display:none}
+@media(max-width:760px){.trade-calculator{gap:10px}.trade-fields{gap:8px}.trade-price,.trade-step{padding:10px}.trade-field{font-size:11px}.trade-calculator .calc-result-details{font-size:11px}.calc-tool-panel__unit{max-width:none;white-space:nowrap}.calc-tool-panel__head{min-width:0}.calc-tool-panel__label{line-height:1.5}.calc-tool-panel__toolbar{min-width:0}.calc-tool-panel__title{min-width:0;font-size:13px}}
+.professional-calculator.is-trade .calc-stage__main{grid-column:1/-1}
+@media(max-width:760px){.calc-product-tiles>button small{font-size:10px;line-height:1.2}.calc-product-tiles>button{padding-inline:2px}.trade-calculator .ds-select__trigger{min-height:44px}}

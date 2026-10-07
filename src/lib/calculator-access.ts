@@ -20,6 +20,11 @@ const ALL_LEVELS: AccessLevel[] = ['FREE', 'HOME', 'PROFESSIONAL', 'ADVANCED_PRO
 
 /** Defaults preserve today's public catalog: all approved modules free. */
 export const defaultCalculatorAccessPolicy: CalculatorAccessPolicy = {
+  quickTrade: { mode: 'free', allowedLevels: [...ALL_LEVELS] },
+  scaleIn: { mode: 'free', allowedLevels: [...ALL_LEVELS] },
+  positionManager: { mode: 'free', allowedLevels: [...ALL_LEVELS] },
+  scaleOut: { mode: 'free', allowedLevels: [...ALL_LEVELS] },
+  tradeSimulator: { mode: 'free', allowedLevels: [...ALL_LEVELS] },
   marketWeight: { mode: 'free', allowedLevels: [...ALL_LEVELS] },
   weight: { mode: 'free', allowedLevels: [...ALL_LEVELS] },
   purity: { mode: 'free', allowedLevels: [...ALL_LEVELS] },

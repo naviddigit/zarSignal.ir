@@ -41,7 +41,7 @@ test('18k live price is derived only from a fresh 705 mazaneh quote', () => {
   const observedAt = new Date().toISOString();
   const direct18k = { ...demoQuotes[1], observedAt, buy: '1', sell: '1' };
   const request = { operation: 'market18kToMazaneh', inputs: { gram: { provenance: 'LIVE', value: 1 } } };
-  assert.throws(() => calculateProfessional(request, { mode: 'live', status: 'ok', quotes: [direct18k] }), /داده تازه و هم‌واحد/);
+  assert.throws(() => calculateProfessional(request, { mode: 'live', status: 'ok', quotes: [direct18k] }), /تازه یا هم‌واحد/);
   const melted = { ...demoQuotes[0], observedAt, buy: '43318000', sell: '43318000' };
   const result = calculateProfessional(request, { mode: 'live', status: 'ok', quotes: [direct18k, melted] });
   assert.equal(result.inputs[0].value, 10000000);
@@ -66,9 +66,9 @@ test('silver LIVE accepts a fresh one-sided watch price but rejects inverted bid
 test('LOCK-V3 manual metal, UAE, FX and coin calculations preserve units and signs', () => {
   const fineGold = calculateProfessional({ operation: 'fineGold', inputs: { weight: manual(10), purity: manual(750), gram: manual(10000000) } }, empty);
   assert.deepEqual(fineGold.outputs.map(o => o.value), [7.5, 10, 100000000]);
-  const uae = calculateProfessional({ operation: 'uaeGold', inputs: { uae24: manual(300), aed: manual(30000), gram: manual(7000000) } }, empty);
-  assert.equal(uae.outputs[0].value, 9000000);
-  assert.ok(Math.abs(uae.outputs[1].value - 6756756.756756756) < 0.01);
+  const uae = calculateProfessional({ operation: 'uaeGold', inputs: { uae18: manual(225), aed: manual(30000), gram: manual(7000000) } }, empty);
+  assert.ok(Math.abs(uae.outputs[0].value - 6750000) < .01);
+  assert.equal(uae.outputs[1].value, 7000000);
   assert.ok(uae.outputs[2].value > 0);
   const gap = calculateProfessional({ operation: 'fxRateGap', inputs: { implied: manual(90000), derived: manual(100000) } }, empty);
   assert.deepEqual(gap.outputs.map(o => o.value), [-10000, -10]);

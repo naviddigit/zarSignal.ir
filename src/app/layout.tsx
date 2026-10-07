@@ -28,7 +28,7 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
-const themeBootScript = `try{const t=localStorage.getItem('zarsignal-theme');const p=t==='light'||t==='dark'?t:'system';const v=p==='system'?(matchMedia('(prefers-color-scheme:light)').matches?'light':'dark'):p;const r=document.documentElement;r.dataset.themePreference=p;r.dataset.theme=v;r.style.colorScheme=v;r.classList.add('is-booting')}catch{const r=document.documentElement;r.dataset.theme='dark';r.dataset.themePreference='system';r.classList.add('is-booting')}`;
+const themeBootScript = `try{const t=localStorage.getItem('zarsignal-theme');const p=t==='light'||t==='dark'?t:'system';const v=p==='system'?(matchMedia('(prefers-color-scheme:light)').matches?'light':'dark'):p;const r=document.documentElement;r.dataset.themePreference=p;r.dataset.theme=v;r.style.colorScheme=v;r.classList.add('is-booting')}catch{const r=document.documentElement;r.dataset.theme='dark';r.dataset.themePreference='system';r.classList.add('is-booting')}setTimeout(function(){const r=document.documentElement;r.classList.remove('is-booting');r.classList.add('site-ready');document.getElementById('boot-splash')?.setAttribute('aria-hidden','true')},1800)`;
 
 export default function Layout({ children }: Readonly<{ children: React.ReactNode }>) {
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://zarsignal.ir';
@@ -41,7 +41,7 @@ export default function Layout({ children }: Readonly<{ children: React.ReactNod
         </noscript>
       </head>
       <body className="has-mobile-tabs">
-        <div id="boot-splash" role="status" aria-live="polite" aria-label="در حال آماده‌سازی زرسیگنال">
+        <div id="boot-splash" suppressHydrationWarning role="status" aria-live="polite" aria-label="در حال آماده‌سازی زرسیگنال">
           <span className="boot-splash__mark" aria-hidden="true"><Activity size={28} /></span>
           <strong className="boot-splash__brand">زر<span>سیگنال</span></strong>
           <small>ZARSIGNAL</small>

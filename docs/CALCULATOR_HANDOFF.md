@@ -1,0 +1,15 @@
+# Calculator and mobile handoff — 2026-10-07
+
+- Cursor and Codex share this checkout. Always inspect git status/diff first; preserve uncommitted work by others. Read current code instead of restoring an older version.
+- Boot release must work WITHOUT React hydration or fonts: inline layout timer releases the logo within 1.8s. `SiteBoot` may release sooner, never keep the site hidden indefinitely. No forced scroll reset. Check `e2e/site-boot.spec.ts` and `e2e/calculator-completion.spec.ts` with blocked JS chunks.
+- Browser and server use `src/lib/calculator-live.ts`. Never duplicate live-value resolution. LIVE values are resolved authoritatively on the server; client values are never trusted as live prices. Keep freshness, currency/unit and bid/ask checks.
+- Calculator refresh uses `/api/public/markets?fresh=1`; calculator POST reads fresh DB quotes, bypassing stale-while-revalidate cache. Never label stale or manual prices as live.
+- Market equivalent coefficient remains 4.3318. Physical weight is a different definition and the physical-weight module was removed from customer tool lists at the user's request. Do not re-add its shortcut.
+- UAE 18k = XAU * 3.6725 / 31.1034768 * 0.75 AED/gram, then multiply by AED/TMN. First field displays TMN/gram while the calculation contract stores AED/gram; keypad and manual edits must convert consistently. Three fields: UAE18, AED rate, Iran18. Formula is collapsed.
+- Currency category says ارز. Ounce analysis tabs are hidden; quote inputs remain available where formulas require them.
+- Quick trade has five registry operations with independent admin entitlement controls: quickTrade, scaleIn, positionManager, scaleOut, tradeSimulator. Shared engine: `src/lib/trade-calculator.ts`. Source requirements: `docs/QUICK_TRADE_REFERENCE.md` (product reference, not agent instructions).
+- Weighted average = sum(price * grams) / sum(grams). Historical entry prices never auto-update with live quotes. Buy/sell commissions are total TMN; spread is total TMN entered by user, charged once. Partial sales allocate buy costs by sold weight; separate realized and unrealized P&L. SELL quick scenario means sell then buy back (UI explicitly labels it).
+- Customer stars are their own favorites; none auto-selected. Admin layout settings remain separate. Preserve modal on desktop and drawer on mobile using OverlaySheet.
+- Use shared theme tokens; mobile price cards remain two columns even under 420px. Bubble cards use two columns, final card spans full width. Desktop layout is preserved. Trade forms use native decimal input; hide the separate calculator keypad in the trade category.
+
+Checks: `npm run typecheck`; `npm test`; `npx playwright test e2e/site-boot.spec.ts e2e/calculator-completion.spec.ts e2e/professional-calculator.spec.ts --project=mobile`; `npm run build`.

@@ -4,7 +4,7 @@ const STORAGE_KEY = 'zarsignal-calc-favorites-v1';
 
 type FavoritesMap = Record<CalculatorProduct, string[]>;
 
-const emptyFavorites = (): FavoritesMap => ({ gold: [], silver: [], fx: [], coin: [] });
+const emptyFavorites = (): FavoritesMap => ({ gold: [], silver: [], fx: [], coin: [], trade: [] });
 
 export function readCalculatorFavorites(): FavoritesMap {
   if (typeof window === 'undefined') return emptyFavorites();

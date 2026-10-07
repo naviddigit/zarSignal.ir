@@ -2,8 +2,8 @@
 
 import { useEffect } from 'react';
 
-const MIN_MS = 2800;
-const MAX_MS = 5200;
+const MIN_MS = 400;
+const MAX_MS = 1800;
 
 /**
  * Soft boot: keep logo splash until first paint is stable, then fade site in.
@@ -20,7 +20,6 @@ export function SiteBoot() {
       done = true;
       const wait = Math.max(0, MIN_MS - (performance.now() - started));
       window.setTimeout(() => {
-        window.scrollTo(0, 0);
         root.classList.add('site-ready');
         root.classList.remove('is-booting');
         window.setTimeout(() => {

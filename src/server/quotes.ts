@@ -48,7 +48,7 @@ async function readLiveQuotes(): Promise<Snapshot> {
 
 const liveQuotes = unstable_cache(readLiveQuotes, ['market-quotes-v2'], { revalidate: 60, tags: ['market-quotes-v2'] });
 
-export async function getSnapshot(): Promise<Snapshot> {
+export async function getSnapshot(fresh = false): Promise<Snapshot> {
   if (process.env.MARKET_MODE === 'demo' || (!process.env.MARKET_MODE && process.env.NODE_ENV !== 'production')) {
     return { mode: 'demo', status: 'demo', quotes: [], pollSeconds: 60 };
   }
@@ -65,7 +65,7 @@ export async function getSnapshot(): Promise<Snapshot> {
     }
   }
   try {
-    let snapshot = await withDeadline(liveQuotes(), 5_000);
+    let snapshot = await withDeadline(fresh ? readLiveQuotes() : liveQuotes(), 5_000);
     const needsRefresh = snapshot.status !== 'ok'
       || snapshot.quotes.length < instruments.length
       || snapshot.quotes.some(quote => isStale(quote));
@@ -93,8 +93,8 @@ export async function getSnapshot(): Promise<Snapshot> {
 }
 
 /** Public site + sold API never expose upstream provider name or URL. */
-export async function getPublicSnapshot(): Promise<Snapshot> {
-  const snapshot = await getSnapshot();
+export async function getPublicSnapshot(fresh = false): Promise<Snapshot> {
+  const snapshot = await getSnapshot(fresh);
   return {
     ...snapshot,
     quotes: snapshot.quotes.map(quote => ({ ...quote, source: 'زرسیگنال', sourceUrl: null })),

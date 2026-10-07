@@ -1,0 +1,5 @@
+---
+description: Preserve verified calculator, mobile layout and boot recovery behavior
+alwaysApply: true
+---
+Read AGENTS.md and docs/CALCULATOR_HANDOFF.md before edits. Preserve unrelated dirty changes. Extend the existing components and shared price resolver instead of restoring older copies. Run the listed regression checks after changing their behavior.

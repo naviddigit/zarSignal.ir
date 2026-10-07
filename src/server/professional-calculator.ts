@@ -1,55 +1,22 @@
+import { calculateTrade, isTradeOperation } from '@/lib/trade-calculator';
 import { calculatorCatalog, type CalculatorOperation, type CalculatorResult } from '@/lib/calculator-catalog';
-import { isStale, type Quote, type Snapshot } from '@/lib/market';
+import type { Snapshot } from '@/lib/market';
+import { resolveCalculatorLiveValue } from '@/lib/calculator-live';
 import { mazanehTo18k, market18kToMazaneh } from './mazaneh-to-18k';
-import { goldBubble, silverBubbleV54, usdGap, usdFromAedGap, TROY_OZ_GRAMS } from './bubble-formulas';
-
-function midQuote(quote: Quote) {
-  const buy = Number(quote.buy);
-  const sell = Number(quote.sell);
-  if (buy > 0 && sell > 0) return buy <= sell ? (buy + sell) / 2 : null;
-  return buy > 0 ? buy : sell > 0 ? sell : null;
-}
-
-function resolveLiveValue(field: (typeof calculatorCatalog)[CalculatorOperation]['fields'][number], snapshot: Snapshot) {
-  if (snapshot.mode !== 'live' || !field.symbol) return null;
-
-  // ۱۸ عیار برای حباب/تبدیل همیشه از مثقال زنده ÷ ۴٫۳۳۱۸ — نه قیمت جداگانهٔ دیده‌بان.
-  if (field.symbol === 'GOLD_18K') {
-    const melted = snapshot.quotes.find(q => q.symbol === 'GOLD_MELTED');
-    if (melted && !isStale(melted) && melted.currency === 'TMN') {
-      const mid = midQuote(melted);
-      if (mid != null) {
-        try {
-          return {
-            value: mazanehTo18k(mid).market18k,
-            observedAt: melted.observedAt,
-            source: 'زرسیگنال · مشتق از مثقال زنده با ÷ ۴٫۳۳۱۸',
-          };
-        } catch { /* fall through */ }
-      }
-    }
-    return null;
-  }
-
-  const quote = snapshot.quotes.find(q => q.symbol === field.symbol);
-  if (quote && !isStale(quote) && quote.currency === field.currency && quote.unit === field.quoteUnit) {
-    const mid = midQuote(quote);
-    if (mid != null) return { value: mid, observedAt: quote.observedAt, source: 'زرسیگنال · میانگین دو سمت یا قیمت دیده‌بان' };
-  }
-  return null;
-}
+import { goldBubble, silverBubbleV54, usdGap, usdFromAedGap, uae18kTheoretical, TROY_OZ_GRAMS } from './bubble-formulas';
 
 export function calculateProfessional(body: unknown, snapshot: Snapshot): CalculatorResult {
   if (!body || typeof body !== 'object') throw new Error('ورودی معتبر نیست.');
   const request = body as { operation: CalculatorOperation; inputs: Record<string, { provenance: string; value?: unknown }> };
   if (!Object.hasOwn(calculatorCatalog, request.operation) || !request.inputs || typeof request.inputs !== 'object') throw new Error('این محاسبه فعال نیست.');
   const spec = calculatorCatalog[request.operation];
+  if (isTradeOperation(request.operation)) return calculateTrade(body, snapshot);
   const inputs: CalculatorResult['inputs'] = spec.fields.map(field => {
     const input = request.inputs[field.key];
     if (!input || !['LIVE', 'MANUAL'].includes(input.provenance)) throw new Error('منبع هر ورودی را مشخص کنید.');
     if (input.provenance === 'LIVE') {
-      const live = resolveLiveValue(field, snapshot);
-      if (!live) throw new Error('داده تازه و هم‌واحد در دسترس نیست؛ مقدار دستی وارد کنید.');
+      const live = resolveCalculatorLiveValue(field, snapshot);
+      if (!live) throw new Error(`قیمت لحظه‌ای «${field.label}» تازه یا هم‌واحد نیست؛ تازه‌سازی کنید یا دستی وارد کنید.`);
       return { key: field.key, label: field.label, value: live.value, unit: field.unit, provenance: 'LIVE', observedAt: live.observedAt, source: live.source };
     }
     if (typeof input.value !== 'number' || !Number.isFinite(input.value) || input.value < (field.allowZero ? 0 : Number.MIN_VALUE) || input.value > (field.max ?? 1e15)) throw new Error(`مقدار «${field.label}» معتبر نیست.`);
@@ -65,10 +32,8 @@ export function calculateProfessional(body: unknown, snapshot: Snapshot): Calcul
     const equivalent18 = fine / .75;
     outputs = [output('طلای خالص', fine, 'گرم'), output('معادل ۱۸ عیار', equivalent18, 'گرم'), output('ارزش محاسباتی فلز', equivalent18 * v.gram, 'تومان')];
   } else if (request.operation === 'uaeGold') {
-    const uae24Irt = v.uae24 * v.aed;
-    const uae18Irt = uae24Irt * 750 / 999;
-    const gap = v.gram - uae18Irt;
-    outputs = [output('۲۴ عیار امارات', uae24Irt, 'تومان / گرم'), output('معادل ۱۸ عیار امارات', uae18Irt, 'تومان / گرم'), output('فاصله ایران و امارات', gap, 'تومان / گرم'), output('فاصله نسبی', gap / uae18Irt * 100, 'درصد')];
+    const uae = uae18kTheoretical({ xauUsd: v.uae18 * TROY_OZ_GRAMS / .75 / 3.6725, aedToman: v.aed, iranGold18: v.gram });
+    outputs = [output('طلای ۱۸ عیار امارات', uae.uae18kTomanPerGram, 'تومان / گرم'), output('طلای ۱۸ عیار ایران', v.gram, 'تومان / گرم'), output('اختلاف ایران و امارات', uae.gap, 'تومان / گرم'), output('اختلاف نسبی', uae.percent, 'درصد')];
   } else if (request.operation === 'fxRateGap' || request.operation === 'rateCompare') {
     const first = request.operation === 'fxRateGap' ? v.implied : v.rateA;
     const second = request.operation === 'fxRateGap' ? v.derived : v.rateB;

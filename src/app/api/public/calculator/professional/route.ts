@@ -5,6 +5,8 @@ import { resolveAccountEntitlement } from '@/server/account-entitlement';
 import { auth } from '@/auth';
 import type { Snapshot } from '@/lib/market';
 
+export const maxDuration = 60;
+
 export async function POST(request: Request) {
   try {
     const text = await request.text();
@@ -35,7 +37,7 @@ export async function POST(request: Request) {
       input => (input as { provenance?: string })?.provenance === 'LIVE',
     );
     const snapshot: Snapshot = live
-      ? await getPublicSnapshot()
+      ? await getPublicSnapshot(true)
       : { mode: 'live', status: 'unavailable', quotes: [] };
     try {
       return Response.json(calculateProfessional(body, snapshot), {

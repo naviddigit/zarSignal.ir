@@ -36,12 +36,13 @@ function clock(value?: string) {
   return new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Tehran' }).format(new Date(value));
 }
 
-export type CalcProduct = 'gold' | 'silver' | 'fx' | 'coin';
+export type CalcProduct = 'gold' | 'silver' | 'fx' | 'coin' | 'trade';
 
 const productMeta: { key: CalcProduct; label: string; Icon: typeof Gem }[] = [
+  { key: 'trade', label: 'معامله سریع', Icon: TrendingUp },
   { key: 'gold', label: 'طلا', Icon: ChartNoAxesColumn },
   { key: 'silver', label: 'نقره', Icon: Gem },
-  { key: 'fx', label: 'دلار', Icon: CircleDollarSign },
+  { key: 'fx', label: 'ارز', Icon: CircleDollarSign },
   { key: 'coin', label: 'سکه', Icon: Coins },
 ];
 
@@ -382,7 +383,6 @@ export function MarketMesghalEquivalentWidget({ amount, onAmountChange, onPriceC
           </div>
         </div>
       </div>
-      <p className="calc-weight-widget__factor"><Info size={12} aria-hidden="true" /><span>در قیمت‌گذاری بازار، یک مثقال با عیار ۷۰۵ از نظر طلای خالص معادل ۴٫۳۳۱۸ گرم طلای ۱۸ عیار است. این تبدیل وزن فیزیکی مثقال (۴٫۶۰۸ گرم) نیست.</span></p>
       <button type="button" className="calc-weight-widget__price-link" onClick={onPriceConversionClick}>تبدیل قیمت مثقال و گرم ۱۸ عیار ←</button>
     </section>
   );
@@ -503,7 +503,6 @@ export function PurityConvertWidget({ amount, onAmountChange, product = 'gold', 
       <header className="calc-weight-widget__head">
         <div className="calc-weight-widget__titles">
           <strong>تبدیل عیار</strong>
-          <small>وزن معادل با حفظ مقدار فلز خالص؛ بدون قیمت بازار</small>
         </div>
         {favoriteSlot}
       </header>
@@ -533,8 +532,6 @@ export function PurityConvertWidget({ amount, onAmountChange, product = 'gold', 
           <Select label="عیار مبدأ" className="calc-weight-box__select" value={from} onChange={value => setFrom(value as Purity)} options={options} />
         </div>
       </div>
-      <p className="calc-weight-widget__factor"><Info size={12} aria-hidden="true" /><span>فلز خالص: {result == null ? '—' : fa(result.fineWeight, 6)} گرم · این تبدیل وزن است، نه قیمت قابل معامله.</span></p>
-      {!silver ? <p className="calc-weight-widget__factor"><Info size={12} aria-hidden="true" /><span>یک مثقال طلای ۷۰۵ از نظر مقدار طلای خالص تقریباً معادل ۴٫۳۳۱۸ گرم طلای ۱۸ عیار است. این رابطهٔ عیار و قیمت است؛ وزن یک مثقال حدود ۴٫۶۰۸ گرم است.</span></p> : null}
     </section>
   );
 }

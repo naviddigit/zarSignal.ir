@@ -1,4 +1,5 @@
 'use client';
+import { TradeCalculator } from '@/components/trade-calculator';
 import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { LockKeyhole, RefreshCw, ArrowUpLeft } from 'lucide-react';
@@ -11,7 +12,8 @@ import {
 import type { AccessLevel } from '@/lib/capabilities';
 import { calculatorToolsByProduct, calculatorProductLabels, visibleCalculatorTools, type CalculatorNavigation, type CalculatorProduct } from '@/lib/calculator-navigation';
 import { readCalculatorFavorites, toggleCalculatorFavorite, writeCalculatorFavorites } from '@/lib/calculator-favorites';
-import { isStale, type Quote, type Snapshot } from '@/lib/market';
+import type { Snapshot } from '@/lib/market';
+import { resolveCalculatorLiveValue } from '@/lib/calculator-live';
 import { formatNumericInput, sanitizeNumericInput } from '@/lib/numeric-input';
 import { fetchJson } from '@/lib/fetch-json';
 import { mazanehTo18k } from '@/lib/mazaneh-to-18k';
@@ -42,9 +44,9 @@ const toolLabel = (value: Tool) => value === 'marketWeight' ? 'معادل باز
 const DEFAULT_TOOL: Tool = 'marketWeight';
 const lockedProducts: Product[] = [];
 const popularByProduct: Record<Product, PopularPick[]> = {
+  trade: [],
   gold: [
     { id: 'marketWeight', label: 'معادل بازار', Icon: popularIcons.weight },
-    { id: 'weight', label: 'وزن واقعی', Icon: popularIcons.weight },
     { id: 'mazaneh', label: 'مثقال ↔ گرم ۱۸', Icon: popularIcons.mazanehTo18k },
     { id: 'goldBubble', label: 'حباب طلا', Icon: popularIcons.goldBubble },
     { id: 'fineGold', label: 'طلای خالص', Icon: popularIcons.purity },
@@ -52,7 +54,6 @@ const popularByProduct: Record<Product, PopularPick[]> = {
     { id: 'capitalGold', label: 'سرمایه به طلا', Icon: popularIcons.mazanehTo18k },
   ],
   silver: [
-    { id: 'weight', label: 'تبدیل وزن', Icon: popularIcons.weight },
     { id: 'silverBubble', label: 'حباب نقره', Icon: popularIcons.silverBubble },
     { id: 'fineSilver', label: 'نقره خالص', Icon: popularIcons.purity },
     { id: 'silverBarCost', label: 'شمش نقره', Icon: popularIcons.silverBubble },
@@ -91,38 +92,9 @@ function ResultDetails({ result }: { result: CalculatorResult }) {
   </details>;
 }
 
-function midQuote(quote: Quote) {
-  const buy = Number(quote.buy);
-  const sell = Number(quote.sell);
-  if (buy > 0 && sell > 0) return buy <= sell ? (buy + sell) / 2 : null;
-  return buy > 0 ? buy : sell > 0 ? sell : null;
-}
-
-/** Resolve a live calculator field from market quotes. ۱۸ عیار همیشه از مثقال ÷ ۴٫۳۳۱۸. */
 function liveEntry(field: (typeof calculatorCatalog)[CalculatorOperation]['fields'][number], snapshot: Snapshot): Entry {
-  if (snapshot.mode !== 'live' || !field.symbol) return { value: field.allowZero ? '0' : '', provenance: 'MANUAL' };
-
-  if (field.symbol === 'GOLD_18K') {
-    const melted = snapshot.quotes.find(q => q.symbol === 'GOLD_MELTED');
-    if (melted && !isStale(melted) && melted.currency === 'TMN') {
-      const mid = midQuote(melted);
-      if (mid != null) {
-        try {
-          const derived = mazanehTo18k(mid).market18k;
-          return { value: String(Math.round(derived * 100) / 100), provenance: 'LIVE', observedAt: melted.observedAt };
-        } catch { /* fall through */ }
-      }
-    }
-    return { value: '', provenance: 'MANUAL' };
-  }
-
-  const quote = snapshot.quotes.find(q => q.symbol === field.symbol);
-  if (quote && !isStale(quote) && quote.currency === field.currency && quote.unit === field.quoteUnit) {
-    const mid = midQuote(quote);
-    if (mid != null) return { value: String(mid), provenance: 'LIVE', observedAt: quote.observedAt };
-  }
-
-  return { value: field.allowZero ? '0' : '', provenance: 'MANUAL' };
+  const live = resolveCalculatorLiveValue(field, snapshot);
+  return live ? { value: String(live.value), provenance: 'LIVE', observedAt: live.observedAt } : { value: field.allowZero ? '0' : '', provenance: 'MANUAL' };
 }
 
 function prefill(operation: CalculatorOperation, snapshot: Snapshot): Record<string, Entry> {
@@ -158,7 +130,7 @@ export function ProfessionalCalculator({
   const [keypadCue, setKeypadCue] = useState(false);
   const [lockedNotice, setLockedNotice] = useState<{ title: string; message: string; upgrade: boolean } | null>(null);
   const [toolsOpen, setToolsOpen] = useState(false);
-  const [favorites, setFavorites] = useState<Record<CalculatorProduct, string[]>>({ gold: [], silver: [], fx: [], coin: [] });
+  const [favorites, setFavorites] = useState<Record<CalculatorProduct, string[]>>({ gold: [], silver: [], fx: [], coin: [], trade: [] });
   const request = useRef<AbortController | null>(null);
   const cueTimer = useRef<number | null>(null);
   useEffect(() => {
@@ -313,14 +285,24 @@ export function ProfessionalCalculator({
     else setLockedNotice({ title: item.label, message: 'این ابزار هنوز فرمول و دادهٔ تأییدشده برای انتشار ندارد. خرید اشتراک هم فعلاً آن را فعال نمی‌کند.', upgrade: false });
   }
 
-  function setMode(key: string, mode: 'LIVE' | 'MANUAL') {
+  async function setMode(key: string, mode: 'LIVE' | 'MANUAL') {
     if (!spec) return;
     invalidate();
     setActiveField(key);
+    let nextMarket = market;
+    const requested = spec.fields.find(field => field.key === key);
+    if (mode === 'LIVE' && requested && !resolveCalculatorLiveValue(requested, market)) {
+      const controller = new AbortController(); request.current = controller;
+      setPending(true);
+      try { nextMarket = await fetchJson<Snapshot>('/api/public/markets?fresh=1', controller.signal, 45000); if (controller.signal.aborted) return; setMarket(nextMarket); }
+      catch { if (!controller.signal.aborted) setError('دریافت قیمت ممکن نشد؛ دوباره تلاش کنید.'); return; }
+      finally { if (request.current === controller) setPending(false); }
+      if (!resolveCalculatorLiveValue(requested, nextMarket)) { setError(`قیمت لحظه‌ای «${requested.label}» موجود نیست.`); return; }
+    }
     setInputs(current => {
       const field = spec.fields.find(item => item.key === key);
       if (!field) return current;
-      if (mode === 'LIVE') return { ...current, [key]: liveEntry(field, market) };
+      if (mode === 'LIVE') return { ...current, [key]: liveEntry(field, nextMarket) };
       // Manual: reset to 0; thin cue on keypad tells user where to type.
       return { ...current, [key]: { value: '0', provenance: 'MANUAL' } };
     });
@@ -333,7 +315,7 @@ export function ProfessionalCalculator({
     request.current = controller;
     setPending(true);
     try {
-      const next = await fetchJson<Snapshot>('/api/public/markets', controller.signal, 12000);
+      const next = await fetchJson<Snapshot>('/api/public/markets?fresh=1', controller.signal, 12000);
       if (controller.signal.aborted) return;
       setMarket(next);
       if (spec) {
@@ -371,7 +353,7 @@ export function ProfessionalCalculator({
       if (liveFields.some(field => liveEntry(field, market).provenance !== 'LIVE')) {
         let next: Snapshot;
         try {
-          next = await fetchJson<Snapshot>('/api/public/markets', controller.signal, 60000);
+          next = await fetchJson<Snapshot>('/api/public/markets?fresh=1', controller.signal, 60000);
         } catch {
           if (!controller.signal.aborted) setError('قیمت‌های زنده به‌روز نشدند. دوباره تلاش کنید یا «دستی» را انتخاب کنید.');
           return;
@@ -414,7 +396,8 @@ export function ProfessionalCalculator({
     }
   }
 
-  const keypadValue = tool === 'marketWeight' || tool === 'weight' ? weightAmount : tool === 'purity' ? purityAmount : inputs[activeField]?.value ?? '';
+  const currentKeypadValue = operation === 'uaeGold' && activeField === 'uae18' && inputs.uae18?.value ? String(Number(inputs.uae18.value) * Number(inputs.aed?.value)) : inputs[activeField]?.value ?? '';
+  const keypadValue = tool === 'marketWeight' || tool === 'weight' ? weightAmount : tool === 'purity' ? purityAmount : currentKeypadValue;
   const keypadTarget = tool === 'marketWeight'
     ? 'مقدار مثقال (ورودی راست)'
     : tool === 'weight'
@@ -424,7 +407,7 @@ export function ProfessionalCalculator({
       : spec?.fields.find(field => field.key === activeField)?.label ?? 'ورودی را انتخاب کنید';
 
   return (
-    <section className={`professional-calculator${isLocalTool(tool) ? ' is-weight' : ''}`} aria-label="ماشین‌حساب حرفه‌ای">
+    <section className={`professional-calculator${isLocalTool(tool) ? ' is-weight' : ''}${product === 'trade' ? ' is-trade' : ''}`} aria-label="ماشین‌حساب حرفه‌ای">
       <div className="calc-products" role="group" aria-label="نوع دارایی">
         {navigation.categories.map(key => (
           <button
@@ -462,6 +445,8 @@ export function ProfessionalCalculator({
             <p>{!toolGate.ok ? toolGate.message : ''}</p>
             {!toolGate.ok && (toolGate.code === 'forbidden' || toolGate.code === 'trial_expired') ? <Link href="/pricing">ارتقای حساب</Link> : null}
           </div>
+        ) : product === 'trade' ? (
+          <TradeCalculator key={tool} operation={operation!} snapshot={market} favoriteSlot={activeFavoriteSlot} />
         ) : tool === 'marketWeight' ? (
           <MarketMesghalEquivalentWidget amount={weightAmount} onAmountChange={setWeightAmount} onPriceConversionClick={() => choose('market18kToMazaneh')} favoriteSlot={activeFavoriteSlot} />
         ) : tool === 'weight' ? (
@@ -483,17 +468,20 @@ export function ProfessionalCalculator({
                 <RefreshCw size={15} />
               </button>
             </div>
-            {isMazanehOperation(tool) ? <p className="calc-conversion-note">این تبدیلِ قیمت با ضریب ۴٫۳۳۱۸ انجام می‌شود؛ وزن فیزیکی یک مثقال ۴٫۶۰۸ گرم است.</p> : null}
-            {spec.note ? <p className="calc-conversion-note">{spec.note}</p> : null}
+
+            {spec.note ? <details className="calc-result-details"><summary>درباره محاسبه</summary><p>{spec.note}</p></details> : null}
+            {operation === 'uaeGold' ? <details className="calc-result-details"><summary>فرمول طلای ۱۸ امارات</summary><p>اونس × ۳٫۶۷۲۵ ÷ ۳۱٫۱۰۳۴۷۶۸ × ۰٫۷۵ × نرخ درهم</p></details> : null}
             {spec.fields.map(field => {
               const input = inputs[field.key] ?? { value: '', provenance: 'MANUAL' as const };
-              const liveAvailable = Boolean(field.symbol) && market.mode === 'live' && liveEntry(field, market).provenance === 'LIVE';
+              const uaeDisplay = operation === 'uaeGold' && field.key === 'uae18';
+              const aedValue = Number(inputs.aed?.value);
+              const displayValue = uaeDisplay ? (aedValue > 0 && input.value ? String(Math.round(Number(input.value) * aedValue * 100) / 100) : '') : input.value;
               return (
                 <div className={`calc-tool-panel__field${input.provenance === 'LIVE' ? ' is-live' : ' is-manual'}`} key={field.key}>
                   <div className="calc-tool-panel__head">
                     <span className="calc-tool-panel__label">{field.label}</span>
                     {field.symbol ? <div className="calc-mode" role="radiogroup" aria-label={`منبع ${field.label}`}>
-                      <button type="button" role="radio" aria-checked={input.provenance === 'LIVE'} className={input.provenance === 'LIVE' ? 'is-on' : ''} disabled={!liveAvailable} onClick={() => setMode(field.key, 'LIVE')}>
+                      <button type="button" role="radio" aria-checked={input.provenance === 'LIVE'} className={input.provenance === 'LIVE' ? 'is-on' : ''} disabled={pending} onClick={() => setMode(field.key, 'LIVE')}>
                         لحظه‌ای
                       </button>
                       <button type="button" role="radio" aria-checked={input.provenance === 'MANUAL'} className={input.provenance === 'MANUAL' ? 'is-on' : ''} onClick={() => setMode(field.key, 'MANUAL')}>
@@ -511,17 +499,17 @@ export function ProfessionalCalculator({
                       dir="ltr"
                       required
                       aria-label={field.label}
-                      value={formatNumericInput(input.value)}
+                      value={formatNumericInput(displayValue)}
                       placeholder="0"
                       onChange={event => {
                         invalidate();
                         setInputs(current => ({
                           ...current,
-                          [field.key]: { value: sanitizeNumericInput(event.target.value, 6), provenance: 'MANUAL' },
+                          [field.key]: { value: uaeDisplay && aedValue > 0 ? String(Number(sanitizeNumericInput(event.target.value, 6)) / aedValue) : sanitizeNumericInput(event.target.value, 6), provenance: 'MANUAL' },
                         }));
                       }}
                     />
-                    <span className="calc-tool-panel__unit">{field.unit}</span>
+                    <span className="calc-tool-panel__unit">{uaeDisplay ? 'تومان / گرم' : field.unit}</span>
                   </div>
                 </div>
               );
@@ -555,7 +543,7 @@ export function ProfessionalCalculator({
         <CalculatorLiveStrip snapshot={market} />
       </div>
 
-      <div className="calc-stage__side">
+      <div className="calc-stage__side" hidden={product === 'trade'}>
         <div className={`calc-keypad-wrap${keypadCue ? ' is-keypad-cue' : ''}`}>
           <span className="calc-entry-target">{keypadTarget}</span>
           <CalculatorKeypad key={`${tool}-${activeField}`} value={keypadValue} onChange={value => {
@@ -563,7 +551,7 @@ export function ProfessionalCalculator({
             if (tool === 'purity') { setPurityAmount(value); return; }
             if (!activeField) return;
             invalidate();
-            setInputs(current => ({ ...current, [activeField]: { value, provenance: 'MANUAL' } }));
+            setInputs(current => ({ ...current, [activeField]: { value: operation === 'uaeGold' && activeField === 'uae18' && Number(current.aed?.value) > 0 ? String(Number(value) / Number(current.aed.value)) : value, provenance: 'MANUAL' } }));
           }} />
         </div>
       </div>
