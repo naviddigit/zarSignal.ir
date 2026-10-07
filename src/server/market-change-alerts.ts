@@ -2,7 +2,7 @@ import { db } from '@/lib/db';
 import { withDeadline } from '@/lib/with-deadline';
 import { isStale, type Snapshot } from '@/lib/market';
 import { computeMarketIndicators } from '@/server/market-indicators';
-import { getPublicSnapshot } from '@/server/quotes';
+import { getSnapshot } from '@/server/quotes';
 import {
   channelDeliveryReady,
   evaluateMarketAlert,
@@ -72,7 +72,8 @@ export function metricsFromSnapshot(snapshot: Snapshot): MarketSnapshotMetrics |
 
 /** Evaluate active alerts after valid new market data. Safe to call from worker/cron. */
 export async function evaluateMarketChangeAlerts(snapshot?: Snapshot) {
-  const snap = snapshot ?? await getPublicSnapshot();
+  // Workers already ingest prices; do not schedule request-bound recovery here.
+  const snap = snapshot ?? await getSnapshot();
   const metrics = metricsFromSnapshot(snap);
   if (!metrics) return { evaluated: 0, fired: 0, rearmed: 0, skipped: 'no_valid_metrics' as const };
 

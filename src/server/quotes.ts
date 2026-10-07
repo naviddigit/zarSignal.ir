@@ -1,4 +1,5 @@
 import { unstable_cache } from 'next/cache';
+import { after } from 'next/server';
 import { db } from '@/lib/db';
 import { withDeadline } from '@/lib/with-deadline';
 import { FARAZ_KEY } from '@/server/ingestion/faraz-meta';
@@ -69,7 +70,7 @@ export async function getSnapshot(fresh = false): Promise<Snapshot> {
     const needsRefresh = snapshot.status !== 'ok'
       || snapshot.quotes.length < instruments.length
       || snapshot.quotes.some(quote => isStale(quote));
-    if (needsRefresh && process.env.MARKET_MODE === 'live') {
+    if (fresh && needsRefresh && process.env.MARKET_MODE === 'live') {
       // A price request must not wait for optional chart-history backfill.
       await withDeadline(refreshProductionMarket({ history: false }), 30_000).catch(() => null);
       // A failed refresh/read must not erase the valid snapshot already loaded.
@@ -95,6 +96,15 @@ export async function getSnapshot(fresh = false): Promise<Snapshot> {
 /** Public site + sold API never expose upstream provider name or URL. */
 export async function getPublicSnapshot(fresh = false): Promise<Snapshot> {
   const snapshot = await getSnapshot(fresh);
+  // Page rendering reads the database only. Keep upstream recovery alive on Vercel
+  // after sending the response; only an explicit fresh request waits for it.
+  if (!fresh && process.env.MARKET_MODE === 'live'
+    && (snapshot.status !== 'ok' || snapshot.quotes.length < instruments.length
+      || snapshot.quotes.some(quote => isStale(quote)))) {
+    after(async () => {
+      await withDeadline(refreshProductionMarket({ history: false }), 30_000).catch(() => null);
+    });
+  }
   return {
     ...snapshot,
     quotes: snapshot.quotes.map(quote => ({ ...quote, source: 'زرسیگنال', sourceUrl: null })),

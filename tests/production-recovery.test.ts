@@ -1,7 +1,53 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { readFileSync } from 'node:fs';
+import { runInNewContext } from 'node:vm';
+import ts from 'typescript';
 import { withDeadline } from '../src/lib/with-deadline';
 import { defaultFarazConfig, mapQuotes, priceToFixed, validateFarazUrl } from '../src/server/ingestion/faraz';
+
+test('public rendering returns stored stale prices before recovery; explicit fresh waits for new prices', async () => {
+  const callbacks: (() => Promise<void>)[] = [];
+  let refreshes = 0;
+  let release!: () => void;
+  let observedAt = new Date('2000-01-01');
+  const recovery = new Promise<void>(resolve => { release = () => { observedAt = new Date(); resolve(); }; });
+  const module = { exports: {} as typeof import('../src/server/quotes') };
+  const dependencies: Record<string, unknown> = {
+    'next/cache': { unstable_cache: (read: unknown) => read },
+    'next/server': { after: (callback: () => Promise<void>) => callbacks.push(callback) },
+    '@/lib/db': { db: {
+      $queryRaw: async () => [{ symbol: 'GOLD_MELTED', buy: 100, sell: 101, currency: 'TMN', unit: 'mithqal', source: 'provider', sourceUrl: null, observedAt, fetchedAt: observedAt }],
+      marketSource: { findMany: async () => [] },
+    } },
+    '@/lib/with-deadline': { withDeadline },
+    '@/server/ingestion/faraz-meta': { FARAZ_KEY: 'faraz' },
+    '@/lib/market': { instruments: [{ symbol: 'GOLD_MELTED' }], formulaCriticalSymbols: ['GOLD_MELTED'], isStale: (quote: { observedAt: string }) => new Date(quote.observedAt).getFullYear() === 2000 },
+    '@/server/refresh-market': { refreshProductionMarket: async () => { refreshes++; await recovery; return { ok: true }; } },
+    '@prisma/client': { Prisma: { sql: () => '', join: () => '' } },
+  };
+  const source = readFileSync(new URL('../src/server/quotes.ts', import.meta.url), 'utf8');
+  const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText;
+  runInNewContext(compiled, { module, exports: module.exports, require: (name: string) => {
+    assert.ok(name in dependencies, `unexpected dependency: ${name}`);
+    return dependencies[name];
+  }, process: { env: { NODE_ENV: 'production', MARKET_MODE: 'live' } } });
+  const stored = await module.exports.getPublicSnapshot();
+  assert.equal(stored.status, 'stale');
+  assert.equal(stored.quotes[0].observedAt, '2000-01-01T00:00:00.000Z');
+  assert.equal(stored.quotes[0].source, 'زرسیگنال');
+  assert.equal(refreshes, 0);
+  assert.equal(callbacks.length, 1);
+  const background = callbacks[0]();
+  let freshFinished = false;
+  const fresh = module.exports.getPublicSnapshot(true).then(snapshot => { freshFinished = true; return snapshot; });
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(freshFinished, false);
+  release();
+  await background;
+  assert.equal((await fresh).status, 'ok');
+  assert.equal(callbacks.length, 1);
+});
 
 test('database deadline releases rendering even when a query never resolves', async () => {
   await assert.rejects(withDeadline(new Promise<never>(() => {}), 20), /timed out/);
