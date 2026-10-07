@@ -59,8 +59,14 @@ html.is-theme-switching body{
   .auth-card>.brand{display:none}
   .auth-page{min-height:calc(100vh - 72px);align-items:start}
   .auth-card{margin-top:20px}
-  /* Logged-in cue without crowding the chrome */
-  .header-auth{width:36px;min-width:36px;max-width:36px;padding:0;justify-content:center;gap:0}
+  /* Ghost icon — no pill background that looks squashed in the compact header */
+  .header-auth.button,.header-auth{
+    width:40px;min-width:40px;max-width:40px;height:40px;min-height:40px;
+    padding:0;justify-content:center;gap:0;
+    background:transparent!important;border:0!important;box-shadow:none!important;
+    color:var(--accent);border-radius:10px;
+  }
+  .header-auth:hover{background:color-mix(in srgb,var(--accent) 10%,transparent)!important;color:var(--accent)}
   .header-auth__label{display:none}
 }@media(prefers-reduced-motion:reduce){.hero-reveal,.section-reveal,.radar-art:before,.radar-ray,.radar-token,.status-dot{animation:none!important}}
 .auth-methods{display:grid;gap:16px}.auth-unavailable{display:flex;gap:12px;align-items:center;padding:13px;border:1px dashed var(--border-strong);border-radius:10px;color:var(--text-secondary);background:var(--surface-soft)}.auth-unavailable strong{display:block;font-size:12px}.auth-unavailable small{margin:2px 0 0;font-size:9px}.auth-divider{display:flex;align-items:center;gap:10px;color:var(--text-muted);font-size:10px}.auth-divider:before,.auth-divider:after{content:'';height:1px;background:var(--border-subtle);flex:1}.phone-login{display:grid;gap:9px}.phone-login label{color:var(--text-secondary);font-size:11px}
@@ -591,12 +597,16 @@ html.ds-scroll-locked body{
 .product-grid{grid-template-columns:1fr}
 .topline{flex-wrap:wrap;gap:6px;font-size:10px}
 .site-header{position:sticky;top:0;z-index:30;backdrop-filter:blur(14px)}
-/* Definitive mobile chrome — match height/min-height/padding so early rules cannot fight */
-.header-inner{height:56px;min-height:56px;padding-block:0;flex-wrap:nowrap}
-.header-actions{gap:6px}
+/* Comfortable mobile chrome — auth stays icon-only without a crushed pill */
+.header-inner{height:60px;min-height:60px;padding-block:0;flex-wrap:nowrap}
+.header-actions{gap:6px;align-items:center}
 .brand{min-width:0}
-/* Keep auth icon-only on phone (label hidden earlier in this file) */
-.header-auth{width:36px;min-width:36px;max-width:36px;padding:0;justify-content:center;gap:0}
+.header-auth.button,.header-auth{
+  width:40px;min-width:40px;max-width:40px;height:40px;min-height:40px;
+  padding:0;justify-content:center;gap:0;
+  background:transparent!important;border:0!important;box-shadow:none!important;
+  color:var(--accent);border-radius:10px;
+}
 .header-auth__label{display:none}
 }
 

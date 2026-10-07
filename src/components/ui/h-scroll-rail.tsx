@@ -9,6 +9,8 @@ type HScrollRailProps = {
   trackClassName?: string;
   label?: string;
   step?: number;
+  /** Replaces the end chevron — stays fixed outside the scroll track. */
+  endSlot?: ReactNode;
 };
 
 /**
@@ -21,6 +23,7 @@ export function HScrollRail({
   trackClassName = '',
   label,
   step = 168,
+  endSlot,
 }: HScrollRailProps) {
   const trackRef = useRef<HTMLDivElement>(null);
   const [canStart, setCanStart] = useState(false);
@@ -94,15 +97,17 @@ export function HScrollRail({
       <div className={`h-scroll-rail__track ${trackClassName}`.trim()} ref={trackRef}>
         {children}
       </div>
-      <button
-        type="button"
-        className="h-scroll-rail__arrow is-end"
-        aria-label="موارد بعدی"
-        disabled={!canEnd}
-        onClick={() => nudge('end')}
-      >
-        <ChevronLeft size={16} strokeWidth={2.2} />
-      </button>
+      {endSlot ?? (
+        <button
+          type="button"
+          className="h-scroll-rail__arrow is-end"
+          aria-label="موارد بعدی"
+          disabled={!canEnd}
+          onClick={() => nudge('end')}
+        >
+          <ChevronLeft size={16} strokeWidth={2.2} />
+        </button>
+      )}
     </div>
   );
 }
