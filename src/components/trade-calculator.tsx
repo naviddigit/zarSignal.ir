@@ -1,5 +1,5 @@
 'use client';
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { Plus, Trash2, RefreshCw } from 'lucide-react';
 import { calculatorCatalog, type CalculatorOperation, type CalculatorResult } from '@/lib/calculator-catalog';
 import { resolveCalculatorLiveValue } from '@/lib/calculator-live';
@@ -20,11 +20,29 @@ export function TradeCalculator({operation,snapshot,favoriteSlot}:{operation:Cal
   const [rows,setRows]=useState(()=>Array.from({length:operation==='quickTrade'?0:operation==='positionManager'?1:2},()=>({price:'',weight:'',percent:'',trigger:'PRICE'})));
   const [pending,setPending]=useState(false),[error,setError]=useState('');
   const [result,setResult]=useState<CalculatorResult|null>(null);
+  useEffect(() => {
+    if (mode !== 'LIVE') return;
+    const controller = new AbortController();
+    let busy = false;
+    const poll = async () => {
+      if (busy) return;
+      busy = true;
+      try {
+        const next = await fetchJson<Snapshot>('/api/public/markets', controller.signal, 10000);
+        if (!controller.signal.aborted) setMarket(next);
+      } catch { /* Keep the stored quote and its original freshness timestamp. */ }
+      finally { busy = false; }
+    };
+    void poll();
+    const timer = window.setInterval(poll, Math.max(30, snapshot.pollSeconds ?? 60) * 1000);
+    return () => { controller.abort(); window.clearInterval(timer); };
+  }, [mode, snapshot.pollSeconds]);
   if(!isTradeOperation(operation)) return null;
   const sell=operation==='scaleOut',position=operation==='positionManager',quick=operation==='quickTrade',simulator=operation==='tradeSimulator';
   const live=resolveCalculatorLiveValue(calculatorCatalog.quickTrade.fields[0],market);
   const price=mode==='LIVE'?live?.value:Number(current);
-  const update=(key:string,value:string)=>{setFields(f=>({...f,[key]:value}));setResult(null);};
+  const update=(key:string,value:string)=>{setFields(f=>({...f,[key]:value}));setResult(null);setError('');};
+  const updateRows=(change:(current:typeof rows)=>typeof rows)=>{setRows(change);setResult(null);setError('');};
   const input=(key:string,label:string,unit='تومان / گرم')=><label className="trade-field"><span>{label}</span><input className="ds-input" inputMode="decimal" dir="ltr" value={formatNumericInput(fields[key]??'')} onChange={e=>update(key,sanitizeNumericInput(e.target.value,6))} aria-label={label}/><small>{unit}</small></label>;
   async function refresh() {
     setPending(true);setError('');
@@ -35,7 +53,8 @@ export function TradeCalculator({operation,snapshot,favoriteSlot}:{operation:Cal
     e.preventDefault();setPending(true);setError('');
     const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),60000);
     try {
-      const trade={...Object.fromEntries(Object.entries(fields).map(([k,v])=>[k,Number(v)])),direction,rows:rows.map(r=>({price:Number(r.price),weight:Number(r.weight),...(simulator&&r.trigger==='PERCENT'?{percent:Number(r.percent)}:{})}))};
+      const activeRows = position ? rows.filter(row => row.price.trim() || row.weight.trim()) : rows;
+      const trade={...Object.fromEntries(Object.entries(fields).map(([k,v])=>[k,Number(v)])),direction,rows:activeRows.map(r=>({price:Number(r.price),weight:Number(r.weight),...(simulator&&r.trigger==='PERCENT'?{percent:Number(r.percent)}:{})}))};
       const response=await fetch('/api/public/calculator/professional',{method:'POST',headers:{'Content-Type':'application/json'},signal:controller.signal,body:JSON.stringify({operation,inputs:{gram:{provenance:mode,value:price}},trade})});
       const data=await response.json();if(!response.ok) throw new Error(data.error);setResult(data);
     }catch(e){setError(e instanceof Error?e.message:'محاسبه ناموفق بود.');}finally{clearTimeout(timer);setPending(false);}
@@ -47,17 +66,17 @@ export function TradeCalculator({operation,snapshot,favoriteSlot}:{operation:Cal
       {mode==='LIVE'?<strong className="trade-price__number">{live?num(live.value):'در انتظار قیمت'}<small>{live?new Date(live.observedAt).toLocaleTimeString('fa-IR',{timeZone:'Asia/Tehran'}):''}</small></strong>:<input className="ds-input" aria-label="قیمت فعلی" inputMode="decimal" dir="ltr" value={formatNumericInput(current)} onChange={e=>setCurrent(sanitizeNumericInput(e.target.value,6))}/>}
     </section>
     {quick?<button type="button" className="chart-retry" disabled={!price} onClick={()=>update('entry',String(price))}>قیمت فعلی برای ورود</button>:null}
-    {quick?<Select label="نوع معامله" value={direction} onChange={setDirection} options={[{value:'BUY',label:'خرید → فروش در هدف'},{value:'SELL',label:'فروش → بازخرید در هدف'}]}/>:null}
+    {quick?<Select label="نوع معامله" value={direction} onChange={value=>{setDirection(value);setResult(null);setError('');}} options={[{value:'BUY',label:'خرید → فروش در هدف'},{value:'SELL',label:'فروش → بازخرید در هدف'}]}/>:null}
     {(quick||position||sell)?<div className="trade-fields">{input('entry',quick?'قیمت ورود':'میانگین خرید')}{input('weight',quick?'وزن معامله':'وزن موجود','گرم')}</div>:null}
     {simulator?input('capital','سرمایه در دسترس','تومان'):null}
     {!quick?<section className="trade-steps"><header><strong>{sell?'پله‌های فروش':position?'خریدهای جدید':'پله‌های خرید'}</strong><small>{rows.length} / {position?5:10}</small></header>
       {rows.map((row,i)=><div className="trade-step" key={i}>
-        <header><b>پله {num(i+1)}</b><button type="button" className="calc-tool-panel__refresh" aria-label={`حذف پله ${i+1}`} onClick={()=>setRows(r=>r.filter((_,index)=>index!==i))}><Trash2 size={15}/></button></header>
-        {simulator?<Select label="مبنای قیمت" value={row.trigger} onChange={value=>setRows(r=>r.map((x,index)=>index===i?{...x,trigger:value}:x))} options={[{value:'PRICE',label:'قیمت ثابت'},{value:'PERCENT',label:'درصد از قیمت پایه'}]}/>:null}
-        <div className="trade-fields">{(['price','weight'] as const).map(key=>{const percent=key==='price'&&simulator&&row.trigger==='PERCENT';const k=percent?'percent':key;return <label className="trade-field" key={key}><span>{percent?'فاصله از قیمت پایه':key==='price'?'قیمت هر گرم':'وزن (گرم)'}</span><input className="ds-input" inputMode="decimal" dir="ltr" aria-label={`${percent?'درصد':key==='price'?'قیمت':'وزن'} پله ${i+1}`} value={formatNumericInput(row[k])} onChange={e=>setRows(r=>r.map((x,index)=>index===i?{...x,[k]:(percent && e.target.value.trim().startsWith('-') ? '-' : '') + sanitizeNumericInput(e.target.value,6)}:x))}/></label>;})}</div>
+        <header><b>پله {num(i+1)}</b><button type="button" className="calc-tool-panel__refresh" aria-label={`حذف پله ${i+1}`} onClick={()=>updateRows(r=>r.filter((_,index)=>index!==i))}><Trash2 size={15}/></button></header>
+        {simulator?<Select label="مبنای قیمت" value={row.trigger} onChange={value=>updateRows(r=>r.map((x,index)=>index===i?{...x,trigger:value}:x))} options={[{value:'PRICE',label:'قیمت ثابت'},{value:'PERCENT',label:'درصد از قیمت پایه'}]}/>:null}
+        <div className="trade-fields">{(['price','weight'] as const).map(key=>{const percent=key==='price'&&simulator&&row.trigger==='PERCENT';const k=percent?'percent':key;return <label className="trade-field" key={key}><span>{percent?'فاصله از قیمت پایه':key==='price'?'قیمت هر گرم':'وزن (گرم)'}</span><input className="ds-input" inputMode="decimal" dir="ltr" aria-label={`${percent?'درصد':key==='price'?'قیمت':'وزن'} پله ${i+1}`} value={formatNumericInput(row[k])} onChange={e=>updateRows(r=>r.map((x,index)=>index===i?{...x,[k]:(percent && e.target.value.trim().startsWith('-') ? '-' : '') + sanitizeNumericInput(e.target.value,6)}:x))}/></label>;})}</div>
         <small className="trade-step__value">ارزش پله: {num((row.trigger==='PERCENT'?Number(price)*(1+Number(row.percent)/100):Number(row.price))*Number(row.weight))} تومان</small>
       </div>)}
-      <button type="button" className="chart-retry" disabled={rows.length>=(position?5:10)} onClick={()=>setRows(r=>[...r,{price:'',weight:'',percent:'',trigger:'PRICE'}])}><Plus size={16}/> افزودن پله</button>
+      <button type="button" className="chart-retry" disabled={rows.length>=(position?5:10)} onClick={()=>updateRows(r=>[...r,{price:'',weight:'',percent:'',trigger:'PRICE'}])}><Plus size={16}/> افزودن پله</button>
     </section>:null}
     {!sell ? position ? <details className="calc-result-details"><summary>هدف و حد ضرر (اختیاری)</summary><div className="trade-fields">{input('target','قیمت هدف')}{input('stop','حد ضرر')}</div></details> : <div className="trade-fields">{input('target','قیمت هدف')}{input('stop','حد ضرر')}</div> : null}
     {position?<details className="calc-result-details"><summary>خرید لازم برای رسیدن به میانگین هدف</summary><div className="trade-fields">{input('desired','میانگین هدف')}{input('newPrice','قیمت خرید جدید')}</div></details>:null}

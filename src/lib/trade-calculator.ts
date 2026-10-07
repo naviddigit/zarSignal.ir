@@ -74,7 +74,7 @@ export function calculateTrade(body: unknown, snapshot: Snapshot): CalculatorRes
     for(const [i,row] of rows.entries()) {
       weight+=row.weight; invested+=row.price*row.weight; additional+=row.price*row.weight;
       if(req.operation === 'tradeSimulator') {
-        out(`پله ${i+1} · قیمت اجرا`,row.price,'تومان / گرم'); out(`پله ${i+1} · سرمایه`,row.price*row.weight);
+        out(`پله ${i+1} · قیمت اجرا`,row.price,'تومان / گرم'); out(`پله ${i+1} · وزن`,row.weight,'گرم'); out(`پله ${i+1} · سرمایه`,row.price*row.weight);
         out(`پله ${i+1} · سرمایه تجمعی`,invested);out(`پله ${i+1} · وزن تجمعی`,weight,'گرم');out(`پله ${i+1} · میانگین`,invested/weight,'تومان / گرم');out(`پله ${i+1} · فاصله تا میانگین`,(row.price/(invested/weight)-1)*100,'درصد');
       }
     }
@@ -82,6 +82,7 @@ export function calculateTrade(body: unknown, snapshot: Snapshot): CalculatorRes
     const average=invested/weight, sign=req.operation === 'quickTrade' && t.direction === 'SELL' ? -1:1;
     const pnl=(price:number)=>sign*(price-average)*weight-costs;
     const breakEven=average+sign*costs/weight;
+    if(req.operation === 'tradeSimulator') out('سرمایه باقی‌مانده',t.capital-invested-buyCost);
     out('وزن کل',weight,'گرم'); out('سرمایه خرید',invested);out('سرمایه با کارمزد خرید',invested+buyCost);out('میانگین وزنی',average,'تومان / گرم');
     if(req.operation==='positionManager') out('سرمایه خریدهای جدید',additional);
     out('ارزش فعلی',current*weight);out('سود/زیان فعلی خالص',pnl(current));out('بازده فعلی',pnl(current)/(invested+buyCost)*100,'درصد');out('سربه‌سر با هزینه‌ها',breakEven,'تومان / گرم');out('فاصله قیمت فعلی تا سربه‌سر',(breakEven/current-1)*100,'درصد');

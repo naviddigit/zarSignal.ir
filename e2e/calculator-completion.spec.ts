@@ -46,3 +46,24 @@ test('calculator waits beyond twelve seconds for a fresh quote without another c
   await expect(page.getByRole('textbox',{name:'مثقال آب‌شده ۷۰۵'})).toHaveValue('100,000,000');
   await expect(page.locator('.calc-error')).toHaveCount(0);
 });
+
+test('position averaging submits without forcing an unused blank purchase step',async({page})=>{
+  let submitted: { trade: { rows: unknown[]; desired: number } } | undefined;
+  await page.route('**/api/public/calculator/professional',async route=>{
+    submitted=route.request().postDataJSON();
+    await route.fulfill({json:{outputs:[{label:'خرید لازم برای میانگین هدف',value:10,unit:'گرم'}]}});
+  });
+  await page.goto('/calculator');
+  await page.getByRole('tab',{name:'معامله سریع',exact:true}).click();
+  await page.getByRole('button',{name:'مدیریت پوزیشن',exact:true}).click();
+  await page.getByRole('textbox',{name:'قیمت فعلی',exact:true}).fill('100');
+  await page.getByRole('textbox',{name:'میانگین خرید',exact:true}).fill('100');
+  await page.getByRole('textbox',{name:'وزن موجود',exact:true}).fill('10');
+  await page.getByText('خرید لازم برای رسیدن به میانگین هدف',{exact:true}).click();
+  await page.getByRole('textbox',{name:'میانگین هدف',exact:true}).fill('90');
+  await page.getByRole('textbox',{name:'قیمت خرید جدید',exact:true}).fill('80');
+  await page.locator('.trade-calculator button[type="submit"], .trade-calculator .calc-tool-panel__go').click();
+  await expect(page.getByRole('dialog')).toBeVisible();
+  expect(submitted?.trade.rows).toEqual([]);
+  expect(submitted?.trade.desired).toBe(90);
+});

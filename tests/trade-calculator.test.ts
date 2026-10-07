@@ -26,3 +26,15 @@ test('UAE shared live input derives 18k from ounces and rejects stale/wrong unit
   assert.equal(resolveCalculatorLiveValue(field,{...snapshot,quotes:[{...quote,unit:'گرم'}]}),null);
   assert.equal(resolveCalculatorLiveValue(field,{...snapshot,quotes:[{...quote,observedAt:'2020-01-01'}]}),null);
 });
+
+test('position target averaging works without additional purchases and simulator exposes each step weight',()=>{
+  const position=values(run('positionManager',{rows:[],desired:90,newPrice:80,target:0,stop:0}));
+  assert.equal(position['خرید لازم برای میانگین هدف'],10);
+  assert.equal(position['سرمایه لازم برای میانگین هدف'],800);
+  assert.equal(position['وزن کل'],10);
+  assert.equal(position['میانگین وزنی'],100);
+  assert.throws(()=>run('positionManager',{rows:[],desired:80,newPrice:80,target:0,stop:0}),/دست‌یافتنی/);
+  const simulation=values(run('tradeSimulator',{capital:1000,rows:[{price:0,percent:-10,weight:10}],stop:70}));
+  assert.equal(simulation['پله 1 · وزن'],10);
+  assert.equal(simulation['سرمایه باقی‌مانده'],95);
+});
