@@ -269,3 +269,45 @@
  .price-card__foot{grid-column:1/-1;grid-row:3}
  .price-card__time{min-width:0;flex:1;text-align:end}
 }
+/* Mobile type and surface density share the same scale across customer pages. */
+@media(max-width:760px){
+ .home-page h2{font-size:18px;line-height:1.5;margin-block:6px 10px}
+ .home-page h3{font-size:14px;line-height:1.5}
+ .home-page .hero-copy h1{font-size:28px;line-height:1.5}
+ .home-page .calc-preview{padding:16px;gap:12px;margin-block:18px}
+ .home-page .calc-preview h2{font-size:18px;margin:6px 0}
+ .home-page .calc-preview p{font-size:12px;line-height:1.7;margin:0 0 6px}
+ .home-page .calc-preview-categories{font-size:10px}
+ .home-page .calc-preview>.button{min-height:44px;padding:10px 14px;font-size:12px}
+ .markets-page{padding-top:12px}
+ .market-board-window{padding:14px 10px 8px}
+ .market-heading{gap:6px;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start}
+ .market-heading>div:first-child{min-width:0}
+ .market-heading h1{font-size:18px;margin:0;line-height:1.5}
+ .market-heading p{display:none}
+ .market-heading__analysis{font-size:11px;margin-top:2px;min-height:28px}
+ .market-heading .feed-state{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:4px;border:0;background:none;padding:0;max-width:150px}
+ .market-heading .feed-state strong{font-size:9px;line-height:1.5}
+ .market-heading .feed-state small{font-size:8px;width:100%;justify-content:flex-end}
+ .market-toolbar{margin-top:8px;gap:6px}
+ .market-toolbar>.tabs{gap:2px;width:100%;justify-content:space-between}
+ .market-toolbar>.tabs button{min-height:36px;padding:5px 9px;font-size:11px}
+ .market-toolbar__end{flex-wrap:nowrap;gap:6px}
+ .market-toolbar .search{height:40px;min-height:40px;padding:0 9px;border-radius:10px}
+ .market-toolbar .search input{height:38px;padding:0;min-width:0;font-size:16px}
+ .market-toolbar .search input::placeholder{font-size:11px}
+ .market-toolbar .search svg{width:14px;height:14px;flex:none}
+ .market-board-window .source-disclosure{padding:6px 8px;margin-block:6px;font-size:10px;gap:3px}
+ .market-board-window .source-disclosure span{font-size:9px;line-height:1.5}
+ .auth-page{min-height:0;padding:14px 16px 24px;align-items:start}
+ .auth-card{max-width:400px;margin:0 auto;padding:18px;border-radius:14px;box-shadow:none}
+ .auth-card h1{font-size:22px;margin:0 0 4px}
+ .auth-card>p{font-size:12px;margin:0 0 16px}
+ .auth-methods{gap:10px}
+ .auth-card .email-login{gap:6px;margin-block:0}
+ .auth-card .phone-field{min-height:44px}
+ .auth-card .phone-field input{font-size:16px;padding-block:9px}
+ .auth-card .button,.auth-card .google-button{min-height:44px;padding:10px 14px;font-size:12px}
+ .auth-card>small{font-size:9px;line-height:1.7;margin-top:12px}
+ body:has(.auth-page)>.footer{display:none!important}
+}

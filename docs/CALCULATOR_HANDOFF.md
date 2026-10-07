@@ -14,3 +14,4 @@
 
 Checks: `npm run typecheck`; `npm test`; `npx playwright test e2e/site-boot.spec.ts e2e/calculator-completion.spec.ts e2e/professional-calculator.spec.ts --project=mobile`; `npm run build`.
 - Quote-card units stay inline with their number, not inside the same wrapping text node. Keep equal card heights and matching calculator category/tool icon sizes (20px desktop, 18px phone; badges remain smaller).
+- Mobile secondary tool icons are intentionally smaller than category icons: 16px vs 18px, wrappers 22px vs 26px. Match selector specificity so old desktop tile rules cannot override phone dimensions. Public login keeps the mobile tab bar; only admin routes hide it. Home headings and calculator preview use compact mobile typography.

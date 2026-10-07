@@ -148,10 +148,10 @@ export function MarketBoard({ initial, bubbles = [] }: { initial: Snapshot; bubb
         </div>
       </div>
 
-      <div className={`source-disclosure ${fresh ? 'is-live' : stale ? 'is-stale' : ''}`} role="status">
+      {(error || !fresh) && <div className={`source-disclosure ${fresh ? 'is-live' : stale ? 'is-stale' : ''}`} role="status">
         <strong>{error ? 'به‌روزرسانی ناموفق بود' : fresh ? 'داده زنده ثبت شده' : stale ? 'قیمت‌ها قدیمی‌اند' : 'قیمت نمایشی حذف شده است'}</strong>
         <span>{fresh ? 'زمان دریافت هر ردیف مشخص است.' : stale ? 'آخرین قیمت ثبت‌شده نمایش داده می‌شود؛ تا دریافت تازه، این اعداد قیمت لحظه‌ای نیستند.' : 'تا دریافت موفق از منبع معتبر، هیچ عددی به عنوان قیمت بازار نمایش داده نمی‌شود.'}</span>
-      </div>
+      </div>}
 
       {layout === 'cards' ? (
         <div className="price-card-grid">

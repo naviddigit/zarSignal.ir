@@ -52,7 +52,7 @@ export function MobileTabBar() {
     };
   }, [pathname]);
 
-  if (pathname.startsWith('/admin') || pathname.startsWith('/login')) return null;
+  if (pathname.startsWith('/admin')) return null;
 
   const tabs = signedIn ? memberTabs : guestTabs;
 

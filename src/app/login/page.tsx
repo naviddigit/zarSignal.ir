@@ -57,9 +57,8 @@ export default async function LoginPage({
           </>
         ) : (
           <>
-            <span className="eyebrow gold-text">حساب کاربری زرسیگنال</span>
             <h1>{mode === 'register' ? 'ثبت‌نام' : 'ورود'}</h1>
-            <p>با ایمیل وارد شوید یا از گوگل ادامه دهید.</p>
+            <p>ورود به حساب زرسیگنال</p>
             {errorText ? <p className="calc-error" role="alert">{errorText}</p> : null}
 
             <div className="auth-methods">
@@ -117,9 +116,6 @@ export default async function LoginPage({
                 </div>
               )}
 
-              {!authCapabilities.phone ? (
-                <p className="auth-alt-note">ورود پیامکی به‌زودی؛ فعلاً ایمیل{authCapabilities.google ? ' و گوگل' : ''}.</p>
-              ) : null}
             </div>
             <small>با ورود، قوانین استفاده و حریم خصوصی زرسیگنال را می‌پذیرید.</small>
           </>

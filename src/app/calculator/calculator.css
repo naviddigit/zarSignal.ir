@@ -380,3 +380,13 @@ body:has(.calc-app-page)>.footer{display:none!important}
  .calc-product-tiles>button small{font-size:10px}
  .calc-tool-panel__title,.calc-weight-widget__head strong{font-size:12px}
 }
+/* Compact secondary tools: intentionally smaller than the category row. */
+.calc-popular__icons>button:not(.calc-popular__all){width:80px;padding:8px 6px;gap:5px}
+.calc-popular__icons>button .calc-popular__icon{width:28px;height:28px}
+.calc-popular__icons>button .calc-popular__icon>svg:not(.calc-lock-badge):not(.calc-star-badge){width:18px;height:18px}
+@media(max-width:760px){
+ .calc-popular__icons>button:not(.calc-popular__all){width:72px;min-height:64px;padding:6px 4px;gap:4px}
+ .calc-popular__icons>button:not(.calc-popular__all) small{font-size:10px;line-height:1.3}
+ .calc-popular__icons>button .calc-popular__icon{width:22px;height:22px;border-radius:7px}
+ .calc-popular__icons>button .calc-popular__icon>svg:not(.calc-lock-badge):not(.calc-star-badge){width:16px;height:16px}
+}
