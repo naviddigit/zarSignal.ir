@@ -254,17 +254,6 @@ export function CalculatorPopularRow({
 }) {
   return (
     <section className="calc-popular" aria-label="ابزار انتخابی">
-      <header>
-        <div className="calc-popular__heading">
-          <strong>ابزار انتخابی</strong>
-          <small className="calc-currency-note">تومانی</small>
-          {onOpenFullList ? (
-            <button type="button" className="calc-popular__all" onClick={onOpenFullList}>
-              لیست کامل
-            </button>
-          ) : null}
-        </div>
-      </header>
       <HScrollRail className="calc-popular__rail" trackClassName="calc-popular__icons" label="ابزار انتخابی" step={120}>
         {items.map(item => {
           const Icon = item.Icon;
@@ -286,6 +275,11 @@ export function CalculatorPopularRow({
             </button>
           );
         })}
+        {onOpenFullList ? (
+          <button type="button" className="calc-popular__all" onClick={onOpenFullList}>
+            لیست کامل
+          </button>
+        ) : null}
       </HScrollRail>
     </section>
   );
