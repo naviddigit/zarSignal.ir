@@ -1,4 +1,4 @@
-import type { CalculatorProduct } from '@/lib/calculator-navigation';
+import { calculatorToolsByProduct, type CalculatorProduct } from '@/lib/calculator-navigation';
 
 const STORAGE_KEY = 'zarsignal-calc-favorites-v1';
 
@@ -16,6 +16,9 @@ export function readCalculatorFavorites(): FavoritesMap {
         ? [...new Set(raw[product]!.filter((id): id is string => typeof id === 'string'))]
         : [];
     }
+    const moved = next.gold.filter(id => calculatorToolsByProduct.trade.some(tool => tool === id));
+    next.trade = [...new Set([...next.trade, ...moved])];
+    next.gold = next.gold.filter(id => !moved.includes(id));
     return next;
   } catch {
     return emptyFavorites();

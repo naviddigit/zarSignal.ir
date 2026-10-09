@@ -4,8 +4,8 @@ export type CalculatorProduct = 'gold' | 'silver' | 'fx' | 'coin' | 'trade';
 export const calculatorProductLabels: Record<CalculatorProduct, string> = { gold: 'طلا', silver: 'نقره', fx: 'ارز', coin: 'سکه', trade: 'معامله سریع' };
 export const calculatorProducts = Object.keys(calculatorProductLabels) as CalculatorProduct[];
 export const calculatorToolsByProduct: Record<CalculatorProduct, CalculatorModule[]> = {
-  trade: ['quickTrade', 'scaleIn', 'positionManager', 'scaleOut', 'tradeSimulator'],
-  gold: ['marketWeight', 'purity', 'mazanehTo18k', 'market18kToMazaneh', 'fineGold', 'goldBubble', 'uaeGold', 'capitalGold', 'meltedPnl', 'meltedTarget', 'meltedNewBuy', 'meltedTargetAverage', 'meltedPartialSell', 'meltedBreakEven', 'goldSilverSwap', 'percentageChange'],
+  trade: ['quickTrade', 'scaleIn', 'positionManager', 'scaleOut', 'tradeSimulator', 'meltedPnl', 'meltedPartialSell', 'meltedBreakEven', 'meltedNewBuy', 'meltedTargetAverage', 'meltedTarget'],
+  gold: ['marketWeight', 'purity', 'mazanehTo18k', 'market18kToMazaneh', 'fineGold', 'goldBubble', 'uaeGold', 'capitalGold', 'goldSilverSwap', 'percentageChange'],
   silver: ['purity', 'fineSilver', 'silverBarCost', 'silverMintPremium', 'capitalSilver', 'silverBubble', 'goldSilverSwap', 'percentageChange'],
   fx: ['usdGap', 'aedDerivedUsd', 'fxRateGap', 'rateCompare', 'percentageChange'],
   coin: ['coinBuy', 'coinSell', 'coinCapital', 'coinPnl', 'coinBreakEven', 'purity', 'percentageChange'],
@@ -15,7 +15,7 @@ export const displayToolId = (id: string) => id === 'mazanehTo18k' || id === 'ma
 const displayTools = (product: CalculatorProduct) => [...new Set(calculatorToolsByProduct[product].map(displayToolId))];
 const featured: Record<CalculatorProduct, string[]> = {
   trade: ['quickTrade', 'scaleIn', 'positionManager', 'scaleOut', 'tradeSimulator'],
-  gold: ['marketWeight', 'mazaneh', 'goldBubble', 'fineGold', 'meltedPnl', 'capitalGold'],
+  gold: ['marketWeight', 'mazaneh', 'goldBubble', 'fineGold', 'capitalGold'],
   silver: ['silverBubble', 'fineSilver', 'silverBarCost', 'goldSilverSwap', 'capitalSilver'],
   fx: ['usdGap', 'fxRateGap', 'aedDerivedUsd'],
   coin: ['coinBuy', 'coinSell', 'coinBreakEven', 'coinCapital', 'coinPnl'],

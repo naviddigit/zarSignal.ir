@@ -43,7 +43,7 @@ test('calculator waits beyond twelve seconds for a fresh quote without another c
   await page.clock.fastForward(13000);
   const now = new Date().toISOString();
   await route.fulfill({json:{mode:'live',status:'ok',quotes:[{symbol:'GOLD_MELTED',buy:'100000000',sell:'100000000',currency:'TMN',unit:'مثقال',observedAt:now,fetchedAt:now,source:'زرسیگنال',sourceUrl:null}]}});
-  await expect(page.getByRole('textbox',{name:'مثقال آب‌شده ۷۰۵'})).toHaveValue('100,000,000');
+  await expect(page.getByRole('textbox',{name:'مثقال آب‌شده ۱۸ عیار'})).toHaveValue('100,000,000');
   await expect(page.locator('.calc-error')).toHaveCount(0);
 });
 

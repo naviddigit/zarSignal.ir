@@ -93,11 +93,31 @@ test('silver bar uses global metal value and explicit costs, not a fixed mint pr
 
 test('melted P&L is a theoretical preview with costs deducted once', () => {
   const result = calculateProfessional({ operation: 'meltedPnl', inputs: {
-    average: manual(100000000), melted: manual(110000000), quantity: manual(2), cost: manual(1000000),
+    average: manual(100000000), melted: manual(110000000), quantity: manual(2 * 4.3318), cost: manual(1000000),
   } }, empty);
   assert.deepEqual(result.outputs.slice(0, 4).map(o => o.value), [220000000, 20000000, 1000000, 19000000]);
   assert.ok(Math.abs(result.outputs[4].value - 19 / 201 * 100) < 1e-10);
   assert.equal(calculateProfessional({ operation: 'percentageChange', inputs: { before: manual(100), after: manual(90) } }, empty).outputs[1].value, -10);
+});
+
+test('silver output is equivalent 999 weight, not pure 1000 weight', () => {
+  const result = calculateProfessional({ operation: 'fineSilver', inputs: { weight: manual(100), purity: manual(825) } }, empty);
+  assert.equal(result.outputs[0].label, 'وزن معادل نقره ۹۹۹');
+  assert.ok(Math.abs(result.outputs[0].value - 82.58258258258258) < 1e-10);
+  assert.equal(calculateProfessional({ operation: 'fineSilver', inputs: { weight: manual(100), purity: manual(999) } }, empty).outputs[0].value, 100);
+});
+
+test('melted P&L converts 104 grams once and deducts costs after conversion', () => {
+  const run = (current: number, cost: number) => calculateProfessional({ operation: 'meltedPnl', inputs: {
+    average: manual(113860000), melted: manual(current), quantity: manual(104), cost: manual(cost),
+  } }, empty);
+  const result = run(114500000, 1000000);
+  const gross = (114500000 - 113860000) * 104 / 4.3318;
+  assert.ok(Math.abs(result.outputs[1].value - gross) < 1e-6);
+  assert.ok(Math.abs(result.outputs[3].value - (gross - 1000000)) < 1e-6);
+  assert.equal(result.inputs.find(input => input.key === 'quantity')?.unit, 'گرم طلای ۱۸ عیار');
+  const loss = run(113220000, 1000000);
+  assert.ok(Math.abs(loss.outputs[3].value - (-gross - 1000000)) < 1e-6);
 });
 
 test('M12 gold/silver swap keeps USD out of ounce ratio and purity scaling does not invent an edge', () => {

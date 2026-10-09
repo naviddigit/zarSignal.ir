@@ -1,5 +1,6 @@
 'use client';
 import { TradeCalculator } from '@/components/trade-calculator';
+import { isTradeOperation } from '@/lib/trade-calculator';
 import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { LockKeyhole, RefreshCw, ArrowUpLeft } from 'lucide-react';
@@ -50,7 +51,6 @@ const popularByProduct: Record<Product, PopularPick[]> = {
     { id: 'mazaneh', label: 'مثقال ↔ گرم ۱۸', Icon: popularIcons.mazanehTo18k },
     { id: 'goldBubble', label: 'حباب طلا', Icon: popularIcons.goldBubble },
     { id: 'fineGold', label: 'طلای خالص', Icon: popularIcons.purity },
-    { id: 'meltedPnl', label: 'سود و زیان آب‌شده', Icon: popularIcons.goldBubble },
     { id: 'capitalGold', label: 'سرمایه به طلا', Icon: popularIcons.mazanehTo18k },
   ],
   silver: [
@@ -445,7 +445,7 @@ export function ProfessionalCalculator({
             <p>{!toolGate.ok ? toolGate.message : ''}</p>
             {!toolGate.ok && (toolGate.code === 'forbidden' || toolGate.code === 'trial_expired') ? <Link href="/pricing">ارتقای حساب</Link> : null}
           </div>
-        ) : product === 'trade' ? (
+        ) : operation && isTradeOperation(operation) ? (
           <TradeCalculator key={tool} operation={operation!} snapshot={market} favoriteSlot={activeFavoriteSlot} />
         ) : tool === 'marketWeight' ? (
           <MarketMesghalEquivalentWidget amount={weightAmount} onAmountChange={setWeightAmount} onPriceConversionClick={() => choose('market18kToMazaneh')} favoriteSlot={activeFavoriteSlot} />
@@ -492,7 +492,7 @@ export function ProfessionalCalculator({
                   <div className="calc-tool-panel__control">
                     <input
                       className="ds-input"
-                      inputMode="none"
+                      inputMode={product === 'trade' ? 'decimal' : 'none'}
                       onFocus={() => setActiveField(field.key)}
                       data-active={activeField === field.key}
                       autoComplete="off"

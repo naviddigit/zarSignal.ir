@@ -2,6 +2,7 @@ import { calculateTrade, isTradeOperation } from '@/lib/trade-calculator';
 import { calculatorCatalog, type CalculatorOperation, type CalculatorResult } from '@/lib/calculator-catalog';
 import type { Snapshot } from '@/lib/market';
 import { resolveCalculatorLiveValue } from '@/lib/calculator-live';
+import { MAZANEH_TO_18K_DIVISOR } from '@/lib/mazaneh-to-18k';
 import { mazanehTo18k, market18kToMazaneh } from './mazaneh-to-18k';
 import { goldBubble, silverBubbleV54, usdGap, usdFromAedGap, uae18kTheoretical, TROY_OZ_GRAMS } from './bubble-formulas';
 
@@ -47,16 +48,17 @@ export function calculateProfessional(body: unknown, snapshot: Snapshot): Calcul
     if (!Number.isInteger(v.quantity)) throw new Error('تعداد سکه باید عدد صحیح باشد.');
     outputs = [output('قیمت سربه‌سر فروش هر سکه', v.buyPrice + v.cost / v.quantity, 'تومان')];
   } else if (request.operation === 'fineSilver') {
-    outputs = [output('نقره خالص', v.weight * v.purity / 1000, 'گرم')];
+    outputs = [output('وزن معادل نقره ۹۹۹', v.weight * v.purity / 999, 'گرم')];
   } else if (request.operation === 'silverBarCost') {
     const fine = v.weight * v.purity / 1000;
     const metal = fine / TROY_OZ_GRAMS * v.xag * v.usd;
     outputs = [output('نقره خالص شمش', fine, 'گرم'), output('ارزش محاسباتی فلز', metal, 'تومان'), output('بهای تمام‌شده با هزینه‌های واردشده', metal + v.mint + v.tax + v.spread + v.cost, 'تومان')];
   } else if (request.operation === 'meltedPnl') {
-    const position = v.melted * v.quantity;
-    const invested = v.average * v.quantity;
+    const equivalent = v.quantity / MAZANEH_TO_18K_DIVISOR;
+    const position = v.melted * equivalent;
+    const invested = v.average * equivalent;
     const gross = position - invested;
-    outputs = [output('ارزش نظری موقعیت', position, 'تومان'), output('سود/زیان ناخالص', gross, 'تومان'), output('هزینه‌های واردشده', v.cost, 'تومان'), output('سود/زیان خالص نظری', gross - v.cost, 'تومان'), output('بازده خالص', (gross - v.cost) / (invested + v.cost) * 100, 'درصد')];
+    outputs = [output('ارزش نظری موقعیت', position, 'تومان'), output('سود و زیان مثقالی', gross, 'تومان'), output('هزینه‌های واردشده', v.cost, 'تومان'), output('سود و زیان نظری', gross - v.cost, 'تومان'), output('بازده خالص', (gross - v.cost) / (invested + v.cost) * 100, 'درصد')];
   } else if (request.operation === 'percentageChange') {
     outputs = [output('تغییر مقدار', v.after - v.before, 'تومان'), output('تغییر درصدی', (v.after - v.before) / v.before * 100, 'درصد')];
   } else if (request.operation === 'goldSilverSwap') {
