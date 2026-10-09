@@ -52,13 +52,13 @@ export default function Layout({ children }: Readonly<{ children: React.ReactNod
         <Header />
         {children}
         <footer className="shell footer">
-          <Link href="/" className="footer-brand">زرسیگنال <span>دید روشن‌تر به بازار.</span></Link>
+          <Link prefetch={false} href="/" className="footer-brand">زرسیگنال <span>دید روشن‌تر به بازار.</span></Link>
           <div>
-            <Link href="/methodology">شفافیت داده</Link>
-            <Link href="/news">اخبار و مقالات</Link>
-            <Link href="/faq">پرسش‌های متداول</Link>
-            <Link href="/developers">مستندات API</Link>
-            <Link href="/mobile">اپلیکیشن</Link>
+            <Link prefetch={false} href="/methodology">شفافیت داده</Link>
+            <Link prefetch={false} href="/news">اخبار و مقالات</Link>
+            <Link prefetch={false} href="/faq">پرسش‌های متداول</Link>
+            <Link prefetch={false} href="/developers">مستندات API</Link>
+            <Link prefetch={false} href="/mobile">اپلیکیشن</Link>
           </div>
           <small>نسخهٔ اولیه · تحلیل، تضمین نتیجهٔ معامله نیست.</small>
         </footer>

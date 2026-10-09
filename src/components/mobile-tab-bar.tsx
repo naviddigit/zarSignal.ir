@@ -68,7 +68,7 @@ export function MobileTabBar() {
               href={tab.href}
               className={`mobile-tab-bar__item${active ? ' is-active' : ''}`}
               aria-current={active ? 'page' : undefined}
-              prefetch
+              prefetch={false}
             >
               <span className="mobile-tab-bar__icon"><Icon size={22} strokeWidth={active ? 2.4 : 1.9} /></span>
               <span className="mobile-tab-bar__label">{tab.label}</span>

@@ -1,5 +1,8 @@
 # Calculator and mobile handoff — 2026-10-07
 
+- Availability follow-up (2026-10-09): shared public navigation/footer and home links intentionally disable Next prefetch to avoid loading unused RSC pages. Error recovery reloads the document to re-fetch failed JS chunks; do not replace it with boundary-only reset. Compact public sparks request only the free 24h window (`days=1`), never paid 30-day history. Preserve history entitlement checks.
+- Network errors are separate: `ERR_CONNECTION_RESET` can prevent HTML or chunks from reaching the browser. Code recovery does not repair the network route. Do not report that changing Vercel plans or removing the boot splash proves this fixed.
+
 - Cursor and Codex share this checkout. Always inspect git status/diff first; preserve uncommitted work by others. Read current code instead of restoring an older version.
 - Boot release must work WITHOUT React hydration or fonts: inline layout timer releases the logo within 1.8s. `SiteBoot` may release sooner, never keep the site hidden indefinitely. No forced scroll reset. Check `e2e/site-boot.spec.ts` and `e2e/calculator-completion.spec.ts` with blocked JS chunks.
 - Browser and server use `src/lib/calculator-live.ts`. Never duplicate live-value resolution. LIVE values are resolved authoritatively on the server; client values are never trusted as live prices. Keep freshness, currency/unit and bid/ask checks.

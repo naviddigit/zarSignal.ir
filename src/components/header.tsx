@@ -12,7 +12,7 @@ export async function Header() {
   return (
     <header className="site-header">
       <div className="shell header-inner">
-        <Link href="/" className="brand">
+        <Link prefetch={false} href="/" className="brand">
           <span className="brand-mark"><Activity size={26} /></span>
           <span>
             زر<span className="gold-text">سیگنال</span>
@@ -21,25 +21,25 @@ export async function Header() {
         </Link>
 
         <nav aria-label="ناوبری اصلی">
-          <Link href="/markets">بازارها</Link>
-          <Link href="/#bubbles">رادار حباب</Link>
-          <Link href="/news">مقالات</Link>
-          <Link href="/pricing">اشتراک</Link>
+          <Link prefetch={false} href="/markets">بازارها</Link>
+          <Link prefetch={false} href="/#bubbles">رادار حباب</Link>
+          <Link prefetch={false} href="/news">مقالات</Link>
+          <Link prefetch={false} href="/pricing">اشتراک</Link>
         </nav>
 
         <div className="header-actions">
-          <Link className="header-tool header-tool--calc" href="/calculator" aria-label="ماشین‌حساب" title="ماشین‌حساب">
+          <Link prefetch={false} className="header-tool header-tool--calc" href="/calculator" aria-label="ماشین‌حساب" title="ماشین‌حساب">
             <Calculator size={19} />
           </Link>
           <ThemeToggle />
           <InstallApp />
           {user ? (
-            <Link className="button small-button header-auth" href="/account" title={user.email ?? label}>
+            <Link prefetch={false} className="button small-button header-auth" href="/account" title={user.email ?? label}>
               <UserRound size={16} aria-hidden="true" />
               <span className="header-auth__label">{label}</span>
             </Link>
           ) : (
-            <Link className="button small-button header-auth" href="/login">
+            <Link prefetch={false} className="button small-button header-auth" href="/login">
               ورود
             </Link>
           )}

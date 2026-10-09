@@ -33,6 +33,16 @@ test('unknown symbols never query the database', async t => {
   assert.equal(query.mock.callCount(), 0);
 });
 
+test('anonymous long history remains gated without reading paid bars', async t => {
+  const query = stubHistory(t);
+  const response = await GET(new Request('https://zarsignal.ir/api/public/markets/gold_melted/history?days=30'), {
+    params: Promise.resolve({ symbol: 'gold_melted' }),
+  });
+  assert.equal(response.status, 403);
+  assert.equal((await response.json()).gated, true);
+  assert.equal(query.mock.callCount(), 0);
+});
+
 test('missing history storage returns an empty chart payload instead of breaking the page', async t => {
   stubHistory(t, true);
   const response = await GET(new Request('https://zarsignal.ir/api/public/markets/gold_melted/history'), {

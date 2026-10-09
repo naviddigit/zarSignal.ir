@@ -88,7 +88,8 @@ export function useMarketSparks(symbols: Symbol[]) {
       for (const symbol of plain) {
         tasks.push((async () => {
           try {
-            const data = await fetchJson<{ bars?: HistoryBar[] }>(`/api/public/markets/${symbol.toLowerCase()}/history?days=30&resolution=1D`, controller.signal, 10_000);
+            // Public 24h cards must not request paid 30-day history or label it as 24h.
+            const data = await fetchJson<{ bars?: HistoryBar[] }>(`/api/public/markets/${symbol.toLowerCase()}/history?days=1&resolution=1D`, controller.signal, 10_000);
             const closes = (data.bars ?? []).map(b => b.c).filter(v => Number.isFinite(v) && v > 0);
             if (closes.length >= 3) next[symbol] = { price: closes };
           } catch { /* keep empty spark */ }

@@ -38,8 +38,8 @@ export default async function Home() {
           <h1>{texts.title}<br /><span className="gold-text">{texts.accent}</span></h1>
           <p>{texts.description}</p>
           <div className="hero-actions">
-            <Link href="/markets" className="button">{texts.primary} <ArrowUpLeft size={18} /></Link>
-            <Link href="/analysis" className="text-link">{texts.secondary} <ChevronLeft size={16} /></Link>
+            <Link prefetch={false} href="/markets" className="button">{texts.primary} <ArrowUpLeft size={18} /></Link>
+            <Link prefetch={false} href="/analysis" className="text-link">{texts.secondary} <ChevronLeft size={16} /></Link>
           </div>
           <div className="decision-strip hero-screen-down" aria-label="سه پاسخ اصلی زر‌سیگنال">
             <span><Gauge size={15} /><b>الان چه خبر است؟</b><small>نبض بازار</small></span>
@@ -66,11 +66,11 @@ export default async function Home() {
             <span className="eyebrow">NEWS</span>
             <h2>بخوانید تا بازار را اشتباه نفهمید</h2>
           </div>
-          <Link className="text-link" href="/news">همه مقالات <ArrowUpLeft size={15} /></Link>
+          <Link prefetch={false} className="text-link" href="/news">همه مقالات <ArrowUpLeft size={15} /></Link>
         </div>
         <div className="home-news__grid">
           {articles.slice(0, 3).map(article => (
-            <Link key={article.slug} href={`/news/${article.slug}`}>
+            <Link prefetch={false} key={article.slug} href={`/news/${article.slug}`}>
               <strong>{article.title}</strong>
               <small>{article.description}</small>
             </Link>
@@ -83,20 +83,20 @@ export default async function Home() {
           <span className="eyebrow gold-text"><Sparkles size={15} /> ZARSIGNAL PREMIUM</span>
           <h2>{texts.premiumTitle}</h2>
           <p>{texts.premiumBody}</p>
-          <Link className="button" href="/pricing">آشنایی با پریمیوم <ArrowUpLeft size={16} /></Link>
+          <Link prefetch={false} className="button" href="/pricing">آشنایی با پریمیوم <ArrowUpLeft size={16} /></Link>
           <svg className="premium-decoration" aria-hidden="true" viewBox="0 0 100 100"><path d="M50 5v90M5 50h90M18 18l64 64M82 18 18 82" /></svg>
         </article>
         <article className="panel feature-card">
           <Code2 size={26} /><h3>{texts.apiTitle}</h3>
           <p>{texts.apiBody}</p>
-          <Link href="/pricing#api-plans">خرید پلن API <ArrowUpLeft size={15} /></Link>
-          <Link href="/developers">مستندات <ArrowUpLeft size={15} /></Link>
+          <Link prefetch={false} href="/pricing#api-plans">خرید پلن API <ArrowUpLeft size={15} /></Link>
+          <Link prefetch={false} href="/developers">مستندات <ArrowUpLeft size={15} /></Link>
           <code dir="ltr">GET /api/v1/quotes</code>
         </article>
         <article className="panel feature-card">
           <Smartphone size={26} /><h3>{texts.mobileTitle}</h3>
           <p>{texts.mobileBody}</p>
-          <Link href="/mobile">نصب زرسیگنال <ArrowUpLeft size={15} /></Link>
+          <Link prefetch={false} href="/mobile">نصب زرسیگنال <ArrowUpLeft size={15} /></Link>
           <span className="platforms">iOS <span>+</span> Android</span>
         </article>
       </section>}
@@ -108,7 +108,7 @@ export default async function Home() {
           <h3>{texts.principlesTitle}</h3>
           <p>{texts.principlesBody}</p>
         </div>
-        <Link href="/methodology">استاندارد دادهٔ ما <ArrowUpLeft size={16} /></Link>
+        <Link prefetch={false} href="/methodology">استاندارد دادهٔ ما <ArrowUpLeft size={16} /></Link>
       </section>}
     </main>
   );
