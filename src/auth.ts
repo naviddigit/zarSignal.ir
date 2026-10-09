@@ -13,7 +13,10 @@ function validGoogleCredentials(clientId?: string | null, clientSecret?: string 
 
 const googleCredentials = cache(async () => {
   try {
-    const setting = await db.integrationSetting.findUnique({ where: { key: 'google_oauth' } });
+    const query = { where: { key: 'google_oauth' } };
+    // Retry a transient DB failure before treating the configured provider as unavailable.
+    const setting = await db.integrationSetting.findUnique(query)
+      .catch(() => db.integrationSetting.findUnique(query));
     if (setting?.enabled && setting.publicValue && setting.valueEncrypted) {
       const clientSecret = decryptIntegrationSecret(setting.valueEncrypted);
       if (validGoogleCredentials(setting.publicValue, clientSecret)) return { clientId: setting.publicValue, clientSecret };

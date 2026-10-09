@@ -3,8 +3,78 @@ import test from 'node:test';
 import { readFileSync } from 'node:fs';
 import { runInNewContext } from 'node:vm';
 import ts from 'typescript';
+import { createRequire } from 'node:module';
+import { renderToStaticMarkup } from 'react-dom/server';
 import { withDeadline } from '../src/lib/with-deadline';
 import { defaultFarazConfig, mapQuotes, priceToFixed, validateFarazUrl } from '../src/server/ingestion/faraz';
+
+test('production plans never replace failed database reads with sample prices', async () => {
+  const module = { exports: {} as typeof import('../src/server/plans') };
+  const source = readFileSync(new URL('../src/server/plans.ts', import.meta.url), 'utf8');
+  const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, esModuleInterop: true } }).outputText;
+  const nativeRequire = createRequire(import.meta.url);
+  let fail = false;
+  runInNewContext(compiled, { module, exports: module.exports, process: { env: { NODE_ENV: 'production' }, cwd: () => '.' }, require: (name: string) => {
+    if (name === 'server-only') return {};
+    if (name === '@/server/prepare-release') return { prepareRelease: async () => {} };
+    if (name === '@/lib/db') return { db: { plan: { findMany: async () => {
+      if (fail) throw new Error('database unavailable');
+      return [{ id: 'real-home', features: [], pricingVersions: [{ price: 249000, effectiveAt: new Date(0), active: true }], active: true, webAvailable: true }];
+    } } } };
+    return nativeRequire(name);
+  } });
+  assert.equal((await module.exports.getPublishedPlans())[0].pricingVersions[0].price, '249000');
+  fail = true;
+  await assert.rejects(module.exports.getManagedPlans(), /database unavailable/);
+  await assert.rejects(module.exports.getPublishedPlans(), /database unavailable/);
+});
+
+test('Google configuration retries transient storage errors without enabling an unconfigured provider', async () => {
+  for (const failure of ['once', 'always'] as const) {
+    const module = { exports: {} as typeof import('../src/auth') };
+    let reads = 0;
+    const dependencies: Record<string, unknown> = {
+      'next-auth': () => ({}), 'react': { cache: (fn: unknown) => fn },
+      'next-auth/providers/google': () => ({}), 'next-auth/providers/credentials': () => ({}),
+      '@auth/prisma-adapter': { PrismaAdapter: () => ({}) },
+      '@/lib/password': {}, '@/server/integration-secrets': { decryptIntegrationSecret: () => 'x'.repeat(30) },
+      '@/lib/db': { db: { integrationSetting: { findUnique: async () => {
+        reads++;
+        if (reads === 1 || failure === 'always') throw new Error('transient connection failure');
+        return { enabled: true, publicValue: 'test.apps.googleusercontent.com', valueEncrypted: 'encrypted' };
+      } } } },
+    };
+    const source = readFileSync(new URL('../src/auth.ts', import.meta.url), 'utf8');
+    const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, esModuleInterop: true } }).outputText;
+    runInNewContext(compiled, { module, exports: module.exports, process: { env: {} }, require: (name: string) => {
+      assert.ok(name in dependencies, `unexpected dependency: ${name}`);
+      return dependencies[name];
+    } });
+    assert.equal((await module.exports.getAuthCapabilities()).google, failure === 'once');
+    assert.equal(reads, 2);
+  }
+});
+
+test('pricing page never displays hardcoded paid prices or checkout links during an outage', async () => {
+  const module = { exports: {} as typeof import('../src/app/pricing/page') };
+  const source = readFileSync(new URL('../src/app/pricing/page.tsx', import.meta.url), 'utf8');
+  const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, esModuleInterop: true, jsx: ts.JsxEmit.ReactJSX } }).outputText;
+  const nativeRequire = createRequire(import.meta.url);
+  runInNewContext(compiled, { module, exports: module.exports, require: (name: string) => {
+    if (name === '@/server/plans') return { getPublishedPlans: async () => { throw new Error('database unavailable'); } };
+    if (name === '@/server/analysis-trial') return { trialPolicy: async () => ({ enabled: false }) };
+    if (name === '@/lib/history-access') return { planHistoryDays: () => 0 };
+    if (name === '@/components/funnel-track') return { FunnelTrack: () => null };
+    if (name === 'next/link') return 'a';
+    return nativeRequire(name);
+  } });
+  const html = renderToStaticMarkup(await module.exports.default());
+  assert.ok(html.includes('قیمت موقتاً در دسترس نیست'));
+  assert.equal(html.includes('href="/subscribe/'), false);
+  for (const amount of [149000, 299000, 249000, 799000, 1490000]) {
+    assert.equal(html.includes(new Intl.NumberFormat('fa-IR').format(amount)), false);
+  }
+});
 
 test('public rendering returns stored stale prices before recovery; explicit fresh waits for new prices', async () => {
   const callbacks: (() => Promise<void>)[] = [];
@@ -27,7 +97,7 @@ test('public rendering returns stored stale prices before recovery; explicit fre
     '@prisma/client': { Prisma: { sql: () => '', join: () => '' } },
   };
   const source = readFileSync(new URL('../src/server/quotes.ts', import.meta.url), 'utf8');
-  const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText;
+  const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, esModuleInterop: true } }).outputText;
   runInNewContext(compiled, { module, exports: module.exports, require: (name: string) => {
     assert.ok(name in dependencies, `unexpected dependency: ${name}`);
     return dependencies[name];

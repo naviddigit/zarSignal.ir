@@ -2,6 +2,7 @@
 
 - Availability follow-up (2026-10-09): shared public navigation/footer and home links intentionally disable Next prefetch to avoid loading unused RSC pages. Error recovery reloads the document to re-fetch failed JS chunks; do not replace it with boundary-only reset. Compact public sparks request only the free 24h window (`days=1`), never paid 30-day history. Preserve history entitlement checks.
 - Network errors are separate: `ERR_CONNECTION_RESET` can prevent HTML or chunks from reaching the browser. Code recovery does not repair the network route. Do not report that changing Vercel plans or removing the boot splash proves this fixed.
+- Production plans must come only from PostgreSQL. Never fall back to development presets (249k/799k) or hardcoded page prices during outages; show unavailable and disable paid selection without a published price. Admin changes remain the authoritative prices. Google settings retry a transient DB read once; never bypass OAuth account-linking checks to hide login errors.
 
 - Cursor and Codex share this checkout. Always inspect git status/diff first; preserve uncommitted work by others. Read current code instead of restoring an older version.
 - Boot release must work WITHOUT React hydration or fonts: inline layout timer releases the logo within 1.8s. `SiteBoot` may release sooner, never keep the site hidden indefinitely. No forced scroll reset. Check `e2e/site-boot.spec.ts` and `e2e/calculator-completion.spec.ts` with blocked JS chunks.

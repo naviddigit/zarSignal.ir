@@ -84,8 +84,8 @@ function buildTiers(plans: ManagedPlan[]): TierView[] {
       pitch: 'برای پیگیری روند هفتگی و خواندن گزارش دید سیستم.',
       popular: true,
       plan: home,
-      priceLabel: homePrice ? new Intl.NumberFormat('fa-IR').format(Number(homePrice.price)) : '۱۴۹٬۰۰۰',
-      priceHint: homePrice ? `${homePrice.currency} / ${periods[homePrice.billingPeriod]}` : 'تومان / ماهانه',
+      priceLabel: homePrice ? new Intl.NumberFormat('fa-IR').format(Number(homePrice.price)) : '—',
+      priceHint: homePrice ? `${homePrice.currency} / ${periods[homePrice.billingPeriod]}` : 'قیمت موقتاً در دسترس نیست',
       metric: `تاریخچه تا ${new Intl.NumberFormat('fa-IR').format(planHistoryDays(home?.features ?? ['history:30d']) || 30)} روز`,
       fallbackFeatures: [
         'همه امکانات رایگان',
@@ -100,8 +100,8 @@ function buildTiers(plans: ManagedPlan[]): TierView[] {
       title: pro?.title?.replace(/آزمایشی/g, '').trim() || 'حرفه‌ای',
       pitch: 'برای بررسی بازه‌های بلند و مقایسه عمیق‌تر.',
       plan: pro,
-      priceLabel: proPrice ? new Intl.NumberFormat('fa-IR').format(Number(proPrice.price)) : '۲۹۹٬۰۰۰',
-      priceHint: proPrice ? `${proPrice.currency} / ${periods[proPrice.billingPeriod]}` : 'تومان / ماهانه',
+      priceLabel: proPrice ? new Intl.NumberFormat('fa-IR').format(Number(proPrice.price)) : '—',
+      priceHint: proPrice ? `${proPrice.currency} / ${periods[proPrice.billingPeriod]}` : 'قیمت موقتاً در دسترس نیست',
       metric: `تاریخچه تا ${new Intl.NumberFormat('fa-IR').format(planHistoryDays(pro?.features ?? ['history:90d']) || 90)} روز`,
       fallbackFeatures: [
         'همه امکانات خانگی',
@@ -116,8 +116,8 @@ function buildTiers(plans: ManagedPlan[]): TierView[] {
       title: api?.title?.replace(/آزمایشی/g, '').trim() || 'API',
       pitch: 'برای اتصال داده به محصول، ربات یا داشبورد.',
       plan: api,
-      priceLabel: apiPrice ? (Number(apiPrice.price) === 0 ? 'سفارشی' : new Intl.NumberFormat('fa-IR').format(Number(apiPrice.price))) : '۱٬۴۹۰٬۰۰۰',
-      priceHint: apiPrice && Number(apiPrice.price) > 0 ? `${apiPrice.currency} / ${periods[apiPrice.billingPeriod]}` : 'تومان / ماهانه یا قرارداد',
+      priceLabel: apiPrice ? (Number(apiPrice.price) === 0 ? 'سفارشی' : new Intl.NumberFormat('fa-IR').format(Number(apiPrice.price))) : '—',
+      priceHint: apiPrice ? (Number(apiPrice.price) > 0 ? `${apiPrice.currency} / ${periods[apiPrice.billingPeriod]}` : 'طبق قرارداد') : 'قیمت موقتاً در دسترس نیست',
       metric: api?.apiLimits?.daily
         ? `${new Intl.NumberFormat('fa-IR').format(api.apiLimits.daily)} درخواست / روز`
         : '۱۰٬۰۰۰ درخواست / روز',
@@ -191,10 +191,14 @@ export default async function Pricing() {
                 <span>{tier.priceHint}</span>
               </div>
               <p className="pricing-card__metric">{tier.metric}</p>
-              <Link className={`button${tier.cta.secondary ? ' membership-secondary' : ''}`} href={tier.cta.href}>
-                {tier.cta.label}
-                <ArrowUpLeft size={16} />
-              </Link>
+              {tier.kind === 'free' || money(tier.plan) ? (
+                <Link className={`button${tier.cta.secondary ? ' membership-secondary' : ''}`} href={tier.cta.href}>
+                  {tier.cta.label}
+                  <ArrowUpLeft size={16} />
+                </Link>
+              ) : (
+                <button className="button" disabled>دریافت قیمت موقتاً ممکن نیست</button>
+              )}
               <div className="pricing-card__includes">
                 <span>شامل</span>
                 <ul>

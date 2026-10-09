@@ -43,37 +43,30 @@ export async function getManagedPlans() {
   } catch {
     // Pricing must remain readable even if release bootstrap is slow or unavailable.
   }
-  try {
-    const rows = await db.plan.findMany({ orderBy: { displayOrder: 'asc' }, include: { pricingVersions: { orderBy: { effectiveAt: 'desc' } } } });
-    return { storage: 'postgresql' as const, plans: rows.map(plan => ({ ...plan, features: Array.isArray(plan.features) ? plan.features.filter((item): item is string => typeof item === 'string') : [], apiLimits: plan.apiLimits as { daily?: number } | null, pricingVersions: plan.pricingVersions.map(price => ({ ...price, price: price.price.toString(), discount: price.discount?.toString() ?? null })) })) };
-  } catch {
-    return { storage: 'local' as const, plans: developmentPlanPresets.map(hydrate) };
-  }
+  // Never substitute development prices when the production database fails.
+  const rows = await db.plan.findMany({ orderBy: { displayOrder: 'asc' }, include: { pricingVersions: { orderBy: { effectiveAt: 'desc' } } } });
+  return { storage: 'postgresql' as const, plans: rows.map(plan => ({ ...plan, features: Array.isArray(plan.features) ? plan.features.filter((item): item is string => typeof item === 'string') : [], apiLimits: plan.apiLimits as { daily?: number } | null, pricingVersions: plan.pricingVersions.map(price => ({ ...price, price: price.price.toString(), discount: price.discount?.toString() ?? null })) })) };
 }
 
 export async function getPublishedPlans() {
-  try {
-    const { plans } = await getManagedPlans();
-    const now = Date.now();
-    return plans
-      .filter(plan => plan.active && (plan.webAvailable || plan.mobileAvailable))
-      .map(plan => ({
-        ...plan,
-        pricingVersions: plan.pricingVersions
-          .filter(price => {
-            if (!price.active) return false;
-            const at = price.effectiveAt instanceof Date ? price.effectiveAt.getTime() : Date.parse(String(price.effectiveAt));
-            return Number.isFinite(at) && at <= now;
-          })
-          .sort((a, b) => {
-            const aAt = a.effectiveAt instanceof Date ? a.effectiveAt.getTime() : Date.parse(String(a.effectiveAt));
-            const bAt = b.effectiveAt instanceof Date ? b.effectiveAt.getTime() : Date.parse(String(b.effectiveAt));
-            return bAt - aAt;
-          }),
-      }));
-  } catch {
-    return developmentPlanPresets.map(hydrate).filter(plan => plan.active && (plan.webAvailable || plan.mobileAvailable));
-  }
+  const { plans } = await getManagedPlans();
+  const now = Date.now();
+  return plans
+    .filter(plan => plan.active && (plan.webAvailable || plan.mobileAvailable))
+    .map(plan => ({
+      ...plan,
+      pricingVersions: plan.pricingVersions
+        .filter(price => {
+          if (!price.active) return false;
+          const at = price.effectiveAt instanceof Date ? price.effectiveAt.getTime() : Date.parse(String(price.effectiveAt));
+          return Number.isFinite(at) && at <= now;
+        })
+        .sort((a, b) => {
+          const aAt = a.effectiveAt instanceof Date ? a.effectiveAt.getTime() : Date.parse(String(a.effectiveAt));
+          const bAt = b.effectiveAt instanceof Date ? b.effectiveAt.getTime() : Date.parse(String(b.effectiveAt));
+          return bAt - aAt;
+        }),
+    }));
 }
 
 export async function upsertManagedPlan(id: string, data: PlanWrite) {
