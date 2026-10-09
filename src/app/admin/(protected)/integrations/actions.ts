@@ -11,6 +11,7 @@ const integrations = [
   { key: 'market_fallback', label: 'منبع پشتیبان قیمت', category: 'market' },
   { key: 'ai_analysis', label: 'سرویس تحلیل هوشمند', category: 'analysis' },
   { key: 'google_oauth', label: 'ورود با Google', category: 'auth' },
+  { key: 'resend_email', label: 'تأیید ایمیل با Resend', category: 'auth' },
 ] as const;
 
 export type SaveIntegrationState = {
@@ -61,6 +62,16 @@ export async function saveIntegrationAction(
     }
 
     const current = await db.integrationSetting.findUnique({ where: { key } });
+    if (key === 'resend_email' && enabled) {
+      const effectiveSecret = secret || (current?.valueEncrypted ? decryptIntegrationSecret(current.valueEncrypted) : '');
+      if (!/^re_[A-Za-z0-9_\-]+$/.test(effectiveSecret) || !/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(publicValue)) {
+        return { ok: false, key, error: 'کلید Resend و ایمیل فرستنده روی دامنهٔ تأییدشده را وارد کنید.' };
+      }
+    }
+    if (key === 'resend_email' && !enabled) {
+      const { getAccountPolicy } = await import('@/server/account-policy');
+      if ((await getAccountPolicy()).emailVerificationRequired) return { ok: false, key, error: 'ابتدا اجبار تأیید ایمیل را در تنظیمات حساب غیرفعال کنید.' };
+    }
     if (key === 'google_oauth' && enabled && !secret && !current?.valueEncrypted) {
       return { ok: false, key, error: 'برای فعال‌سازی ورود Google، Client Secret لازم است.' };
     }
@@ -103,7 +114,7 @@ export async function saveIntegrationAction(
     return {
       ok: true,
       key,
-      message: enabled
+      message: key === 'resend_email' ? 'تنظیمات Resend ذخیره شد؛ دامنهٔ فرستنده باید در Resend تأیید شده باشد.' : enabled
         ? 'ذخیره شد. برای ورود Google، callback و Secret را در کنسول گوگل هم بررسی کنید؛ صرف ذخیرهٔ Client ID ورود را تضمین نمی‌کند.'
         : 'ذخیره شد (اتصال غیرفعال است).',
     };

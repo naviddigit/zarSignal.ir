@@ -6,6 +6,11 @@ import { PrismaAdapter } from '@auth/prisma-adapter';
 import { db } from '@/lib/db';
 import { decryptIntegrationSecret } from '@/server/integration-secrets';
 import { validEmail, validPassword, verifyPassword } from '@/lib/password';
+import { headers } from 'next/headers';
+import { getAccountPolicy } from '@/server/account-policy';
+import { consumeVerificationCode } from '@/server/email-verification';
+import { ensureAccountSchema } from '@/server/account-schema';
+import { loginMetadata } from '@/lib/login-metadata';
 
 function validGoogleCredentials(clientId?: string | null, clientSecret?: string | null) {
   return Boolean(clientId?.endsWith('.apps.googleusercontent.com') && clientSecret && clientSecret.length >= 20);
@@ -36,7 +41,8 @@ export async function getAuthCapabilities() {
   };
 }
 
-export const { handlers, auth, signIn, signOut } = NextAuth(async () => {
+export const { handlers, auth, signIn, signOut } = NextAuth(async request => {
+  if (request && /^\/api\/auth\/(callback|signin)\//.test(new URL(request.url).pathname)) await ensureAccountSchema();
   const google = await googleCredentials();
   return {
     secret: process.env.AUTH_SECRET,
@@ -51,20 +57,36 @@ export const { handlers, auth, signIn, signOut } = NextAuth(async () => {
         credentials: {
           email: { label: 'Email', type: 'email' },
           password: { label: 'Password', type: 'password' },
+          code: { label: 'Verification code', type: 'text' },
         },
         async authorize(credentials) {
+          if (typeof credentials?.code === 'string') {
+            const user = await consumeVerificationCode(credentials.code);
+            return user ? { id: user.id, email: user.email, name: user.name, image: user.image } : null;
+          }
           const email = typeof credentials?.email === 'string' ? credentials.email.trim().toLowerCase() : '';
           const password = typeof credentials?.password === 'string' ? credentials.password : '';
           if (!validEmail(email) || !validPassword(password)) return null;
-          const user = await db.user.findUnique({ where: { email } });
+          const user = await db.user.findUnique({ where: { email }, select: { id: true, email: true, name: true, image: true, passwordHash: true, emailVerified: true } });
           if (!user?.passwordHash) return null;
           if (!verifyPassword(password, user.passwordHash)) return null;
+          if ((await getAccountPolicy()).emailVerificationRequired && !user.emailVerified) return null;
           return { id: user.id, email: user.email, name: user.name, image: user.image };
         },
       }),
     ],
     pages: { signIn: '/login' },
     trustHost: true,
+    events: {
+      async signIn({ user, account }) {
+        if (!user.id) return;
+        try {
+          await ensureAccountSchema();
+          const metadata = loginMetadata(await headers(), process.env.VERCEL === '1');
+          await db.loginEvent.create({ data: { userId: user.id, provider: account?.provider ?? 'credentials', ...metadata } });
+        } catch { console.warn('Login audit could not be recorded'); }
+      },
+    },
     callbacks: {
       async jwt({ token, user }) {
         if (user?.id) token.sub = user.id;

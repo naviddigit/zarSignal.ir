@@ -38,6 +38,7 @@ test('Google configuration retries transient storage errors without enabling an 
       'next-auth/providers/google': () => ({}), 'next-auth/providers/credentials': () => ({}),
       '@auth/prisma-adapter': { PrismaAdapter: () => ({}) },
       '@/lib/password': {}, '@/server/integration-secrets': { decryptIntegrationSecret: () => 'x'.repeat(30) },
+      'next/headers': {}, '@/server/account-policy': {}, '@/server/email-verification': {}, '@/server/account-schema': {}, '@/lib/login-metadata': {},
       '@/lib/db': { db: { integrationSetting: { findUnique: async () => {
         reads++;
         if (reads === 1 || failure === 'always') throw new Error('transient connection failure');

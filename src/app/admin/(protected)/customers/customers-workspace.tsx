@@ -118,6 +118,7 @@ export function CustomersWorkspace({ initialQuery, initialRows, dbError }: Props
                   <th className="is-status">وضعیت</th>
                   <th className="is-time">انقضا</th>
                   <th>اعتبار</th>
+                  <th>عضویت و ورود</th>
                   <th className="is-actions">عملیات</th>
                 </tr>
               </thead>
@@ -134,6 +135,11 @@ export function CustomersWorkspace({ initialQuery, initialRows, dbError }: Props
                     <td className="is-time">{faShort(row.expiresAt)}</td>
                     <td>
                       <span className="ds-clamp">{row.accessCreditLabel}</span>
+                    </td>
+                    <td>
+                      <span className="ds-clamp">{new Intl.NumberFormat('fa-IR').format(row.loginCount)} ورود ثبت‌شده</span>
+                      <small>{new Intl.NumberFormat('fa-IR').format(Math.max(0, Math.floor((Date.now() - new Date(row.createdAt).getTime()) / 86_400_000)))} روز عضویت</small>
+                      <small className="ds-clamp">آخرین ورود: {faShort(row.lastLoginAt)}</small>
                     </td>
                     <td className="is-actions">
                       <div className="ds-row-actions">
@@ -162,6 +168,9 @@ export function CustomersWorkspace({ initialQuery, initialRows, dbError }: Props
                   <div><dt>پلن</dt><dd>{row.planLabel}</dd></div>
                   <div><dt>انقضا</dt><dd>{faShort(row.expiresAt)}</dd></div>
                   <div><dt>اعتبار</dt><dd>{row.accessCreditLabel}</dd></div>
+                  <div><dt>ورودهای ثبت‌شده</dt><dd>{new Intl.NumberFormat('fa-IR').format(row.loginCount)}</dd></div>
+                  <div><dt>ثبت‌نام</dt><dd>{faShort(row.createdAt)}</dd></div>
+                  <div><dt>آخرین ورود</dt><dd>{faShort(row.lastLoginAt)}</dd></div>
                 </dl>
                 <footer className="ds-row-actions">
                   <button type="button" className="ds-ghost-btn" onClick={() => openEditor(row.id, 'access')}>ویرایش</button>

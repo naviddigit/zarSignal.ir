@@ -29,7 +29,7 @@ const errors: Record<string, string> = {
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ next?: string; error?: string; mode?: string }>;
+  searchParams: Promise<{ next?: string; error?: string; mode?: string; message?: string }>;
 }) {
   const params = await searchParams;
   const returnTo = safeNext(params.next);
@@ -37,7 +37,7 @@ export default async function LoginPage({
   const mode = params.mode === 'register' ? 'register' : 'login';
   const session = await auth().catch(() => null);
   const authCapabilities = await getAuthCapabilities();
-  const errorText = params.error ? errors[params.error] ?? 'ورود ناموفق بود.' : null;
+  const errorText = params.error === 'mail' ? params.message?.slice(0, 200) || 'ارسال ایمیل ناموفق بود؛ دوباره وارد شوید.' : params.error ? errors[params.error] ?? 'ورود ناموفق بود.' : null;
   const emailReady = authCapabilities.email;
 
   return (

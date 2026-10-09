@@ -1,6 +1,11 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { getMaintenanceSettings } from '@/server/maintenance';
 import { escapeMaintenanceHtml, isMaintenanceBypass } from '@/lib/maintenance';
+import { getAccountPolicy } from '@/server/account-policy';
+import { missingProfileFields } from '@/lib/account-policy';
+import { db } from '@/lib/db';
+import { auth } from '@/auth';
+import { ensureAccountSchema } from '@/server/account-schema';
 
 function allowedOrigin(origin: string | null): string | null {
   if (!origin) return '*';
@@ -33,6 +38,25 @@ export async function proxy(request: NextRequest) {
   }
   const maintenance = await getMaintenanceSettings();
   if (!maintenance.enabled) {
+    const gatedPage = /^\/(account|calculator|analysis|alerts|subscribe)(\/|$)/.test(pathname) && !pathname.startsWith('/account/complete');
+    const gatedApi = pathname.startsWith('/api/public/');
+    const hasSessionCookie = request.cookies.getAll().some(cookie => /^(?:__Secure-)?authjs\.session-token(?:\.\d+)?$/.test(cookie.name));
+    if ((gatedPage || gatedApi) && hasSessionCookie) {
+      const session = await auth().catch(() => null);
+      if (session?.user?.id) {
+        const policy = await getAccountPolicy();
+        if (policy.profileRequired) {
+          await ensureAccountSchema();
+          const user = await db.user.findUnique({ where: { id: session.user.id }, select: { role: true, name: true, firstName: true, lastName: true, phone: true, city: true, occupation: true } });
+          if (user && user.role !== 'ADMIN' && missingProfileFields(user, policy).length) {
+            if (gatedApi) return NextResponse.json({ code: 'profile_required', error: 'ابتدا پروفایل خود را تکمیل کنید.' }, { status: 403 });
+            const url = new URL('/account/complete', request.url);
+            url.searchParams.set('next', pathname + request.nextUrl.search);
+            return NextResponse.redirect(url);
+          }
+        }
+      }
+    }
     const response = NextResponse.next();
     return pathname.startsWith('/api/public/') ? applyCors(request, response) : response;
   }

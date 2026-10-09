@@ -8,6 +8,7 @@ const LINKS = [
   { href: '/admin/maintenance', label: 'وضعیت سایت' },
   { href: '/admin/data', label: 'داده و دریافت' },
   { href: '/admin/integrations', label: 'اتصال‌ها و API' },
+  { href: '/admin/account-settings', label: 'تنظیمات حساب و ثبت‌نام' },
   { href: '/admin/customers', label: 'مشتری‌ها' },
   { href: '/admin/feedback', label: 'بازخوردها' },
   { href: '/admin/plans', label: 'تعرفه‌ها و قیمت' },

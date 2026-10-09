@@ -4,6 +4,7 @@ import { accessLevelFromPlan, accessLevelLabel, type AccessLevel } from '@/lib/c
 import { resolveAccountEntitlement } from '@/server/account-entitlement';
 import { ensureHistorySchema, ensureSubscriptionStatusEnum } from '@/server/ensure-schema';
 import { trialProduct } from '@/server/analysis-trial';
+import { ensureAccountSchema } from '@/server/account-schema';
 
 export type CustomerListItem = {
   id: string;
@@ -16,6 +17,8 @@ export type CustomerListItem = {
   expiresAt: string | null;
   level: AccessLevel;
   accessCreditLabel: string;
+  loginCount: number;
+  lastLoginAt: string | null;
 };
 
 function creditLabel(expiresAt: Date | null, status: string) {
@@ -30,6 +33,7 @@ function creditLabel(expiresAt: Date | null, status: string) {
 
 export async function searchCustomers(query: string, take = 40): Promise<CustomerListItem[]> {
   await ensureHistorySchema().catch(() => undefined);
+  await ensureAccountSchema();
   const q = query.trim();
   const users = await withDeadline(
     db.user.findMany({
@@ -55,6 +59,8 @@ export async function searchCustomers(query: string, take = 40): Promise<Custome
     Promise.all(users.map(user => resolveAccountEntitlement(user.id).catch(() => null))),
     8000,
   );
+  const loginStats = await db.loginEvent.groupBy({ by: ['userId'], where: { userId: { in: users.map(user => user.id) } }, _count: { _all: true }, _max: { createdAt: true } });
+  const logins = new Map(loginStats.map(row => [row.userId, row]));
 
   return users.map((user, index) => {
     const entitlement = entitlements[index];
@@ -69,6 +75,8 @@ export async function searchCustomers(query: string, take = 40): Promise<Custome
       expiresAt: entitlement?.expiresAt?.toISOString() ?? null,
       level: entitlement?.level ?? 'FREE',
       accessCreditLabel: creditLabel(entitlement?.expiresAt ?? null, entitlement?.statusLabel ?? 'رایگان'),
+      loginCount: logins.get(user.id)?._count._all ?? 0,
+      lastLoginAt: logins.get(user.id)?._max.createdAt?.toISOString() ?? null,
     };
   });
 }
@@ -133,11 +141,16 @@ export async function updateCustomerProfile(actor: string, update: CustomerProfi
 
 export async function getCustomerDetail(userId: string) {
   await ensureHistorySchema().catch(() => undefined);
+  await ensureAccountSchema();
   const user = await db.user.findUnique({
     where: { id: userId },
-    select: { id: true, email: true, name: true, phone: true, createdAt: true, role: true },
+    select: { id: true, email: true, emailVerified: true, name: true, phone: true, city: true, occupation: true, createdAt: true, role: true },
   });
   if (!user) return null;
+  const [loginCount, loginEvents] = await Promise.all([
+    db.loginEvent.count({ where: { userId } }),
+    db.loginEvent.findMany({ where: { userId }, orderBy: { createdAt: 'desc' }, take: 50 }),
+  ]);
   const [entitlement, subscriptions, plans, audits] = await Promise.all([
     resolveAccountEntitlement(userId),
     db.subscription.findMany({
@@ -164,7 +177,10 @@ export async function getCustomerDetail(userId: string) {
       phone: user.phone,
       createdAt: user.createdAt.toISOString(),
       role: user.role,
+      city: user.city, occupation: user.occupation, emailVerified: user.emailVerified?.toISOString() ?? null,
     },
+    loginCount,
+    loginEvents,
     entitlement,
     subscriptions: subscriptions.map(s => ({
       id: s.id,

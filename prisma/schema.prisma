@@ -14,6 +14,12 @@ model User {
   emailVerified DateTime?
   image         String?
   phone         String?        @unique
+  firstName     String?
+  lastName      String?
+  city          String?
+  occupation    String?
+  loginEvents   LoginEvent[]
+  emailChallenge EmailChallenge?
   /** scrypt$salt$hash — Credentials login only; Google users leave null. */
   passwordHash  String?
   role          Role           @default(USER)
@@ -33,6 +39,30 @@ model User {
   sessions      Session[]
 
   @@index([role])
+}
+
+model EmailChallenge {
+  id        String   @id
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String
+  expiresAt DateTime
+  attempts  Int      @default(0)
+}
+
+model LoginEvent {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider  String
+  ip        String?
+  country   String?
+  region    String?
+  city      String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt(sort: Desc)])
 }
 
 model Plan {

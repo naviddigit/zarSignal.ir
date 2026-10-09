@@ -1,0 +1,9 @@
+# Account and login contract (October 9, 2026)
+
+- Resend configuration lives in `IntegrationSetting.resend_email`: encrypted API key, public verified sender email. POST `https://api.resend.com/emails`; never return the key or OTP to the browser. Admin config saves do not send email.
+- Account policy lives in `account-policy-v1`; verification and mandatory profile default OFF. Enabling email verification requires enabled Resend config. The sender domain must be verified in Resend before activation.
+- Credentials registration must never attach a password to an existing Google account. Existing unverified password users can request verification by signing in with their correct password.
+- Email challenges use random 256-bit cookie tickets, HMAC hashes, ten-minute expiry, five attempts, one-minute send cooldown, atomic consumption. Resend replaces the previous challenge. Passwords are not stored in cookies; challenge failure never grants a session.
+- Profile-required enforcement runs in proxy for account, calculator, analysis, alerts, subscription pages and authenticated public APIs, including chunked session cookies. Completion and auth endpoints stay reachable; administrators bypass the profile gate. Optional deferral cookies cannot bypass mandatory fields.
+- LoginEvent records SUCCESSFUL authentication events, not page views or JWT refresh. Counts begin with deployment; old logins cannot be reconstructed. City/region come from Vercel GeoIP, are approximate and may identify a proxy/VPN. Do not invent neighborhoods or classify customers as market traders from IP. Declared activity city and occupation are separate profile fields.
+- Additive schema is in migration `20261009160000_account_login_history` with idempotent runtime recovery in `account-schema.ts`. Preserve this alongside Cursor changes.

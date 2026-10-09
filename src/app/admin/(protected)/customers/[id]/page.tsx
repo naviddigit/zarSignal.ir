@@ -58,6 +58,21 @@ export default async function AdminCustomerDetailPage({
       </header>
 
       <section className="customers-detail-stack">
+        <section className="admin-card">
+          <h2>عضویت و ورودها</h2>
+          <p>ثبت‌نام: {formatTehranDateTime(new Date(detail.user.createdAt))} · {new Intl.NumberFormat('fa-IR').format(Math.max(0, Math.floor((Date.now() - new Date(detail.user.createdAt).getTime()) / 86_400_000)))} روز از عضویت</p>
+          <p>ورودهای ثبت‌شده: {new Intl.NumberFormat('fa-IR').format(detail.loginCount)} · آخرین ورود: {detail.loginEvents[0] ? formatTehranDateTime(detail.loginEvents[0].createdAt) : 'هنوز ثبت نشده'}</p>
+          <p>ایمیل: {detail.user.emailVerified ? 'تأییدشده' : 'تأیید نشده'} · شهر فعالیت اعلام‌شده: {detail.user.city || 'ثبت نشده'} · حوزه فعالیت: {detail.user.occupation || 'ثبت نشده'}</p>
+          <p>سوابق از زمان فعال‌شدن ثبت ورود ذخیره می‌شوند. موقعیت IP تقریبی است؛ محله، حضور در بازار یا محل واقعی فرد را ثابت نمی‌کند و ممکن است مربوط به VPN یا پروکسی باشد.</p>
+          <ul className="customers-detail-list">
+            {detail.loginEvents.length === 0 ? <li>سابقهٔ ورودی ثبت نشده است.</li> : detail.loginEvents.map(event => <li key={event.id}>
+              <strong>{formatTehranDateTime(event.createdAt)}</strong> · {event.provider === 'google' ? 'گوگل' : 'ایمیل'}
+              <div>IP: <bdi>{event.ip || 'نامشخص'}</bdi> · کشور: {event.country || 'نامشخص'} · استان/ناحیه: {event.region || 'نامشخص'} · شهر تقریبی: {event.city || 'نامشخص'}</div>
+              <small><bdi>{event.userAgent || 'مرورگر نامشخص'}</bdi></small>
+            </li>)}
+          </ul>
+          {detail.loginCount > 50 && <p>۵۰ ورود اخیر نمایش داده شده است.</p>}
+        </section>
         <div>
           <h2>پروفایل</h2>
           <CustomerProfileForm

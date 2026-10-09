@@ -5,6 +5,9 @@ import { redirect } from 'next/navigation';
 import { auth } from '@/auth';
 import { db } from '@/lib/db';
 import { revalidatePath } from 'next/cache';
+import { getAccountPolicy } from '@/server/account-policy';
+import { missingProfileFields, profileFields } from '@/lib/account-policy';
+import { ensureAccountSchema } from '@/server/account-schema';
 
 const LATER_COOKIE = 'zs_profile_later';
 
@@ -29,8 +32,10 @@ export async function completeProfileAction(form: FormData) {
 
   const next = safeNext(form.get('next'));
   const later = String(form.get('later') ?? '') === '1';
+  const policy = await getAccountPolicy();
 
   if (later) {
+    if (policy.profileRequired) throw new Error('تکمیل پروفایل اجباری است.');
     const jar = await cookies();
     jar.set(LATER_COOKIE, '1', {
       httpOnly: true,
@@ -45,10 +50,17 @@ export async function completeProfileAction(form: FormData) {
   const firstName = String(form.get('firstName') ?? '').trim();
   const lastName = String(form.get('lastName') ?? '').trim();
   const phoneRaw = String(form.get('phone') ?? '').trim();
-  if (firstName.length < 2) throw new Error('نام حداقل ۲ نویسه لازم است.');
-  if (lastName.length < 2) throw new Error('نام خانوادگی حداقل ۲ نویسه لازم است.');
   const phone = normalizePhone(phoneRaw);
-  if (!phone) throw new Error('شماره موبایل را مثل ۰۹۱۲۱۲۳۴۵۶۷ وارد کنید.');
+  if (phoneRaw && !phone) throw new Error('شماره موبایل را مثل ۰۹۱۲۱۲۳۴۵۶۷ وارد کنید.');
+  const city = String(form.get('city') ?? '').trim();
+  const occupation = String(form.get('occupation') ?? '').trim();
+  const fields = { firstName, lastName, phone, city, occupation };
+  for (const [key, value] of Object.entries(fields)) {
+    if (value && (value.length < 2 || value.length > 80)) throw new Error('هر مقدار باید بین ۲ و ۸۰ نویسه باشد.');
+  }
+  const missing = missingProfileFields(fields, policy);
+  if (policy.profileRequired && missing.length) throw new Error(`این موارد لازم‌اند: ${missing.map(key => profileFields[key]).join('، ')}`);
+  await ensureAccountSchema();
 
   try {
     await db.user.update({
@@ -56,6 +68,7 @@ export async function completeProfileAction(form: FormData) {
       data: {
         name: `${firstName} ${lastName}`.trim(),
         phone,
+        firstName: firstName || null, lastName: lastName || null, city: city || null, occupation: occupation || null,
       },
     });
   } catch (error) {

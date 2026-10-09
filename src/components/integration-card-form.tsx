@@ -67,10 +67,10 @@ export function IntegrationCardForm({
       ) : null}
       <div className="integration-fields">
         <label>
-          <span>{google ? 'Google Client ID' : 'آدرس سرویس'}</span>
+          <span>{google ? 'Google Client ID' : itemKey === 'resend_email' ? 'ایمیل فرستنده' : 'آدرس سرویس'}</span>
           <input
             name="publicValue"
-            type={google ? 'text' : 'url'}
+            type={google ? 'text' : itemKey === 'resend_email' ? 'email' : 'url'}
             defaultValue={publicValue ?? ''}
             placeholder={placeholder}
             dir="ltr"

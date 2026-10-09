@@ -9,6 +9,7 @@ const integrations = [
   { key: 'market_fallback', label: 'منبع پشتیبان قیمت', description: 'مسیر جایگزین برای زمانی که منبع اصلی پاسخ نمی‌دهد.', placeholder: 'https://backup.example.com/v1' },
   { key: 'ai_analysis', label: 'سرویس تحلیل هوشمند', description: 'اتصال مدل تحلیل پس از تعریف خروجی، محدودیت و معیار ارزیابی.', placeholder: 'https://api.example.com' },
   { key: 'google_oauth', label: 'ورود با Google', description: 'Client ID و Client Secret گوگل را امن ذخیره می‌کند. صرف ذخیرهٔ Client ID ورود را تضمین نمی‌کند.', placeholder: '000000000000-….apps.googleusercontent.com' },
+  { key: 'resend_email', label: 'تأیید ایمیل با Resend', description: 'کلید API و ایمیل فرستنده روی دامنهٔ تأییدشدهٔ Resend. سپس اجبار تأیید ایمیل را در تنظیمات حساب فعال کنید.', placeholder: 'verify@zarsignal.ir' },
 ] as const;
 
 export default async function IntegrationsPage() {
