@@ -566,6 +566,7 @@ function buildRevealPlan(
   density: 'brief' | 'full' = 'full',
   onEngagementReady?: () => void,
   afterReport: { id: string; node: ReactNode }[] = [],
+  actions?: ReactNode,
 ): { items: PlanItem[]; meta: RevealPlanStep[] } {
   const items: PlanItem[] = [];
 
@@ -647,6 +648,7 @@ function buildRevealPlan(
         planLabel={plan?.label ?? null}
         planStatus={plan?.status ?? null}
         onReady={onEngagementReady}
+        actions={actions}
       />
     ),
   });
@@ -665,6 +667,7 @@ export function MarketViewReportView({
   trialCta,
   pageExtras,
   afterReport,
+  actions,
   signedIn = false,
   planLevel = null,
   planLabel = null,
@@ -676,6 +679,7 @@ export function MarketViewReportView({
   trialCta?: ReactNode;
   pageExtras?: ReactNode;
   afterReport?: { id: string; node: ReactNode }[];
+  actions?: ReactNode;
   signedIn?: boolean;
   planLevel?: import('@/lib/capabilities').AccessLevel | null;
   planLabel?: string | null;
@@ -703,8 +707,8 @@ export function MarketViewReportView({
       level: planLevel,
       label: planLabel,
       status: planStatus,
-    }, density, onEngagementReady, afterReport),
-    [report, trialCta, pageExtras, signedIn, planLevel, planLabel, planStatus, density, onEngagementReady, afterReport],
+    }, density, onEngagementReady, afterReport, <>{actions}{canRefresh ? <button type="button" className="analysis-icon-action" title={cooldownLeft > 0 ? `بررسی دوباره تا ${cooldownLeft} ثانیه` : pending ? 'در حال بررسی…' : 'بررسی دادهٔ تازه'} aria-label="بررسی دادهٔ تازه" onClick={showFresh} disabled={pending || cooldownLeft > 0}><RefreshCw size={18} aria-hidden /></button> : null}</>),
+    [report, trialCta, pageExtras, signedIn, planLevel, planLabel, planStatus, density, onEngagementReady, afterReport, actions, canRefresh, cooldownLeft, pending],
   );
 
   const [activeIndex, setActiveIndex] = useState(0);
@@ -865,7 +869,6 @@ export function MarketViewReportView({
   }
 
   const phase = activeIndex >= plan.length ? 'done' : activeStep?.kind === 'fade' ? 'fading' : 'typing';
-  const done = activeIndex >= plan.length;
 
   return (
     <article
@@ -950,11 +953,10 @@ export function MarketViewReportView({
         ) : null}
       </header>
 
-      <section className="market-view__result" aria-label="نگاه سریع به بازار">
-        <h2>نگاه سریع</h2>
+      <section className="market-view__quick" aria-label="نگاه سریع به بازار">
+        <h2>نگاه سریع <small>{freshnessText(report)}</small></h2>
         <p>{report.summaryLines[0]}</p>
-        <p>این گزارش فاصلهٔ قیمت‌ها و مبنای محاسبه را روشن می‌کند؛ جهت آیندهٔ بازار یا اقدام خرید و فروش را تعیین نمی‌کند.</p>
-        <small>وضعیت داده: {freshnessText(report)} · {formatTehranStamp(report.dataObservedAtIso ?? report.generatedAtIso)}</small>
+        <small>مقایسه با مرجع محاسباتی؛ بدون پیش‌بینی یا پیشنهاد معامله.</small>
       </section>
       <div className="market-view__reading">
         <noscript>
@@ -1038,21 +1040,6 @@ export function MarketViewReportView({
       {error ? <p role="alert" className="market-view__meta">{error}</p> : null}
       {unchangedNote ? <p role="status" className="market-view__meta">{unchangedNote}</p> : null}
 
-      {canRefresh && done ? (
-        <button
-          type="button"
-          className="market-view__reload text-link"
-          onClick={showFresh}
-          disabled={pending || cooldownLeft > 0}
-        >
-          <RefreshCw size={14} />
-          {cooldownLeft > 0
-            ? `بررسی دوباره تا ${new Intl.NumberFormat('fa-IR').format(cooldownLeft)} ثانیه`
-            : pending
-              ? 'در حال بررسی…'
-              : 'بررسی دادهٔ تازه'}
-        </button>
-      ) : null}
 
 
     </article>

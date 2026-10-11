@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { ArrowUpLeft } from 'lucide-react';
+import { ArrowUpLeft, Calculator, Bell, ChartNoAxesCombined, Crown } from 'lucide-react';
 import { auth } from '@/auth';
 import { hasCapability } from '@/lib/capabilities';
 import { resolveAccountEntitlement } from '@/server/account-entitlement';
@@ -73,16 +73,13 @@ export default async function MarketAnalysisPage({ searchParams }: { searchParam
             <AnalysisTrialAccess trial={trial} error={query.trial} compact />
           ) : null
         )}
-        afterReport={[
-          ...(lastVisit.changes.length ? [{ id: 'last-visit', node: <LastVisitChanges changes={lastVisit.changes} baselineAt={lastVisit.baselineAt} /> }] : []),
-          { id: 'related-tools', node: <nav className="analysis-page__tools" aria-label="ابزارهای مرتبط">
-        <Link href="/markets">نرخ‌ها</Link>
-        <Link href="/calculator">محاسبه</Link>
-        <Link href="/alerts">هشدار</Link>
-        <Link href="/analysis/gold_melted">طلا</Link>
-        {!fullAccess ? <Link href="/pricing">دسترسی کامل</Link> : null}
-      </nav> },
-        ]}
+        actions={<>
+          <LastVisitChanges changes={lastVisit.changes} baselineAt={lastVisit.baselineAt} />
+          <Link className="analysis-icon-action" href="/calculator" title="محاسبه" aria-label="محاسبه"><Calculator size={18} aria-hidden /></Link>
+          <Link className="analysis-icon-action" href="/alerts" title="هشدار" aria-label="هشدار"><Bell size={18} aria-hidden /></Link>
+          <Link className="analysis-icon-action" href="/markets" title="نرخ‌ها" aria-label="نرخ‌ها"><ChartNoAxesCombined size={18} aria-hidden /></Link>
+          {!fullAccess ? <Link className="analysis-icon-action" href="/pricing" title="دسترسی کامل" aria-label="دسترسی کامل"><Crown size={18} aria-hidden /></Link> : null}
+        </>}
       />
     </main>
   );

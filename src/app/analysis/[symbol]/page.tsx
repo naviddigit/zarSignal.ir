@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { ArrowUpLeft } from 'lucide-react';
+import { ArrowUpLeft, Calculator, Bell, ChartNoAxesCombined, BookOpen } from 'lucide-react';
 import { auth } from '@/auth';
 import { instruments } from '@/lib/market';
 import { hasCapability } from '@/lib/capabilities';
@@ -85,14 +85,14 @@ export default async function AnalysisPage({ params, searchParams }: {
         <ChartWorkspace symbol={asset.symbol} compact hideMarketLink />
       </section>
       </details> },
-          ...(lastVisit.changes.length ? [{ id: 'last-visit', node: <LastVisitChanges changes={lastVisit.changes} baselineAt={lastVisit.baselineAt} /> }] : []),
-          { id: 'related-tools', node: <nav className="analysis-page__tools" aria-label="ابزارهای مرتبط">
-        <Link href="/calculator">محاسبه</Link>
-        <Link href="/alerts">هشدار</Link>
-        <Link href={`/markets/${symbol}`}>قیمت</Link>
-        <Link href="/methodology">روش</Link>
-      </nav> },
         ]}
+        actions={<>
+          <LastVisitChanges changes={lastVisit.changes} baselineAt={lastVisit.baselineAt} />
+          <Link className="analysis-icon-action" href="/calculator" title="محاسبه" aria-label="محاسبه"><Calculator size={18} aria-hidden /></Link>
+          <Link className="analysis-icon-action" href="/alerts" title="هشدار" aria-label="هشدار"><Bell size={18} aria-hidden /></Link>
+          <Link className="analysis-icon-action" href={`/markets/${symbol}`} title="قیمت" aria-label="قیمت"><ChartNoAxesCombined size={18} aria-hidden /></Link>
+          <Link className="analysis-icon-action" href="/methodology" title="روش محاسبه" aria-label="روش محاسبه"><BookOpen size={18} aria-hidden /></Link>
+        </>}
       />
     </main>
   );

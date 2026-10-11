@@ -1608,3 +1608,26 @@ html[data-theme='light'] .market-view__watermark{opacity:.14;filter:none}
  .market-view__title-row{margin-bottom:4px;gap:8px}
  .market-view__density button{padding-inline:8px;min-height:26px;font-size:10px}
 }
+
+/* Compact analysis summary and action rail; details stay in the shared sheet. */
+.market-view__quick{display:grid;gap:6px;padding:12px 14px;border:1px solid var(--border-subtle);border-radius:12px;background:var(--surface-card);min-width:0}
+.market-view__quick h2{display:flex;align-items:center;gap:8px;margin:0;font-size:14px;line-height:1.6}
+.market-view__quick h2 small{font-size:11px;font-weight:500;color:var(--text-muted)}
+.market-view__quick p{margin:0;font-size:14px;line-height:1.8;color:var(--text-primary)}
+.market-view__quick>small{font-size:11px;line-height:1.7;color:var(--text-muted)}
+.market-view__title-row h1{font-size:28px;line-height:1.5;margin:0}
+.market-view__engagement.is-tidy{padding:8px 0;gap:6px}
+.market-view__engagement-actions.analysis-toolbar{gap:2px;min-width:0}
+.analysis-toolbar .analysis-icon-action{width:44px;height:44px;min-height:44px;border-color:transparent;background:transparent;color:var(--text-muted);border-radius:10px;padding:0}
+.analysis-toolbar .analysis-icon-action:hover{background:var(--surface-soft);color:var(--accent)}
+.analysis-toolbar .analysis-icon-action:disabled{opacity:.4;cursor:wait}
+.analysis-toolbar .market-view__story.is-inline{display:flex;gap:0;padding:0}
+.analysis-toolbar__reads{font-size:11px;color:var(--text-muted);margin-inline-start:auto;white-space:nowrap}
+.ds-overlay__panel .market-view__last-visit{padding:0;border:0;background:transparent;margin:0;gap:12px}
+.ds-overlay__panel .market-view__last-visit-list{gap:12px}
+@media(max-width:760px){
+ .market-view__title-row h1{font-size:22px}
+ .market-view__quick{padding:10px 12px;gap:4px}
+ .market-view__quick p{font-size:13px}
+ .analysis-toolbar__reads{width:100%;margin:0}
+}

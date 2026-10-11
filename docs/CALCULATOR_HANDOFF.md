@@ -1,5 +1,7 @@
 # Calculator and mobile handoff — 2026-10-07
 
+- October 11 analysis layout: keep `market-view__quick` compact and all report actions in `analysis-toolbar`. Last-visit changes and feedback open through the shared OverlaySheet (desktop modal/mobile drawer); never expand them into default page sections. Preserve saved rating/comment APIs and icon labels. Check `e2e/analysis-compact.spec.ts`.
+
 - October 11: preserve coin amendment `docs/COIN_CALCULATOR_3_1.md`. Coin tools C15–C24 share `coinValuation`; negative bubbles describe valuation, not direction or a trade action. Only quarter has a clearly identified live quote. Keep new admin access/order IDs and the existing Select/OverlaySheet mobile components.
 
 - Availability follow-up (2026-10-09): shared public navigation/footer and home links intentionally disable Next prefetch to avoid loading unused RSC pages. Error recovery reloads the document to re-fetch failed JS chunks; do not replace it with boundary-only reset. Compact public sparks request only the free 24h window (`days=1`), never paid 30-day history. Preserve history entitlement checks.
