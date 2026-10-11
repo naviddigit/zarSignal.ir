@@ -20,7 +20,7 @@ export const MARKET_ALERT_MIN_FIRE_INTERVAL_MS = 30 * 60 * 1000;
 export type MarketSnapshotMetrics = {
   observedAt: string;
   prices: Partial<Record<string, { value: number; unit: string; currency: string; stale: boolean }>>;
-  gaps: Partial<Record<'gold' | 'usd' | 'silver', { percent: number; stale: boolean }>>;
+  gaps: Partial<Record<'gold' | 'usd' | 'silver' | 'quarter', { percent: number; stale: boolean }>>;
   /** Absolute difference |goldGap% − silverGap%| when both valid and fresh enough. */
   goldSilverRelativePct: number | null;
 };
@@ -92,13 +92,13 @@ export function evaluateMarketAlert(
     const key = alert.symbol === 'GOLD_BUBBLE' || alert.symbol === 'gold' ? 'gold'
       : alert.symbol === 'USD_BUBBLE' || alert.symbol === 'usd' ? 'usd'
       : alert.symbol === 'SILVER_BUBBLE' || alert.symbol === 'silver' ? 'silver'
-      : null;
+      : alert.symbol === 'QUARTER_BUBBLE' ? 'quarter' : null;
     if (!key || metrics.gaps[key] == null) return { fire: false, reason: 'missing_data' };
     value = metrics.gaps[key]!.percent;
     stale = metrics.gaps[key]!.stale;
     label = key === 'usd'
       ? 'فاصلهٔ دلار بازار با دلار ضمنی طلا'
-      : key === 'gold' ? 'اختلاف طلا با مرجع' : 'اختلاف نقره با مرجع';
+      : key === 'gold' ? 'اختلاف طلا با مرجع' : key === 'quarter' ? 'حباب ربع‌سکه با مرجع طلای ۱۸' : 'اختلاف نقره با مرجع';
   } else {
     if (metrics.goldSilverRelativePct == null) return { fire: false, reason: 'missing_data' };
     value = metrics.goldSilverRelativePct;
@@ -141,7 +141,9 @@ export function shouldRearmAlert(
   } else if (alert.conditionType === 'GAP_PCT_CROSS') {
     const key = alert.symbol === 'GOLD_BUBBLE' || alert.symbol === 'gold' ? 'gold'
       : alert.symbol === 'USD_BUBBLE' || alert.symbol === 'usd' ? 'usd'
-      : 'silver';
+      : alert.symbol === 'SILVER_BUBBLE' || alert.symbol === 'silver' ? 'silver'
+      : alert.symbol === 'QUARTER_BUBBLE' ? 'quarter' : null;
+    if (!key || metrics.gaps[key]?.stale) return false;
     value = metrics.gaps[key]?.percent ?? null;
   } else {
     value = metrics.goldSilverRelativePct;

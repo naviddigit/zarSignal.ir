@@ -1,3 +1,4 @@
+import { coinOperations } from './coin-calculator';
 import type { AccessLevel } from '@/lib/capabilities';
 import { calculatorCatalog, type CalculatorOperation } from '@/lib/calculator-catalog';
 
@@ -20,6 +21,7 @@ const ALL_LEVELS: AccessLevel[] = ['FREE', 'HOME', 'PROFESSIONAL', 'ADVANCED_PRO
 
 /** Defaults preserve today's public catalog: all approved modules free. */
 export const defaultCalculatorAccessPolicy: CalculatorAccessPolicy = {
+  ...Object.fromEntries(Object.keys(coinOperations).map(id => [id, { mode: 'free', allowedLevels: [...ALL_LEVELS] }])) as Record<keyof typeof coinOperations, CalculatorModulePolicy>,
   quickTrade: { mode: 'free', allowedLevels: [...ALL_LEVELS] },
   scaleIn: { mode: 'free', allowedLevels: [...ALL_LEVELS] },
   positionManager: { mode: 'free', allowedLevels: [...ALL_LEVELS] },

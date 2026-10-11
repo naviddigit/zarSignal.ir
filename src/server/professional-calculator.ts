@@ -1,5 +1,6 @@
+import { coinOutputs, requireCoinId, isCoinOperation, coinSpecs, COIN_SPEC_VERSION } from '@/lib/coin-calculator';
 import { calculateTrade, isTradeOperation } from '@/lib/trade-calculator';
-import { calculatorCatalog, type CalculatorOperation, type CalculatorResult } from '@/lib/calculator-catalog';
+import { calculatorCatalog, calculatorSpec, type CalculatorOperation, type CalculatorResult } from '@/lib/calculator-catalog';
 import type { Snapshot } from '@/lib/market';
 import { resolveCalculatorLiveValue } from '@/lib/calculator-live';
 import { MAZANEH_TO_18K_DIVISOR } from '@/lib/mazaneh-to-18k';
@@ -8,9 +9,10 @@ import { goldBubble, silverBubbleV54, usdGap, usdFromAedGap, uae18kTheoretical, 
 
 export function calculateProfessional(body: unknown, snapshot: Snapshot): CalculatorResult {
   if (!body || typeof body !== 'object') throw new Error('ورودی معتبر نیست.');
-  const request = body as { operation: CalculatorOperation; inputs: Record<string, { provenance: string; value?: unknown }> };
+  const request = body as { operation: CalculatorOperation; coin?: unknown; inputs: Record<string, { provenance: string; value?: unknown }> };
   if (!Object.hasOwn(calculatorCatalog, request.operation) || !request.inputs || typeof request.inputs !== 'object') throw new Error('این محاسبه فعال نیست.');
-  const spec = calculatorCatalog[request.operation];
+  const coin = isCoinOperation(request.operation) ? requireCoinId(request.coin ?? 'emami') : 'emami';
+  const spec = calculatorSpec(request.operation, coin);
   if (isTradeOperation(request.operation)) return calculateTrade(body, snapshot);
   const inputs: CalculatorResult['inputs'] = spec.fields.map(field => {
     const input = request.inputs[field.key];
@@ -20,7 +22,7 @@ export function calculateProfessional(body: unknown, snapshot: Snapshot): Calcul
       if (!live) throw new Error(`قیمت لحظه‌ای «${field.label}» تازه یا هم‌واحد نیست؛ تازه‌سازی کنید یا دستی وارد کنید.`);
       return { key: field.key, label: field.label, value: live.value, unit: field.unit, provenance: 'LIVE', observedAt: live.observedAt, source: live.source };
     }
-    if (typeof input.value !== 'number' || !Number.isFinite(input.value) || input.value < (field.allowZero ? 0 : Number.MIN_VALUE) || input.value > (field.max ?? 1e15)) throw new Error(`مقدار «${field.label}» معتبر نیست.`);
+    if (typeof input.value !== 'number' || !Number.isFinite(input.value) || input.value < (field.min ?? (field.allowZero ? 0 : Number.MIN_VALUE)) || input.value > (field.max ?? 1e15)) throw new Error(`مقدار «${field.label}» معتبر نیست.`);
     return { key: field.key, label: field.label, value: input.value, unit: field.unit, provenance: 'MANUAL', observedAt: null, source: 'ورودی شما' };
   });
   const liveTimes = inputs.filter(i => i.observedAt).map(i => Date.parse(i.observedAt!));
@@ -28,7 +30,9 @@ export function calculateProfessional(body: unknown, snapshot: Snapshot): Calcul
   const v = Object.fromEntries(inputs.map(i => [i.key, i.value]));
   let outputs: CalculatorResult['outputs'];
   const output = (label: string, value: number, unit: string) => ({ label, value, unit });
-  if (request.operation === 'fineGold') {
+  if (isCoinOperation(request.operation)) {
+    outputs = coinOutputs(request.operation, coin, v);
+  } else if (request.operation === 'fineGold') {
     const fine = v.weight * v.purity / 1000;
     const equivalent18 = fine / .75;
     outputs = [output('طلای خالص', fine, 'گرم'), output('معادل ۱۸ عیار', equivalent18, 'گرم'), output('ارزش محاسباتی فلز', equivalent18 * v.gram, 'تومان')];
@@ -144,6 +148,6 @@ export function calculateProfessional(body: unknown, snapshot: Snapshot): Calcul
   }
   if (outputs.some(o => !Number.isFinite(o.value))) throw new Error('نتیجه خارج از محدوده است.');
   return { formulaId: spec.formulaId, version: spec.version, calculatedAt: new Date().toISOString(), outputs, inputs,
-    constants: [{ label: 'ثابت‌های واحد و خلوص تأییدشده؛ فقط در موتور سرور', provenance: 'CONSTANT', version: spec.version }] };
+    constants: [...(isCoinOperation(request.operation) && !['coinCompare', 'coinRadar', 'coinSwap'].includes(request.operation) ? [{ label: coin === 'custom' ? 'وزن و عیار دستی' : `${coinSpecs[coin].label} · ${coinSpecs[coin].weight} گرم · عیار ${coinSpecs[coin].purity}`, provenance: 'CONSTANT' as const, version: COIN_SPEC_VERSION }] : []), { label: 'ثابت‌های واحد و خلوص تأییدشده؛ فقط در موتور سرور', provenance: 'CONSTANT', version: spec.version }] };
 }
 

@@ -53,6 +53,7 @@ const SYMBOL_BY_CONDITION: Record<string, { value: string; label: string }[]> = 
     { value: 'SILVER_999', label: 'قیمت نقره ۹۹۹' },
   ],
   GAP_PCT_CROSS: [
+    { value: 'QUARTER_BUBBLE', label: 'حباب ربع‌سکه با مرجع طلای ۱۸' },
     { value: 'GOLD_BUBBLE', label: 'اختلاف طلا با مرجع' },
     { value: 'SILVER_BUBBLE', label: 'اختلاف نقره با مرجع' },
     { value: 'USD_BUBBLE', label: 'فاصلهٔ دلار با دلار ضمنی طلا' },

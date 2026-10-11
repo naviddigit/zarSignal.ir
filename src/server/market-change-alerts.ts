@@ -1,3 +1,4 @@
+import { liveQuarterBubble } from '@/lib/coin-live';
 import { db } from '@/lib/db';
 import { withDeadline } from '@/lib/with-deadline';
 import { isStale, type Snapshot } from '@/lib/market';
@@ -54,6 +55,8 @@ export function metricsFromSnapshot(snapshot: Snapshot): MarketSnapshotMetrics |
   );
   put('usd', indicators.usdImpliedGold);
   put('silver', indicators.silver);
+  const quarter = liveQuarterBubble(snapshot);
+  if (quarter) gaps.quarter = { percent: quarter.percent, stale: false };
 
   const gold = gaps.gold;
   const silver = gaps.silver;

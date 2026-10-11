@@ -186,7 +186,7 @@ export function shortMarketLabel(id: MarketViewEvidenceId, symbol?: Symbol | nul
   if (id === 'uae_gold') return 'ایران/امارات';
   if (id === 'silver') return 'نقره ۹۹۹';
   if (id === 'gold_silver') return 'نسبت طلا/نقره';
-  return 'سکه';
+  return symbol === 'ROB_SEKE' ? 'ربع‌سکه' : 'سکه';
 }
 
 /** Primary valuation rows for overall comparative (exclude overlapping FX confirmations). */
@@ -212,7 +212,7 @@ export function buildValuationMarks(
   symbol?: Symbol | null,
 ): MarketViewValuationMark[] {
   return evidence
-    .filter(row => row.id !== 'coin')
+    .filter(row => row.id !== 'coin' || row.diffPercent != null)
     .map(row => {
       const direction = stance(row.diffPercent);
       return {
@@ -656,14 +656,14 @@ export function buildAnalysisNarrativeSections(report: MarketViewReport): Narrat
   const focus = selectReportMetrics(report)[0];
   const detail = !report.symbol && focus?.marketPriceLabel && focus.referenceLabel
     ? ` برای ${shortMarketLabel(focus.id)}، قیمت بازار ${focus.marketPriceLabel} و مرجع ${focus.referenceLabel} است.` : '';
-  const sections = [withAtoms('view', 'وضعیت فعلی', view), withAtoms('reason', 'دلیل اصلی', [textAtom(report.marketSays + detail)])];
+  const sections = [withAtoms('view', 'وضعیت فعلی', view), withAtoms('reason', 'مبنای مقایسه', [textAtom(report.marketSays + detail)])];
   if (report.access === 'full' && report.reading) sections.push(withAtoms('meaning', 'معنای این وضعیت', [textAtom(report.reading)]));
   return sections;
 }
 
 export function buildBriefAnalysisNarrativeSections(report: MarketViewReport): NarrativeSection[] {
   return buildAnalysisNarrativeSections(report).map(section => section.id === 'reason'
-    ? withAtoms('reason', 'دلیل اصلی', [textAtom(report.marketSays)]) : section);
+    ? withAtoms('reason', 'مبنای مقایسه', [textAtom(report.marketSays)]) : section);
 }
 
 /** Shared focus for the result and public story; never count two gold bases as two markets. */

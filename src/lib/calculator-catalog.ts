@@ -1,10 +1,11 @@
+import { coinFields, coinOperations, type CoinOperation, type CoinId, isCoinOperation } from './coin-calculator';
 import type { Symbol } from '@/lib/market';
-export type CalculatorOperation = 'quickTrade' | 'scaleIn' | 'positionManager' | 'scaleOut' | 'tradeSimulator' | 'mazanehTo18k' | 'market18kToMazaneh' | 'goldBubble' | 'usdGap' | 'silverBubble'
+export type CalculatorOperation = CoinOperation | 'quickTrade' | 'scaleIn' | 'positionManager' | 'scaleOut' | 'tradeSimulator' | 'mazanehTo18k' | 'market18kToMazaneh' | 'goldBubble' | 'usdGap' | 'silverBubble'
   | 'fineGold' | 'uaeGold' | 'fxRateGap' | 'rateCompare' | 'coinBuy' | 'coinSell'
   | 'coinBreakEven' | 'coinCapital' | 'coinPnl' | 'fineSilver' | 'silverBarCost' | 'silverMintPremium'
   | 'meltedPnl' | 'percentageChange' | 'goldSilverSwap' | 'capitalGold' | 'capitalSilver' | 'aedDerivedUsd'
   | 'meltedTarget' | 'meltedNewBuy' | 'meltedTargetAverage' | 'meltedPartialSell' | 'meltedBreakEven';
-export type CalculatorField = { key: string; label: string; unit: string; symbol?: Symbol; currency?: string; quoteUnit?: string; allowZero?: boolean; max?: number };
+export type CalculatorField = { key: string; label: string; unit: string; symbol?: Symbol; currency?: string; quoteUnit?: string; allowZero?: boolean; min?: number; max?: number };
 const manual = (key: string, label: string, unit: string, options: Pick<CalculatorField, 'allowZero' | 'max'> = {}): CalculatorField => ({ key, label, unit, ...options });
 const melted: CalculatorField = { key: 'melted', label: 'مثقال آب‌شده ۱۸ عیار', unit: 'تومان / مثقال', symbol: 'GOLD_MELTED', currency: 'TMN', quoteUnit: 'مثقال' };
 const gram: CalculatorField = { key: 'gram', label: 'قیمت گرم طلای ۱۸ عیار', unit: 'تومان / گرم', symbol: 'GOLD_18K', currency: 'TMN', quoteUnit: 'گرم' };
@@ -14,6 +15,7 @@ const usd: CalculatorField = { key: 'usd', label: 'نرخ دلار', unit: 'تو
 const aed: CalculatorField = { key: 'aed', label: 'نرخ درهم', unit: 'تومان / درهم', symbol: 'AED', currency: 'TMN', quoteUnit: 'درهم' };
 const silver999: CalculatorField = { key: 'silver999', label: 'گرم نقره ۹۹۹', unit: 'تومان / گرم', symbol: 'SILVER_999', currency: 'TMN', quoteUnit: 'گرم' };
 export const calculatorCatalog: Record<CalculatorOperation, { title: string; formulaId: string; version: string; fields: CalculatorField[]; note?: string }> = {
+  ...Object.fromEntries(Object.entries(coinOperations).map(([id, title], index) => [id, { title, formulaId: 'C' + (15 + index), version: 'COIN-3.1', fields: coinFields(id as CoinOperation, 'emami'), note: 'مرجع ارزش فلزی مشخص است؛ اختلاف قیمت جهت آینده بازار را تعیین نمی‌کند. سال ضرب و اصالت باید با نرخ واردشده یکسان باشند.' }])) as Record<CoinOperation, { title: string; formulaId: string; version: string; fields: CalculatorField[]; note: string }>,
   quickTrade: { title: 'خرید/فروش سریع', formulaId: 'quickTrade', version: '1.0', fields: [gram] },
   scaleIn: { title: 'خرید پله‌ای', formulaId: 'scaleIn', version: '1.0', fields: [gram] },
   positionManager: { title: 'مدیریت پوزیشن', formulaId: 'positionManager', version: '1.0', fields: [gram] },
@@ -59,3 +61,8 @@ export type CalculatorResult = {
   inputs: { key: string; label: string; value: number; unit: string; provenance: 'LIVE' | 'MANUAL' | 'CONSTANT'; observedAt: string | null; source: string }[];
   constants: { label: string; provenance: 'CONSTANT'; version: string }[];
 };
+
+export function calculatorSpec(operation: CalculatorOperation, coin: CoinId = 'emami') {
+  const spec = calculatorCatalog[operation];
+  return isCoinOperation(operation) ? { ...spec, fields: coinFields(operation, coin) } : spec;
+}

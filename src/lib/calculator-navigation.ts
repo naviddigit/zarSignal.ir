@@ -1,3 +1,4 @@
+import { coinOperations } from './coin-calculator';
 import type { CalculatorModule } from '@/lib/calculator-access';
 
 export type CalculatorProduct = 'gold' | 'silver' | 'fx' | 'coin' | 'trade';
@@ -8,7 +9,7 @@ export const calculatorToolsByProduct: Record<CalculatorProduct, CalculatorModul
   gold: ['marketWeight', 'purity', 'mazanehTo18k', 'market18kToMazaneh', 'fineGold', 'goldBubble', 'uaeGold', 'capitalGold', 'goldSilverSwap', 'percentageChange'],
   silver: ['purity', 'fineSilver', 'silverBarCost', 'silverMintPremium', 'capitalSilver', 'silverBubble', 'goldSilverSwap', 'percentageChange'],
   fx: ['usdGap', 'aedDerivedUsd', 'fxRateGap', 'rateCompare', 'percentageChange'],
-  coin: ['coinBuy', 'coinSell', 'coinCapital', 'coinPnl', 'coinBreakEven', 'purity', 'percentageChange'],
+  coin: [...Object.keys(coinOperations) as (keyof typeof coinOperations)[], 'coinBuy', 'coinSell', 'coinCapital', 'coinPnl', 'coinBreakEven', 'purity', 'percentageChange'],
 };
 
 export const displayToolId = (id: string) => id === 'mazanehTo18k' || id === 'market18kToMazaneh' ? 'mazaneh' : id;

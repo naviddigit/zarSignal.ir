@@ -1,10 +1,12 @@
 'use client';
+import { coinSpecs, isCoinOperation, type CoinId } from '@/lib/coin-calculator';
+import { Select } from '@/components/ui/select';
 import { TradeCalculator } from '@/components/trade-calculator';
 import { isTradeOperation } from '@/lib/trade-calculator';
 import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { LockKeyhole, RefreshCw, ArrowUpLeft } from 'lucide-react';
-import { calculatorCatalog, type CalculatorOperation, type CalculatorResult } from '@/lib/calculator-catalog';
+import { calculatorCatalog, calculatorSpec, type CalculatorOperation, type CalculatorResult } from '@/lib/calculator-catalog';
 import {
   decideCalculatorModuleAccess,
   type CalculatorAccessPolicy,
@@ -82,6 +84,7 @@ function ResultDetails({ result }: { result: CalculatorResult }) {
   return <details className="calc-result-details">
     <summary>ورودی‌ها و منبع محاسبه</summary>
     <div>
+      {result.constants.map((constant, index) => <small key={index}>{constant.label}</small>)}
       {result.inputs.map(input => <p key={input.key}>
         <span>{input.label}</span>
         <bdi dir="ltr">{number(input.value)} {input.unit}</bdi>
@@ -97,8 +100,8 @@ function liveEntry(field: (typeof calculatorCatalog)[CalculatorOperation]['field
   return live ? { value: String(live.value), provenance: 'LIVE', observedAt: live.observedAt } : { value: field.allowZero ? '0' : '', provenance: 'MANUAL' };
 }
 
-function prefill(operation: CalculatorOperation, snapshot: Snapshot): Record<string, Entry> {
-  return Object.fromEntries(calculatorCatalog[operation].fields.map(field => [field.key, liveEntry(field, snapshot)]));
+function prefill(operation: CalculatorOperation, snapshot: Snapshot, coin: CoinId = 'emami'): Record<string, Entry> {
+  return Object.fromEntries(calculatorSpec(operation, coin).fields.map(field => [field.key, liveEntry(field, snapshot)]));
 }
 
 export function ProfessionalCalculator({
@@ -116,6 +119,7 @@ export function ProfessionalCalculator({
   accessLevel?: AccessLevel;
   statusLabel?: string | null;
 }) {
+  const [coin, setCoin] = useState<CoinId>('emami');
   const [product, setProduct] = useState<Product>('gold');
   const [tool, setTool] = useState<Tool>(DEFAULT_TOOL);
   const [weightAmount, setWeightAmount] = useState('1');
@@ -173,7 +177,7 @@ export function ProfessionalCalculator({
   const operation = isOperation(tool) ? tool : null;
   const toolGate = moduleAccess(tool);
   const operationAllowed = toolGate.ok;
-  const spec = operation && operationAllowed ? calculatorCatalog[operation] : null;
+  const spec = operation && operationAllowed ? calculatorSpec(operation, coin) : null;
   const featured = popularByProduct[product];
   const featuredIds = new Set(featured.map(item => item.id));
   const moreTools: PopularPick[] = available.filter(value =>
@@ -261,8 +265,8 @@ export function ProfessionalCalculator({
       setActiveField('');
       return;
     }
-    setActiveField(calculatorCatalog[next].fields[0].key);
-    setInputs(prefill(next, market));
+    setActiveField(calculatorSpec(next, coin).fields[0].key);
+    setInputs(prefill(next, market, coin));
   }
 
   function chooseProduct(next: Product) {
@@ -376,9 +380,11 @@ export function ProfessionalCalculator({
         signal: controller.signal,
         body: JSON.stringify({
           operation,
+          coin,
           inputs: Object.fromEntries(Object.entries(requestInputs).map(([key, input]) => [key, { provenance: input.provenance, value: Number(input.value) }])),
         }),
       });
+      if (!response.headers.get('content-type')?.includes('application/json')) throw new Error('پاسخ سرور کامل دریافت نشد؛ دوباره تلاش کنید.');
       const data = await response.json();
       if (!response.ok) throw new Error(data.error ?? 'محاسبه ممکن نشد.');
       if (request.current === controller && !controller.signal.aborted) {
@@ -469,6 +475,8 @@ export function ProfessionalCalculator({
               </button>
             </div>
 
+            {operation && isCoinOperation(operation) && !['coinCompare', 'coinRadar', 'coinSwap'].includes(operation) ? <Select label="نوع سکه" value={coin} options={Object.entries(coinSpecs).map(([value, row]) => ({ value, label: row.label }))} onChange={value => { const next = value as CoinId; invalidate(); setCoin(next); setInputs(prefill(operation, market, next)); }} /> : null}
+            {operation === 'coinAlert' ? <p><Link href="/alerts">ثبت و مدیریت هشدار داخل سایت</Link> · فعلاً حباب ربع‌سکه با دادهٔ زنده پشتیبانی می‌شود.</p> : null}
             {spec.note ? <details className="calc-result-details"><summary>درباره محاسبه</summary><p>{spec.note}</p></details> : null}
             {operation === 'uaeGold' ? <details className="calc-result-details"><summary>فرمول طلای ۱۸ امارات</summary><p>اونس × ۳٫۶۷۲۵ ÷ ۳۱٫۱۰۳۴۷۶۸ × ۰٫۷۵ × نرخ درهم</p></details> : null}
             {spec.fields.map(field => {
@@ -492,7 +500,7 @@ export function ProfessionalCalculator({
                   <div className="calc-tool-panel__control">
                     <input
                       className="ds-input"
-                      inputMode={product === 'trade' ? 'decimal' : 'none'}
+                      inputMode={product === 'trade' || product === 'coin' ? 'decimal' : 'none'}
                       onFocus={() => setActiveField(field.key)}
                       data-active={activeField === field.key}
                       autoComplete="off"
@@ -505,7 +513,7 @@ export function ProfessionalCalculator({
                         invalidate();
                         setInputs(current => ({
                           ...current,
-                          [field.key]: { value: uaeDisplay && aedValue > 0 ? String(Number(sanitizeNumericInput(event.target.value, 6)) / aedValue) : sanitizeNumericInput(event.target.value, 6), provenance: 'MANUAL' },
+                          [field.key]: { value: uaeDisplay && aedValue > 0 ? String(Number(sanitizeNumericInput(event.target.value, 6)) / aedValue) : ((field.min ?? 0) < 0 && /^[−-]/.test(event.target.value.trim()) ? '-' : '') + sanitizeNumericInput(event.target.value, 6), provenance: 'MANUAL' },
                         }));
                       }}
                     />

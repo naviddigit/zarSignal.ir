@@ -12,7 +12,7 @@ import {
   type RefObject,
 } from 'react';
 import Link from 'next/link';
-import { Activity, ArrowUpLeft, ChevronDown, RefreshCw, X } from 'lucide-react';
+import { ArrowUpLeft, ChevronDown, RefreshCw, X } from 'lucide-react';
 import { buildAnalysisNarrativeSections, buildBriefAnalysisNarrativeSections, formatFaPercent, formatTehranStamp, selectReportMetrics } from '@/lib/market-view-report';
 import type { MarketViewDecision, MarketViewReport } from '@/lib/market-view-report';
 import {
@@ -950,13 +950,13 @@ export function MarketViewReportView({
         ) : null}
       </header>
 
+      <section className="market-view__result" aria-label="نگاه سریع به بازار">
+        <h2>نگاه سریع</h2>
+        <p>{report.summaryLines[0]}</p>
+        <p>این گزارش فاصلهٔ قیمت‌ها و مبنای محاسبه را روشن می‌کند؛ جهت آیندهٔ بازار یا اقدام خرید و فروش را تعیین نمی‌کند.</p>
+        <small>وضعیت داده: {freshnessText(report)} · {formatTehranStamp(report.dataObservedAtIso ?? report.generatedAtIso)}</small>
+      </section>
       <div className="market-view__reading">
-        <div className="market-view__watermark-slot" aria-hidden="true">
-          <div className="market-view__watermark">
-            <Activity size={240} strokeWidth={1.5} aria-hidden />
-          </div>
-        </div>
-
         <noscript>
           {plan.map(item => (
             item.kind === 'type' ? (

@@ -1,3 +1,4 @@
+import { liveQuarterBubble } from '@/lib/coin-live';
 import { createHash } from 'crypto';
 import { getPublicSnapshot } from '@/server/quotes';
 import {
@@ -251,13 +252,20 @@ export function marketViewReportFromSnapshot(
   const quoteValid = quote && Number.isFinite(Number(quote.sell)) && Number(quote.sell) > 0 && quote.currency === asset?.currency && quote.unit === asset?.unit;
   let evidence = buildEvidence(indicators);
   if (focusIds) evidence = evidence.filter(row => focusIds.includes(row.id));
-  if (symbol === 'ROB_SEKE') evidence = evidence.map(row => row.id === 'coin' ? {
-    ...row, marketLabel: 'ربع سکه', marketPriceLabel: quoteValid ? moneyLabel(Number(quote.sell), 'تومان / عدد') : null,
-  } : row);
+  if (symbol === 'ROB_SEKE') {
+    const quarter = liveQuarterBubble(snapshot);
+    evidence = evidence.map(row => row.id === 'coin' ? {
+      ...row, marketLabel: 'ربع سکه', marketPriceLabel: quarter ? moneyLabel(quarter.price, 'تومان / عدد') : quoteValid ? moneyLabel(Number(quote.sell), 'تومان / عدد') : null,
+      referenceLabel: quarter ? moneyLabel(quarter.intrinsic, 'تومان / عدد') : null,
+      referenceBasis: 'وزن ۲٫۰۳۳ گرم × عیار ۹۰۰ ÷ ۷۵۰ × گرم ۱۸ مشتق از مظنه',
+      diffPercent: quarter?.percent ?? null, status: quarter ? 'ok' as const : 'unavailable' as const,
+      statusReason: quarter ? null : 'نرخ‌های هم‌زمان و تازهٔ ربع‌سکه و طلا موجود نیستند.', formulaVersion: 'COIN-3.1',
+    } : row);
+  }
 
   const relevantSymbols = relevantSymbolsForFocus(symbol);
   const relevantSnapshot = { ...snapshot, quotes: snapshot.quotes.filter(q => relevantSymbols.includes(q.symbol)) };
-  const dataFreshness = evidence.length && !(symbol === 'SEKE_CASH' || symbol === 'ROB_SEKE')
+  const dataFreshness = symbol === 'ROB_SEKE' ? (evidence.some(row => row.id === 'coin' && row.status === 'ok') ? 'ok' : 'unavailable') : evidence.length && symbol !== 'SEKE_CASH'
     ? freshnessOf(evidence, snapshot)
     : quoteValid ? (isStale(quote) ? 'stale' : 'ok') : 'unavailable';
   const prose = composeMarketViewProse(evidence, dataFreshness, { symbol: symbol ?? null });
@@ -349,7 +357,7 @@ export function marketViewReportFromSnapshot(
           kind: prose.decision.kind === 'analysis_inactive' ? 'analysis_inactive' : prose.decision.kind,
           tradeAction: null,
           title: 'پیش‌نمایش تحلیل',
-          reason: 'برداشت کامل و وضعیت تصمیم پشت دسترسی تحلیل است؛ قیمت و خلاصهٔ شواهد همین‌جا رایگان‌اند.',
+          reason: 'توضیح کامل مقایسه‌ها با دسترسی تحلیل باز می‌شود؛ قیمت و خلاصهٔ شواهد رایگان‌اند. اشتراک، سیگنال خرید یا فروش ارائه نمی‌کند.',
           changeConditions: 'با پلن مجاز یا دورهٔ آزمایش فعال، نتیجهٔ کامل همین‌جا باز می‌شود.',
           valuation: prose.decision.valuation,
         },

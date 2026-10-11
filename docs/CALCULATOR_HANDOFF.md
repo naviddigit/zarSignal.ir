@@ -1,5 +1,7 @@
 # Calculator and mobile handoff — 2026-10-07
 
+- October 11: preserve coin amendment `docs/COIN_CALCULATOR_3_1.md`. Coin tools C15–C24 share `coinValuation`; negative bubbles describe valuation, not direction or a trade action. Only quarter has a clearly identified live quote. Keep new admin access/order IDs and the existing Select/OverlaySheet mobile components.
+
 - Availability follow-up (2026-10-09): shared public navigation/footer and home links intentionally disable Next prefetch to avoid loading unused RSC pages. Error recovery reloads the document to re-fetch failed JS chunks; do not replace it with boundary-only reset. Compact public sparks request only the free 24h window (`days=1`), never paid 30-day history. Preserve history entitlement checks.
 - Network errors are separate: `ERR_CONNECTION_RESET` can prevent HTML or chunks from reaching the browser. Code recovery does not repair the network route. Do not report that changing Vercel plans or removing the boot splash proves this fixed.
 - Production plans must come only from PostgreSQL. Never fall back to development presets (249k/799k) or hardcoded page prices during outages; show unavailable and disable paid selection without a published price. Admin changes remain the authoritative prices. Google settings retry a transient DB read once; never bypass OAuth account-linking checks to hide login errors.
