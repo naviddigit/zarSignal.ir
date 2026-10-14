@@ -78,7 +78,8 @@ export async function getSnapshot(fresh = false): Promise<Snapshot> {
       snapshot = await withDeadline(readLiveQuotes(), 5_000).catch(() => snapshot);
     }
     return snapshot;
-  } catch {
+  } catch (error) {
+    console.warn('Market snapshot read failed', error instanceof Error && error.message === 'Operation timed out' ? 'timeout' : error instanceof Error ? error.name : 'unknown');
     if (process.env.NODE_ENV !== 'production') {
       const { readLocalMarket } = await import('@/server/ingestion/local-store');
       const local = await readLocalMarket();

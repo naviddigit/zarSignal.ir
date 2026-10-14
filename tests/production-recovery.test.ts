@@ -8,6 +8,33 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { withDeadline } from '../src/lib/with-deadline';
 import { defaultFarazConfig, mapQuotes, priceToFixed, validateFarazUrl } from '../src/server/ingestion/faraz';
 
+test('an empty home snapshot retries quickly, refreshes only with quotes and stops after three failures', async () => {
+  for (const succeeds of [true, false]) {
+    const module = { exports: {} as typeof import('../src/components/market-refresh') };
+    const scheduled: Array<() => Promise<void>> = [];
+    const cleanups: Array<() => void> = [];
+    let reads = 0, refreshes = 0;
+    const source = readFileSync(new URL('../src/components/market-refresh.tsx', import.meta.url), 'utf8');
+    const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText;
+    runInNewContext(compiled, { module, exports: module.exports, AbortController,
+      window: { setInterval: () => 1, clearInterval() {} },
+      document: { hidden: false, addEventListener() {}, removeEventListener() {} },
+      setInterval: () => 1, clearInterval() {}, clearTimeout() {}, setTimeout: (callback: () => Promise<void>) => { scheduled.push(callback); return 1; },
+      require: (name: string) => {
+        if (name === 'react') return { useEffect: (effect: () => (() => void) | undefined) => { const cleanup = effect(); if (cleanup) cleanups.push(cleanup); } };
+        if (name === 'next/navigation') return { useRouter: () => ({ refresh: () => refreshes++ }) };
+        if (name === '@/lib/fetch-json') return { fetchJson: async () => { reads++; if (!succeeds || reads === 1) throw new Error('temporary_read_failure'); return { quotes: [{}] }; } };
+        return {};
+      },
+    });
+    module.exports.MarketRefresh({ recoverEmpty: true });
+    while (scheduled.length) await scheduled.shift()!();
+    assert.equal(reads, succeeds ? 2 : 3);
+    assert.equal(refreshes, succeeds ? 1 : 0);
+    cleanups.forEach(cleanup => cleanup());
+  }
+});
+
 test('production plans never replace failed database reads with sample prices', async () => {
   const module = { exports: {} as typeof import('../src/server/plans') };
   const source = readFileSync(new URL('../src/server/plans.ts', import.meta.url), 'utf8');

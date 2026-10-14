@@ -1,5 +1,7 @@
 # Calculator and mobile handoff — 2026-10-07
 
+- Empty home snapshot recovery (October 14): MarketRefresh's recoverEmpty retries the existing market endpoint at most three times, then refreshes RSC when actual quotes return. Normal periodic refresh continues. Keep the page visible and preserve scroll; do not await upstream ingestion during initial server rendering or replace missing data with sample prices.
+
 - October 14 unit switch: `gold-display-unit.ts` uses the shared 4.3318 market coefficient. Gram prices multiply, gram weights divide when displayed as mesghal. Gold tools and all trade fields/steps keep their original canonical engine values; do not reconvert money or P&L. FineGold's pure 1000-metal grams stay grams, while its equivalent 18k result may switch. Keep decimal drafts while typing/keypad entry. Check `e2e/gold-unit-switch.spec.ts`.
 - Account policy adds independent phone/type requirements and admin-editable type labels. `customerType` is user-selected profile data, separate from role and paid plan. Enforce requirements on signup and completion/API gates; Google completes missing fields after OAuth. Keep the additive User column migration and shared schema initializer before User reads.
 

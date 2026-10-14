@@ -26,11 +26,12 @@ export default async function Home() {
   return (
     <main id="main" className="shell home-page">
       <FunnelTrack event={session?.user ? 'returning_user' : 'landing_view'} />
-      <MarketRefresh seconds={snapshot.pollSeconds ?? 60} />
+      <MarketRefresh seconds={snapshot.pollSeconds ?? 60} recoverEmpty={snapshot.mode === 'live' && snapshot.quotes.length === 0} />
       <div className="topline">
         <span className="topline__watch"><span className="status-dot" /> دیده‌بان هوشمند بازار ایران</span>
         <span className="topline__status">{snapshot.status === 'ok' ? 'قیمت دریافت‌شده · محاسبه شفاف' : snapshot.status === 'stale' ? 'آخرین داده ثبت‌شده · قیمت‌ها قدیمی‌اند' : 'در انتظار دریافت داده معتبر'}</span>
       </div>
+
 
       {(sections.hero || sections.radar) && <section className={`hero ${!sections.hero || !sections.radar ? "hero-single" : ""}`}>
         {sections.hero && <div className="hero-copy hero-reveal">
