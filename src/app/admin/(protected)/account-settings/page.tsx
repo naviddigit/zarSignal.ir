@@ -13,6 +13,11 @@ export default async function AccountSettingsPage({ searchParams }: { searchPara
       <h2>تأیید ایمیل</h2>
       <Checkbox name="emailVerificationRequired" label="تأیید ایمیل برای ورود با رمز عبور اجباری باشد" defaultChecked={policy.emailVerificationRequired} />
       <p>کد شش‌رقمی با اعتبار ۱۰ دقیقه از Resend ارسال می‌شود. ورود گوگل از تأیید ایمیل خود گوگل استفاده می‌کند.</p>
+      <h2>اطلاعات ثبت‌نام</h2>
+      <Checkbox name="phoneRequired" label="شماره موبایل اجباری باشد" defaultChecked={policy.phoneRequired} />
+      <Checkbox name="customerTypeRequired" label="انتخاب نوع کاربر اجباری باشد" defaultChecked={policy.customerTypeRequired} />
+      <label className="ds-field"><span className="ds-field__label">انواع کاربر (هر گزینه در یک خط)</span><textarea className="ds-input" name="customerTypes" rows={4} maxLength={2400} defaultValue={policy.customerTypes.join('\n')} placeholder={'خانگی\nحرفه‌ای'} /></label>
+      <p>کاربر نوع خود را انتخاب می‌کند؛ این انتخاب پلن، نقش ادمین یا دسترسی پولی نمی‌دهد. ورود گوگل اطلاعات اجباری را در مرحله تکمیل حساب دریافت می‌کند.</p>
       <h2>تکمیل پروفایل</h2>
       <Checkbox name="profileRequired" label="تکمیل پروفایل اجباری باشد" defaultChecked={policy.profileRequired} />
       <p>فیلدهای لازم؛ دیگر فیلدها اختیاری می‌مانند. این تنظیم برای حساب‌های موجود نیز اعمال می‌شود.</p>

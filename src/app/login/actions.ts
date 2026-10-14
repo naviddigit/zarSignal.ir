@@ -10,6 +10,7 @@ import { getAccountPolicy } from '@/server/account-policy';
 import { sendVerificationCode, EMAIL_CHALLENGE_COOKIE } from '@/server/email-verification';
 import { ensureAccountSchema } from '@/server/account-schema';
 import { cookies } from 'next/headers';
+import { registrationProfile } from '@/lib/account-policy';
 
 function safeNext(value: FormDataEntryValue | null) {
   if (typeof value !== 'string') return '/account';
@@ -31,11 +32,21 @@ export async function registerWithEmail(formData: FormData) {
   if (!validEmail(email) || !validPassword(password)) {
     redirect(`/login?error=invalid&next=${encodeURIComponent(next)}`);
   }
+  const policy = await getAccountPolicy();
+  let profile: ReturnType<typeof registrationProfile>;
+  try {
+    profile = registrationProfile({ phone: String(formData.get('phone') ?? ''), customerType: String(formData.get('customerType') ?? '') }, policy);
+  } catch (error) {
+    redirect(`/login?mode=register&error=profile&message=${encodeURIComponent(error instanceof Error ? error.message : 'اطلاعات ثبت‌نام معتبر نیست.')}&next=${encodeURIComponent(next)}`);
+  }
   const existing = await db.user.findUnique({ where: { email }, select: { id: true } });
   // Existing Google accounts must never acquire a password through an unauthenticated signup.
   if (existing) redirect(`/login?error=exists&next=${encodeURIComponent(next)}`);
-  const user = await db.user.create({ data: { email, name, passwordHash: hashPassword(password) } });
-  if ((await getAccountPolicy()).emailVerificationRequired) await beginVerification(user, next);
+  const user = await db.user.create({ data: { email, name, ...profile, passwordHash: hashPassword(password) } }).catch(error => {
+    if (error?.code === 'P2002') redirect(`/login?mode=register&error=profile&message=${encodeURIComponent('ایمیل یا شماره موبایل قبلاً ثبت شده است.')}&next=${encodeURIComponent(next)}`);
+    throw error;
+  });
+  if (policy.emailVerificationRequired) await beginVerification(user, next);
   try {
     await signIn('credentials', { email, password, redirectTo: `/account/complete?next=${encodeURIComponent(next.includes('?') ? `${next}&signup=1` : `${next}?signup=1`)}` });
   } catch (error) {

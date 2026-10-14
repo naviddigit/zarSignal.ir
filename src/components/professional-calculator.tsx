@@ -2,6 +2,8 @@
 import { coinSpecs, isCoinOperation, type CoinId } from '@/lib/coin-calculator';
 import { Select } from '@/components/ui/select';
 import { TradeCalculator } from '@/components/trade-calculator';
+import { GoldUnitSwitch } from '@/components/gold-unit-switch';
+import { goldDisplay, goldCanonical, goldInputText, type GoldDisplayUnit } from '@/lib/gold-display-unit';
 import { isTradeOperation } from '@/lib/trade-calculator';
 import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -122,6 +124,8 @@ export function ProfessionalCalculator({
   const [coin, setCoin] = useState<CoinId>('emami');
   const [product, setProduct] = useState<Product>('gold');
   const [tool, setTool] = useState<Tool>(DEFAULT_TOOL);
+  const [goldUnit, setGoldUnit] = useState<GoldDisplayUnit>('gram');
+  const [unitDrafts, setUnitDrafts] = useState<Record<string, string>>({});
   const [weightAmount, setWeightAmount] = useState('1');
   const [purityAmount, setPurityAmount] = useState('');
   const [market, setMarket] = useState(snapshot);
@@ -248,6 +252,8 @@ export function ProfessionalCalculator({
   }
 
   function choose(next: Tool, forProduct: Product = product) {
+    setUnitDrafts({});
+    setGoldUnit(next.startsWith('melted') ? 'mesghal' : 'gram');
     const allowed = toolsByProduct[forProduct];
     if (!allowed.includes(next)) return;
     const gate = moduleAccess(next);
@@ -290,6 +296,7 @@ export function ProfessionalCalculator({
   }
 
   async function setMode(key: string, mode: 'LIVE' | 'MANUAL') {
+    setUnitDrafts(drafts => { const next = { ...drafts }; delete next[key]; return next; });
     if (!spec) return;
     invalidate();
     setActiveField(key);
@@ -402,7 +409,15 @@ export function ProfessionalCalculator({
     }
   }
 
-  const currentKeypadValue = operation === 'uaeGold' && activeField === 'uae18' && inputs.uae18?.value ? String(Number(inputs.uae18.value) * Number(inputs.aed?.value)) : inputs[activeField]?.value ?? '';
+  const convertible = operation === 'fineGold' || operation === 'capitalGold' || product === 'trade';
+  const shown = (value: number, unit: string) => convertible ? goldDisplay(value, unit, goldUnit) : { value, unit };
+  const shownLabel = (label: string, unit: string) => convertible && shown(1, unit).unit !== unit ? label.replace(goldUnit === 'mesghal' ? /گرم/g : /مثقال/g, goldUnit === 'mesghal' ? 'مثقال' : 'گرم') : label;
+  const displayedOutputs = result?.outputs.map(output => {
+    const converted = operation === 'fineGold' && output.label === 'طلای خالص' ? output : shown(output.value, output.unit);
+    return { ...output, ...converted, label: converted.unit !== output.unit ? shownLabel(output.label, output.unit) : output.label };
+  });
+  const activeUnit = spec?.fields.find(field => field.key === activeField)?.unit ?? '';
+  const currentKeypadValue = operation === 'uaeGold' && activeField === 'uae18' && inputs.uae18?.value ? String(Number(inputs.uae18.value) * Number(inputs.aed?.value)) : unitDrafts[activeField] ?? (convertible ? goldInputText(inputs[activeField]?.value ?? '', activeUnit, goldUnit) : inputs[activeField]?.value ?? '');
   const keypadValue = tool === 'marketWeight' || tool === 'weight' ? weightAmount : tool === 'purity' ? purityAmount : currentKeypadValue;
   const keypadTarget = tool === 'marketWeight'
     ? 'مقدار مثقال (ورودی راست)'
@@ -410,7 +425,7 @@ export function ProfessionalCalculator({
       ? 'مقدار وزن'
     : tool === 'purity'
       ? 'وزن مبدأ به گرم'
-      : spec?.fields.find(field => field.key === activeField)?.label ?? 'ورودی را انتخاب کنید';
+      : shownLabel(spec?.fields.find(field => field.key === activeField)?.label ?? 'ورودی را انتخاب کنید', activeUnit);
 
   return (
     <section className={`professional-calculator${isLocalTool(tool) ? ' is-weight' : ''}${product === 'trade' ? ' is-trade' : ''}`} aria-label="ماشین‌حساب حرفه‌ای">
@@ -475,6 +490,7 @@ export function ProfessionalCalculator({
               </button>
             </div>
 
+            {convertible ? <GoldUnitSwitch value={goldUnit} onChange={value => { setGoldUnit(value); setUnitDrafts({}); }} /> : null}
             {operation && isCoinOperation(operation) && !['coinCompare', 'coinRadar', 'coinSwap'].includes(operation) ? <Select label="نوع سکه" value={coin} options={Object.entries(coinSpecs).map(([value, row]) => ({ value, label: row.label }))} onChange={value => { const next = value as CoinId; invalidate(); setCoin(next); setInputs(prefill(operation, market, next)); }} /> : null}
             {operation === 'coinAlert' ? <p><Link href="/alerts">ثبت و مدیریت هشدار داخل سایت</Link> · فعلاً حباب ربع‌سکه با دادهٔ زنده پشتیبانی می‌شود.</p> : null}
             {spec.note ? <details className="calc-result-details"><summary>درباره محاسبه</summary><p>{spec.note}</p></details> : null}
@@ -483,11 +499,12 @@ export function ProfessionalCalculator({
               const input = inputs[field.key] ?? { value: '', provenance: 'MANUAL' as const };
               const uaeDisplay = operation === 'uaeGold' && field.key === 'uae18';
               const aedValue = Number(inputs.aed?.value);
-              const displayValue = uaeDisplay ? (aedValue > 0 && input.value ? String(Math.round(Number(input.value) * aedValue * 100) / 100) : '') : input.value;
+              const displayValue = uaeDisplay ? (aedValue > 0 && input.value ? String(Math.round(Number(input.value) * aedValue * 100) / 100) : '') : input.provenance === 'MANUAL' && unitDrafts[field.key] !== undefined ? unitDrafts[field.key] : convertible ? goldInputText(input.value, field.unit, goldUnit) : input.value;
+              const displayLabel = shownLabel(field.label, field.unit);
               return (
                 <div className={`calc-tool-panel__field${input.provenance === 'LIVE' ? ' is-live' : ' is-manual'}`} key={field.key}>
                   <div className="calc-tool-panel__head">
-                    <span className="calc-tool-panel__label">{field.label}</span>
+                    <span className="calc-tool-panel__label">{displayLabel}</span>
                     {field.symbol ? <div className="calc-mode" role="radiogroup" aria-label={`منبع ${field.label}`}>
                       <button type="button" role="radio" aria-checked={input.provenance === 'LIVE'} className={input.provenance === 'LIVE' ? 'is-on' : ''} disabled={pending} onClick={() => setMode(field.key, 'LIVE')}>
                         لحظه‌ای
@@ -506,18 +523,19 @@ export function ProfessionalCalculator({
                       autoComplete="off"
                       dir="ltr"
                       required
-                      aria-label={field.label}
+                      aria-label={displayLabel}
                       value={formatNumericInput(displayValue)}
                       placeholder="0"
                       onChange={event => {
                         invalidate();
+                        if (convertible) setUnitDrafts(drafts => ({ ...drafts, [field.key]: sanitizeNumericInput(event.target.value, 6) }));
                         setInputs(current => ({
                           ...current,
-                          [field.key]: { value: uaeDisplay && aedValue > 0 ? String(Number(sanitizeNumericInput(event.target.value, 6)) / aedValue) : ((field.min ?? 0) < 0 && /^[−-]/.test(event.target.value.trim()) ? '-' : '') + sanitizeNumericInput(event.target.value, 6), provenance: 'MANUAL' },
+                          [field.key]: { value: uaeDisplay && aedValue > 0 ? String(Number(sanitizeNumericInput(event.target.value, 6)) / aedValue) : convertible && goldDisplay(1, field.unit, goldUnit).value !== 1 ? (event.target.value.trim() ? String(goldCanonical(Number(sanitizeNumericInput(event.target.value, 6)), field.unit, goldUnit)) : '') : ((field.min ?? 0) < 0 && /^[−-]/.test(event.target.value.trim()) ? '-' : '') + sanitizeNumericInput(event.target.value, 6), provenance: 'MANUAL' },
                         }));
                       }}
                     />
-                    <span className="calc-tool-panel__unit">{uaeDisplay ? 'تومان / گرم' : field.unit}</span>
+                    <span className="calc-tool-panel__unit">{uaeDisplay ? 'تومان / گرم' : shown(1, field.unit).unit}</span>
                   </div>
                 </div>
               );
@@ -530,7 +548,7 @@ export function ProfessionalCalculator({
             {result ? (
               <div className="calc-result-panel calc-result-panel--desktop" aria-live="polite">
                 <strong>نتیجه</strong>
-                {result.outputs.map(output => (
+                {displayedOutputs!.map(output => (
                   <div className="calc-result-panel__row" key={output.label}>
                     <span>{output.label}</span>
                     <bdi dir="ltr">{number(output.value)} <small>{output.unit}</small></bdi>
@@ -559,7 +577,8 @@ export function ProfessionalCalculator({
             if (tool === 'purity') { setPurityAmount(value); return; }
             if (!activeField) return;
             invalidate();
-            setInputs(current => ({ ...current, [activeField]: { value: operation === 'uaeGold' && activeField === 'uae18' && Number(current.aed?.value) > 0 ? String(Number(value) / Number(current.aed.value)) : value, provenance: 'MANUAL' } }));
+            if (convertible) setUnitDrafts(drafts => ({ ...drafts, [activeField]: value }));
+            setInputs(current => ({ ...current, [activeField]: { value: operation === 'uaeGold' && activeField === 'uae18' && Number(current.aed?.value) > 0 ? String(Number(value) / Number(current.aed.value)) : convertible && value ? String(goldCanonical(Number(value), activeUnit, goldUnit)) : value, provenance: 'MANUAL' } }));
           }} />
         </div>
       </div>
@@ -572,7 +591,7 @@ export function ProfessionalCalculator({
         {result ? (
           <div className="ds-overlay__result" aria-live="polite">
             {spec?.note ? <p className="calc-result-note">{spec.note}</p> : null}
-            {result.outputs.map(output => (
+            {displayedOutputs!.map(output => (
               <div className="ds-overlay__result-row" key={output.label}>
                 <span>{output.label}</span>
                 <strong dir="ltr">

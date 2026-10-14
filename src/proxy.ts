@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { getMaintenanceSettings } from '@/server/maintenance';
 import { escapeMaintenanceHtml, isMaintenanceBypass } from '@/lib/maintenance';
 import { getAccountPolicy } from '@/server/account-policy';
-import { missingProfileFields } from '@/lib/account-policy';
+import { missingProfileFields, profileRequired } from '@/lib/account-policy';
 import { db } from '@/lib/db';
 import { auth } from '@/auth';
 import { ensureAccountSchema } from '@/server/account-schema';
@@ -45,9 +45,9 @@ export async function proxy(request: NextRequest) {
       const session = await auth().catch(() => null);
       if (session?.user?.id) {
         const policy = await getAccountPolicy();
-        if (policy.profileRequired) {
+        if (profileRequired(policy)) {
           await ensureAccountSchema();
-          const user = await db.user.findUnique({ where: { id: session.user.id }, select: { role: true, name: true, firstName: true, lastName: true, phone: true, city: true, occupation: true } });
+          const user = await db.user.findUnique({ where: { id: session.user.id }, select: { role: true, name: true, firstName: true, lastName: true, phone: true, city: true, occupation: true, customerType: true } });
           if (user && user.role !== 'ADMIN' && missingProfileFields(user, policy).length) {
             if (gatedApi) return NextResponse.json({ code: 'profile_required', error: 'ابتدا پروفایل خود را تکمیل کنید.' }, { status: 403 });
             const url = new URL('/account/complete', request.url);

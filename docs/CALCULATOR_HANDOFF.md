@@ -1,5 +1,8 @@
 # Calculator and mobile handoff — 2026-10-07
 
+- October 14 unit switch: `gold-display-unit.ts` uses the shared 4.3318 market coefficient. Gram prices multiply, gram weights divide when displayed as mesghal. Gold tools and all trade fields/steps keep their original canonical engine values; do not reconvert money or P&L. FineGold's pure 1000-metal grams stay grams, while its equivalent 18k result may switch. Keep decimal drafts while typing/keypad entry. Check `e2e/gold-unit-switch.spec.ts`.
+- Account policy adds independent phone/type requirements and admin-editable type labels. `customerType` is user-selected profile data, separate from role and paid plan. Enforce requirements on signup and completion/API gates; Google completes missing fields after OAuth. Keep the additive User column migration and shared schema initializer before User reads.
+
 - October 11 analysis layout: keep `market-view__quick` compact and all report actions in `analysis-toolbar`. Last-visit changes and feedback open through the shared OverlaySheet (desktop modal/mobile drawer); never expand them into default page sections. Preserve saved rating/comment APIs and icon labels. Check `e2e/analysis-compact.spec.ts`.
 
 - October 11: preserve coin amendment `docs/COIN_CALCULATOR_3_1.md`. Coin tools C15–C24 share `coinValuation`; negative bubbles describe valuation, not direction or a trade action. Only quarter has a clearly identified live quote. Keep new admin access/order IDs and the existing Select/OverlaySheet mobile components.

@@ -193,6 +193,7 @@ export function CustomersWorkspace({ initialQuery, initialRows, dbError }: Props
           {loadError ? <p className="form-error" role="alert">{loadError}</p> : null}
           {detail ? (
             <>
+              <p className="customers-editor__hint">نوع کاربر: {detail.user.customerType || 'انتخاب نشده'}</p>
               <div className="customers-editor__tabs" role="tablist" aria-label="بخش ویرایش">
                 <button type="button" role="tab" aria-selected={editorTab === 'access'} className={editorTab === 'access' ? 'is-active' : undefined} onClick={() => setEditorTab('access')}>دسترسی</button>
                 <button type="button" role="tab" aria-selected={editorTab === 'profile'} className={editorTab === 'profile' ? 'is-active' : undefined} onClick={() => setEditorTab('profile')}>پروفایل</button>

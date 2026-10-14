@@ -6,7 +6,8 @@ import { db } from '@/lib/db';
 import { PendingButton } from '@/components/pending-button';
 import { completeProfileAction, deferProfileAction } from './actions';
 import { getAccountPolicy } from '@/server/account-policy';
-import { missingProfileFields } from '@/lib/account-policy';
+import { missingProfileFields, fieldRequired, profileRequired } from '@/lib/account-policy';
+import { Select } from '@/components/ui/select';
 import { ensureAccountSchema } from '@/server/account-schema';
 import { isRedirectError } from 'next/dist/client/components/redirect-error';
 
@@ -38,14 +39,14 @@ export default async function CompleteProfilePage({
   const policy = await getAccountPolicy();
   const user = await db.user.findUnique({
     where: { id: session.user.id },
-    select: { name: true, phone: true, email: true, firstName: true, lastName: true, city: true, occupation: true },
+    select: { name: true, phone: true, email: true, firstName: true, lastName: true, city: true, occupation: true, customerType: true },
   });
   const jar = await cookies();
   const deferred = jar.get('zs_profile_later')?.value === '1';
   if (user && missingProfileFields(user, policy).length === 0) {
     redirect(next);
   }
-  if (deferred && !policy.profileRequired && !params.error) {
+  if (deferred && !profileRequired(policy) && !params.error) {
     redirect(next);
   }
 
@@ -57,7 +58,7 @@ export default async function CompleteProfilePage({
       <section className="auth-card profile-complete-card">
         <span className="eyebrow gold-text">تکمیل حساب</span>
         <h1>یک قدم تا آماده‌شدن</h1>
-        <p>{policy.profileRequired ? 'موارد مشخص‌شده با ستاره لازم‌اند.' : 'تکمیل این اطلاعات اختیاری است.'} شهر فعالیت را خودتان وارد می‌کنید؛ با موقعیت تقریبی IP متفاوت است.</p>
+        <p>{profileRequired(policy) ? 'موارد مشخص‌شده با ستاره لازم‌اند.' : 'تکمیل این اطلاعات اختیاری است.'} شهر فعالیت را خودتان وارد می‌کنید؛ با موقعیت تقریبی IP متفاوت است.</p>
         {user?.email ? <p className="profile-complete-email" dir="ltr">{user.email}</p> : null}
         {params.error ? <p className="calc-error" role="alert">{params.error}</p> : null}
 
@@ -77,16 +78,16 @@ export default async function CompleteProfilePage({
           <input type="hidden" name="next" value={next} />
           <div className="profile-complete-grid">
             <label>
-              <span>نام {policy.profileRequired && policy.requiredFields.includes('firstName') ? '*' : ''}</span>
-              <input name="firstName" defaultValue={user?.firstName ?? firstName} autoComplete="given-name" required={policy.profileRequired && policy.requiredFields.includes('firstName')} minLength={2} maxLength={80} placeholder="مثلاً سارا" />
+              <span>نام {fieldRequired(policy, 'firstName') ? '*' : ''}</span>
+              <input name="firstName" defaultValue={user?.firstName ?? firstName} autoComplete="given-name" required={fieldRequired(policy, 'firstName')} minLength={2} maxLength={80} placeholder="مثلاً سارا" />
             </label>
             <label>
-              <span>نام خانوادگی {policy.profileRequired && policy.requiredFields.includes('lastName') ? '*' : ''}</span>
-              <input name="lastName" defaultValue={user?.lastName ?? lastName} autoComplete="family-name" required={policy.profileRequired && policy.requiredFields.includes('lastName')} minLength={2} maxLength={80} placeholder="مثلاً محمدی" />
+              <span>نام خانوادگی {fieldRequired(policy, 'lastName') ? '*' : ''}</span>
+              <input name="lastName" defaultValue={user?.lastName ?? lastName} autoComplete="family-name" required={fieldRequired(policy, 'lastName')} minLength={2} maxLength={80} placeholder="مثلاً محمدی" />
             </label>
           </div>
           <label>
-            <span>شماره موبایل {policy.profileRequired && policy.requiredFields.includes('phone') ? '*' : ''}</span>
+            <span>شماره موبایل {fieldRequired(policy, 'phone') ? '*' : ''}</span>
             <div className="phone-field">
               <span aria-hidden="true">+98</span>
               <input
@@ -95,26 +96,27 @@ export default async function CompleteProfilePage({
                 inputMode="tel"
                 autoComplete="tel"
                 defaultValue={phoneDefault}
-                required={policy.profileRequired && policy.requiredFields.includes('phone')}
+                required={fieldRequired(policy, 'phone')}
                 placeholder="09121234567"
                 dir="ltr"
               />
             </div>
           </label>
           <div className="profile-complete-grid">
-            <label><span>شهر فعالیت {policy.profileRequired && policy.requiredFields.includes('city') ? '*' : ''}</span><input name="city" defaultValue={user?.city ?? ''} maxLength={80} required={policy.profileRequired && policy.requiredFields.includes('city')} autoComplete="address-level2" /></label>
-            <label><span>حوزه فعالیت {policy.profileRequired && policy.requiredFields.includes('occupation') ? '*' : ''}</span><input name="occupation" defaultValue={user?.occupation ?? ''} maxLength={80} required={policy.profileRequired && policy.requiredFields.includes('occupation')} placeholder="مثلاً معامله‌گر طلا" /></label>
+            <label><span>شهر فعالیت {fieldRequired(policy, 'city') ? '*' : ''}</span><input name="city" defaultValue={user?.city ?? ''} maxLength={80} required={fieldRequired(policy, 'city')} autoComplete="address-level2" /></label>
+            <label><span>حوزه فعالیت {fieldRequired(policy, 'occupation') ? '*' : ''}</span><input name="occupation" defaultValue={user?.occupation ?? ''} maxLength={80} required={fieldRequired(policy, 'occupation')} placeholder="مثلاً معامله‌گر طلا" /></label>
           </div>
+          {policy.customerTypes.length > 0 ? <Select name="customerType" label={`نوع کاربر ${fieldRequired(policy, 'customerType') ? '*' : '(اختیاری)'}`} defaultValue={user?.customerType && policy.customerTypes.includes(user.customerType) ? user.customerType : ''} required={fieldRequired(policy, 'customerType')} options={policy.customerTypes.map(value => ({ value, label: value }))} /> : null}
           <PendingButton className="button" pendingText="در حال ذخیره…">ادامه</PendingButton>
         </form>
 
-        {!policy.profileRequired && <form action={deferProfileAction}>
+        {!profileRequired(policy) && <form action={deferProfileAction}>
           <input type="hidden" name="next" value={next} />
           <input type="hidden" name="later" value="1" />
           <button type="submit" className="profile-complete-later">بعداً پر می‌کنم</button>
         </form>}
 
-        {!policy.profileRequired && <small>
+        {!profileRequired(policy) && <small>
           <Link href={next}>رد کردن این صفحه</Link>
         </small>}
       </section>

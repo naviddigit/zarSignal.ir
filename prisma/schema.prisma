@@ -18,6 +18,7 @@ model User {
   lastName      String?
   city          String?
   occupation    String?
+  customerType  String?
   loginEvents   LoginEvent[]
   emailChallenge EmailChallenge?
   /** scrypt$salt$hash — Credentials login only; Google users leave null. */

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { parseAccountPolicy, missingProfileFields } from '../src/lib/account-policy';
+import { parseAccountPolicy, missingProfileFields, profileRequired, fieldRequired, registrationProfile, normalizePhone } from '../src/lib/account-policy';
 import { verificationHash, verificationMatches } from '../src/lib/email-verification';
 import { loginMetadata } from '../src/lib/login-metadata';
 import { readFileSync } from 'node:fs';
@@ -15,6 +15,48 @@ test('account requirements default off and accept only known fields', () => {
   assert.deepEqual(policy.requiredFields, ['city', 'phone']);
   assert.deepEqual(missingProfileFields({ city: 'تهران', phone: '' }, policy), ['phone']);
   assert.deepEqual(missingProfileFields({ name: 'سارا محمدی', phone: '+989121234567' }, parseAccountPolicy(null)), []);
+});
+
+test('mobile and user type are independently required without granting an access role', () => {
+  const policy = parseAccountPolicy({ phoneRequired: true, customerTypeRequired: true, customerTypes: [' خانگی ', 'حرفه‌ای', 'خانگی', null, 'صراف'] });
+  assert.deepEqual(policy.customerTypes, ['خانگی', 'حرفه‌ای', 'صراف']);
+  assert.equal(profileRequired(policy), true);
+  assert.equal(fieldRequired(policy, 'firstName'), false);
+  assert.deepEqual(missingProfileFields({ name: 'سارا محمدی' }, policy), ['phone', 'customerType']);
+  assert.throws(() => registrationProfile({ phone: '', customerType: 'خانگی' }, policy), /موبایل/);
+  assert.throws(() => registrationProfile({ phone: '09121234567', customerType: 'ADMIN' }, policy), /نوع کاربر/);
+  assert.throws(() => registrationProfile({ phone: 'abc09121234567', customerType: 'خانگی' }, policy), /موبایل/);
+  assert.deepEqual(registrationProfile({ phone: '۰۹۱۲۱۲۳۴۵۶۷', customerType: 'حرفه‌ای' }, policy), { phone: '+989121234567', customerType: 'حرفه‌ای' });
+  assert.equal(normalizePhone('+98 912 123 4567'), '+989121234567');
+  assert.deepEqual(missingProfileFields({ phone: '+989121234567', customerType: 'گزینه حذف‌شده' }, policy), ['customerType']);
+  assert.deepEqual(registrationProfile({ phone: '', customerType: '' }, parseAccountPolicy(null)), { phone: null, customerType: null });
+});
+
+test('signup rejects missing required type before account creation and persists a valid choice', async () => {
+  const module = { exports: {} as typeof import('../src/app/login/actions') };
+  let created: any = null;
+  const policy = parseAccountPolicy({ customerTypeRequired: true });
+  const source = readFileSync(new URL('../src/app/login/actions.ts', import.meta.url), 'utf8');
+  const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText;
+  runInNewContext(compiled, { module, exports: module.exports, require: (name: string) => {
+    if (name === 'next/navigation') return { redirect: (url: string) => { throw new Error(url); } };
+    if (name === '@/lib/account-policy') return { registrationProfile };
+    if (name === '@/server/account-policy') return { getAccountPolicy: async () => policy };
+    if (name === '@/server/account-schema') return { ensureAccountSchema: async () => {} };
+    if (name === '@/server/ensure-schema') return { ensureHistorySchema: async () => {} };
+    if (name === '@/lib/password') return { validEmail: () => true, validPassword: () => true, hashPassword: () => 'hash' };
+    if (name === '@/lib/db') return { db: { user: { findUnique: async () => null, create: async ({ data }: any) => { created = data; return { id: 'test', ...data }; } } } };
+    if (name === '@/auth') return { signIn: async () => {} };
+    if (name === 'next-auth') return { AuthError: class extends Error {} };
+    return {};
+  } });
+  const form = new FormData(); form.set('email', 'test@example.com'); form.set('password', 'password-long');
+  await assert.rejects(() => module.exports.registerWithEmail(form), /error=profile/);
+  assert.equal(created, null);
+  form.set('customerType', 'حرفه‌ای'); form.set('role', 'ADMIN');
+  await module.exports.registerWithEmail(form);
+  assert.equal((created as any)?.customerType, 'حرفه‌ای');
+  assert.equal((created as any)?.role, undefined);
 });
 test('verification hashes bind to challenge, code and secret', () => {
   const stored = verificationHash('ticket-one', '123456', 'test-secret');
@@ -103,14 +145,16 @@ test('mandatory profile blocks pages and APIs, including chunked sessions, but k
   const module = { exports: {} as typeof import('../src/proxy') };
   let required = true;
   let role = 'USER';
+  let phoneRequired = false;
+  let customerTypeRequired = false;
   const source = readFileSync(new URL('../src/proxy.ts', import.meta.url), 'utf8');
   const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText;
   runInNewContext(compiled, { module, exports: module.exports, URL, require: (name: string) => {
     if (name === 'next/server') return { NextResponse: { next: () => ({ kind: 'next', headers: new Headers() }), redirect: (url: URL) => ({ kind: 'redirect', url: url.toString() }), json: (body: unknown, options: unknown) => ({ kind: 'json', body, ...options as object }) } };
     if (name === '@/server/maintenance') return { getMaintenanceSettings: async () => ({ enabled: false }) };
     if (name === '@/lib/maintenance') return { isMaintenanceBypass };
-    if (name === '@/server/account-policy') return { getAccountPolicy: async () => ({ profileRequired: required, requiredFields: ['phone'] }) };
-    if (name === '@/lib/account-policy') return { missingProfileFields };
+    if (name === '@/server/account-policy') return { getAccountPolicy: async () => ({ profileRequired: required, requiredFields: ['phone'], phoneRequired, customerTypeRequired, customerTypes: ['خانگی', 'حرفه‌ای'] }) };
+    if (name === '@/lib/account-policy') return { missingProfileFields, profileRequired };
     if (name === '@/auth') return { auth: async () => ({ user: { id: 'user-one' } }) };
     if (name === '@/server/account-schema') return { ensureAccountSchema: async () => {} };
     if (name === '@/lib/db') return { db: { user: { findUnique: async () => ({ role, phone: null }) } } };
@@ -127,4 +171,10 @@ test('mandatory profile blocks pages and APIs, including chunked sessions, but k
   assert.equal((await proxy(request('/calculator'))).kind, 'next');
   role = 'USER'; required = false;
   assert.equal((await proxy(request('/calculator'))).kind, 'next');
+  phoneRequired = true;
+  assert.equal((await proxy(request('/calculator'))).kind, 'redirect');
+  assert.equal((await proxy(request('/api/public/markets'))).status, 403);
+  phoneRequired = false; customerTypeRequired = true;
+  assert.equal((await proxy(request('/calculator'))).kind, 'redirect');
+  assert.equal((await proxy(request('/account/complete'))).kind, 'next');
 });

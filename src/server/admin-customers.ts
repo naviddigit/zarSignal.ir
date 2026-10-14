@@ -144,7 +144,7 @@ export async function getCustomerDetail(userId: string) {
   await ensureAccountSchema();
   const user = await db.user.findUnique({
     where: { id: userId },
-    select: { id: true, email: true, emailVerified: true, name: true, phone: true, city: true, occupation: true, createdAt: true, role: true },
+    select: { id: true, email: true, emailVerified: true, name: true, phone: true, city: true, occupation: true, customerType: true, createdAt: true, role: true },
   });
   if (!user) return null;
   const [loginCount, loginEvents] = await Promise.all([
@@ -177,6 +177,7 @@ export async function getCustomerDetail(userId: string) {
       phone: user.phone,
       createdAt: user.createdAt.toISOString(),
       role: user.role,
+      customerType: user.customerType,
       city: user.city, occupation: user.occupation, emailVerified: user.emailVerified?.toISOString() ?? null,
     },
     loginCount,

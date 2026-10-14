@@ -5,6 +5,9 @@ import { PendingButton } from '@/components/pending-button';
 import { FunnelTrack } from '@/components/funnel-track';
 import { GoogleMark } from '@/components/google-mark';
 import { loginWithEmail, registerWithEmail } from '@/app/login/actions';
+import { getAccountPolicy } from '@/server/account-policy';
+import { fieldRequired } from '@/lib/account-policy';
+import { Select } from '@/components/ui/select';
 
 export const dynamic = 'force-dynamic';
 
@@ -37,7 +40,8 @@ export default async function LoginPage({
   const mode = params.mode === 'register' ? 'register' : 'login';
   const session = await auth().catch(() => null);
   const authCapabilities = await getAuthCapabilities();
-  const errorText = params.error === 'mail' ? params.message?.slice(0, 200) || 'ارسال ایمیل ناموفق بود؛ دوباره وارد شوید.' : params.error ? errors[params.error] ?? 'ورود ناموفق بود.' : null;
+  const errorText = params.error === 'mail' || params.error === 'profile' ? params.message?.slice(0, 200) || 'ثبت اطلاعات ممکن نشد؛ دوباره تلاش کنید.' : params.error ? errors[params.error] ?? 'ورود ناموفق بود.' : null;
+  const policy = mode === 'register' ? await getAccountPolicy() : null;
   const emailReady = authCapabilities.email;
 
   return (
@@ -94,6 +98,9 @@ export default async function LoginPage({
                       <div className="phone-field">
                         <input id="name" name="name" autoComplete="name" placeholder="نام نمایشی" />
                       </div>
+                      <label htmlFor="phone">شماره موبایل {policy && fieldRequired(policy, 'phone') ? '*' : '(اختیاری)'}</label>
+                      <div className="phone-field"><input id="phone" name="phone" type="tel" inputMode="tel" autoComplete="tel" dir="ltr" placeholder="09121234567" required={Boolean(policy && fieldRequired(policy, 'phone'))} /></div>
+                      {policy && policy.customerTypes.length > 0 ? <Select name="customerType" label={`نوع کاربر ${fieldRequired(policy, 'customerType') ? '*' : '(اختیاری)'}`} defaultValue="" required={fieldRequired(policy, 'customerType')} options={policy.customerTypes.map(value => ({ value, label: value }))} /> : null}
                     </>
                   ) : null}
                   <label htmlFor="email">ایمیل</label>

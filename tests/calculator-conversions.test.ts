@@ -1,6 +1,21 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { convertPurityPrice, convertPurityWeight, convertWeight } from '../src/lib/calculator-conversions';
+import { goldDisplay, goldCanonical } from '../src/lib/gold-display-unit';
+
+test('18k market unit switch preserves money and round-trips both engine units', () => {
+  assert.equal(goldDisplay(4.3318, 'گرم', 'mesghal').value, 1);
+  assert.equal(goldDisplay(10_000_000, 'تومان / گرم', 'mesghal').value, 43_318_000);
+  assert.equal(goldDisplay(1, 'مثقال', 'gram').value, 4.3318);
+  const weight = goldDisplay(12.345, 'گرم', 'mesghal').value;
+  const price = goldDisplay(10_000_000, 'تومان / گرم', 'mesghal').value;
+  assert.ok(Math.abs(weight * price - 123_450_000) < .00001);
+  for (const unit of ['گرم', 'مثقال', 'تومان / گرم', 'تومان / مثقال']) {
+    for (const mode of ['gram', 'mesghal'] as const) assert.ok(Math.abs(goldCanonical(goldDisplay(123.456, unit, mode).value, unit, mode) - 123.456) < 1e-10);
+  }
+  assert.deepEqual(goldDisplay(-1_000_000, 'تومان', 'mesghal'), { value: -1_000_000, unit: 'تومان' });
+  assert.deepEqual(goldDisplay(10, 'درصد', 'mesghal'), { value: 10, unit: 'درصد' });
+});
 
 test('PDF weight conversions use the documented gram equivalents', () => {
   assert.equal(convertWeight(3.5, 'mesghal', 'gram'), 16.128);
