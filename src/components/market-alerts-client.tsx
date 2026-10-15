@@ -199,13 +199,13 @@ export function MarketAlertsClient({ canManage, embedded = false, initialSymbol 
           <h2>شرط جدید</h2>
         </header>
         <p className="alerts-lead">
-          شرط، نماد، جهت عبور و اعتبار زمانی را مشخص کنید. ارزیابی پس از دادهٔ معتبر جدید در سرور انجام می‌شود.
+          {embedded ? 'با رسیدن بازار به شرط شما، داخل سایت مطلع شوید.' : 'شرط، نماد، جهت عبور و اعتبار زمانی را مشخص کنید. ارزیابی پس از دادهٔ معتبر جدید در سرور انجام می‌شود.'}
         </p>
         <form className="alerts-form" onSubmit={createAlert}>
           <Select
             label="نوع شرط"
             value={form.conditionType}
-            options={[...CONDITION_OPTIONS]}
+            options={CONDITION_OPTIONS.map(item => ({ ...item, label: embedded ? ({ PRICE_CROSS: 'عبور قیمت', GAP_PCT_CROSS: 'اختلاف با مرجع', GOLD_SILVER_RELATIVE: 'نسبت طلا و نقره' }[item.value]) : item.label }))}
             onChange={value => setForm(f => ({ ...f, conditionType: value }))}
           />
           <Select
@@ -214,12 +214,12 @@ export function MarketAlertsClient({ canManage, embedded = false, initialSymbol 
             options={symbolOptions}
             onChange={value => setForm(f => ({ ...f, symbol: value }))}
           />
-          <Select
+          {!embedded ? <Select
             label="جهت عبور"
             value={form.direction}
             options={[...DIR_OPTIONS]}
             onChange={value => setForm(f => ({ ...f, direction: value }))}
-          />
+          /> : null}
           <Input
             label={embedded ? form.conditionType === 'PRICE_CROSS' ? `آستانه (تومان / ${instruments.find(item => item.symbol === form.symbol)?.unit ?? ''})` : 'آستانه (درصد)' : 'آستانه'}
             dir="ltr"
@@ -246,7 +246,8 @@ export function MarketAlertsClient({ canManage, embedded = false, initialSymbol 
             value={form.expiresHours}
             onChange={e => setForm(f => ({ ...f, expiresHours: e.target.value }))}
           />
-          <p className="alerts-channel">کانال: اعلان داخل سایت · Push و SMS در این فرم فعال نیستند.</p>
+          {embedded ? <div className="alert-direction-field"><span className="ds-field__label">جهت عبور</span><div className="alert-direction-options" role="group" aria-label="جهت عبور">{DIR_OPTIONS.map(option => <button type="button" key={option.value} aria-pressed={form.direction === option.value} onClick={() => setForm(value => ({ ...value, direction: option.value }))}>{option.label}</button>)}</div></div> : null}
+          <p className="alerts-channel">{embedded ? 'اعلان داخل سایت · پس از دریافت نرخ معتبر جدید' : 'کانال: اعلان داخل سایت · Push و SMS در این فرم فعال نیستند.'}</p>
           <button className="button alerts-submit" type="submit" disabled={pending}>
             {pending ? 'در حال ثبت…' : 'ثبت هشدار تغییر بازار'}
           </button>

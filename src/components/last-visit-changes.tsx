@@ -39,8 +39,8 @@ export function LastVisitChanges({
       <ul className="market-view__last-visit-list">
         {changes.map(change => (
           <li key={change.id}>
-            <strong>{change.label}</strong>
-            <span>{change.summary}</span>
+            <div className="last-visit-change-head"><strong>{change.label}</strong>{change.deltaPercent != null ? <bdi className="last-visit-delta">{new Intl.NumberFormat('fa-IR', { maximumFractionDigits: 2, signDisplay: 'exceptZero' }).format(change.deltaPercent)} <small>واحد درصد</small></bdi> : null}</div>
+            <span>{change.deltaPercent != null ? `اختلاف با مرجع ${change.deltaPercent > 0 ? 'بیشتر' : change.deltaPercent < 0 ? 'کمتر' : 'بدون تغییر'} شد` : change.summary.replace(`${change.label}: `, '').replace(/ \(از [^)]+\)$/, '')}</span>
           </li>
         ))}
       </ul>

@@ -53,6 +53,7 @@ test('history and feedback open only on request and saved feedback survives reop
   await expect(page.getByText('اختلاف با مرجع بیشتر شد')).toHaveCount(0);
   await page.getByRole('button', { name: 'از آخرین بازدید شما', exact: true }).click();
   await expect(page.getByRole('dialog', { name: 'از آخرین بازدید شما' })).toContainText('اختلاف با مرجع بیشتر شد');
+  await page.getByRole('dialog', { name: 'از آخرین بازدید شما' }).screenshot({ path: `artifacts/analysis-history-${test.info().project.name}.png` });
   await page.keyboard.press('Escape');
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await page.getByRole('button', { name: 'امتیاز و بازخورد', exact: true }).click();
@@ -78,6 +79,13 @@ test('history and feedback open only on request and saved feedback survives reop
   await page.getByRole('link', { name: 'هشدار', exact: true }).click();
   const alertDialog = page.getByRole('dialog', { name: 'هشدار تغییر بازار' });
   await expect(alertDialog).toBeVisible();
+  const scrolling = await alertDialog.evaluate(element => {
+    const body = element.querySelector('.ds-overlay__body')!;
+    return { panel: getComputedStyle(element).overflowY, unnecessary: body.scrollHeight > body.clientHeight + 2 };
+  });
+  expect(scrolling.panel).toBe('hidden');
+  expect(scrolling.unnecessary).toBe(false);
+  await alertDialog.screenshot({ path: `artifacts/analysis-alert-${test.info().project.name}.png` });
   await alertDialog.getByRole('button', { name: 'ثبت هشدار تغییر بازار', exact: true }).click();
   await expect(alertDialog.getByRole('status')).toContainText('هشدار شما ثبت شد');
   expect(alert).toMatchObject({ conditionType: 'GAP_PCT_CROSS', threshold: 1, channel: 'IN_APP' });
@@ -86,6 +94,9 @@ test('history and feedback open only on request and saved feedback survives reop
   const studio = page.getByRole('dialog', { name: 'استودیوی استوری' });
   await studio.getByRole('button', { name: 'آبی اختصاصی', exact: true }).click();
   await expect(studio.getByRole('button', { name: 'آبی اختصاصی', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await studio.getByRole('button', { name: 'روشن', exact: true }).click();
+  await expect(studio.getByRole('button', { name: 'روشن', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await studio.screenshot({ path: `artifacts/analysis-studio-${test.info().project.name}.png` });
   await studio.getByRole('button', { name: 'ساخت پیش‌نمایش', exact: true }).click();
   await expect(studio.getByRole('img', { name: /پیش‌نمایش استوری/ })).toBeVisible({ timeout: 20000 });
   await page.keyboard.press('Escape'); await expect(page.getByRole('dialog')).toHaveCount(0);

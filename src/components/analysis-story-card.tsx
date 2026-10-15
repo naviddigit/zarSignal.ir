@@ -133,7 +133,7 @@ export function AnalysisStoryCardButton({
       </button>
       <OverlaySheet open={opened} title="استودیوی استوری" onClose={() => setOpened(false)}>
       <div className="analysis-story-studio">
-      <p className="market-view__share-note">قالب دلخواهتان را انتخاب کنید؛ یک خلاصهٔ تصویری با برند زرسیگنال و لینک عمومی بازار بسازید.</p>
+      <p className="market-view__share-note">قالب و رنگ دلخواهتان را برای استوری انتخاب کنید.</p>
       <div className="market-view__story-templates" role="group" aria-label="قالب استوری">
         {STORY_TEMPLATES.map(id => (
           <button
@@ -153,7 +153,7 @@ export function AnalysisStoryCardButton({
           </button>
         ))}
       </div>
-      <Select label="تم تصویر" disabled={status === 'building'} value={dark ? 'dark' : 'light'} onChange={value => { setDark(value === 'dark'); setStatus('idle'); }} options={[{value:'dark',label:'شب طلایی'},{value:'light',label:'روشن و نقره‌ای'}]} />
+      <div className="story-theme-row"><span>رنگ تصویر</span><div className="alert-direction-options" role="group" aria-label="تم تصویر">{[{ value: true, label: 'تیره' }, { value: false, label: 'روشن' }].map(item => <button key={item.label} type="button" disabled={status === 'building'} aria-pressed={dark === item.value} onClick={() => { setDark(item.value); setStatus('idle'); }}>{item.label}</button>)}</div></div>
       {backgrounds.length ? <div className="story-background-picker" role="group" aria-label="پس‌زمینه استوری">
         <button type="button" disabled={status === 'building'} aria-pressed={!backgroundId} onClick={() => { setBackgroundId(''); setStatus('idle'); }}>پس‌زمینه اصلی</button>
         {backgrounds.map(item => <button type="button" key={item.id} disabled={status === 'building'} aria-pressed={backgroundId === item.id} onClick={() => { setBackgroundId(item.id); setStatus('idle'); }}><span style={{ background: `linear-gradient(${item.start},${item.end})` }}>{item.imageUrl ? <img src={item.imageUrl} alt="" /> : null}</span>{item.title}</button>)}
@@ -170,7 +170,7 @@ export function AnalysisStoryCardButton({
         {status === 'building' ? 'در حال ساخت…' : 'ساخت پیش‌نمایش'}
       </button>
       <p className="market-view__share-note">
-        قالب استوری ۱۰۸۰×۱۹۲۰ · بدون دادهٔ خصوصی حساب.
+        خروجی ۱۰۸۰×۱۹۲۰ · فقط خلاصهٔ عمومی بازار
       </p>
       {status === 'error' && error ? (
         <p className="market-view__feedback-status is-error" role="alert">{error}</p>

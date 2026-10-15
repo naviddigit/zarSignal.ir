@@ -1,5 +1,7 @@
 # Analysis actions and story backgrounds — October 15, 2026
 
+- Overlay layout polish: the panel is a flex column with hidden overflow and a fixed header; only its body scrolls with a thin scrollbar. Desktop modal width is 520px, capped at 88dvh/760px; mobile remains a bottom drawer. Compact inline alerts use short condition names and direction segments, and should fit without unnecessary scrolling. Story theme has two direct buttons. Last-visit cards show labels and baseline date once; delta is percentage points, not a second repeated paragraph.
+
 - AnalysisEngagementPanel captures its page links and asks in OverlaySheet before navigation. /alerts opens MarketAlertsClient embedded in that same report instead. Keep plan checks in both UI and the existing alerts API; the editor really POSTs the condition to the server. No SMS/Push claim.
 - Feedback form has one padded layout, a centered rating strip, optional comment and full-width submit. Story creation is a labeled button, not an unexplained sparkle icon.
 - Admin `/admin/story-backgrounds` stores named gradients and optional public image URLs in IntegrationSetting, using validated `story-backgrounds-v1`. No Prisma schema change. Admin saves require requireAdmin. Public endpoint exposes enabled designs only. HTTPS or local image paths are accepted; external images must permit anonymous CORS for canvas PNG export. Keep default templates available if this endpoint fails.
