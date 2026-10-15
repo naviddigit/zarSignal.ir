@@ -10,7 +10,7 @@ test('gold and trade inputs convert once and preserve canonical calculation valu
     import {defaultCalculatorAccessPolicy} from './src/lib/calculator-access';
     import {defaultCalculatorNavigation} from './src/lib/calculator-navigation';
     const snapshot={mode:'live',status:'unavailable',quotes:[]};
-    createRoot(document.getElementById('root')).render(<><ProfessionalCalculator snapshot={snapshot} accessPolicy={defaultCalculatorAccessPolicy} navigation={defaultCalculatorNavigation}/><div id="trade"><TradeCalculator operation="quickTrade" snapshot={snapshot}/></div></>);`, loader: 'tsx', resolveDir: process.cwd() }, bundle: true, write: false, jsx: 'automatic', define: { 'process.env': '{}', 'process.env.NODE_ENV': '"production"' } });
+    createRoot(document.getElementById('root')).render(<><ProfessionalCalculator snapshot={snapshot} accessPolicy={defaultCalculatorAccessPolicy} navigation={defaultCalculatorNavigation}/><div id="trade"><TradeCalculator operation="quickTrade" snapshot={snapshot}/></div><div id="purchase"><TradeCalculator operation="scaleIn" snapshot={snapshot}/></div></>);`, loader: 'tsx', resolveDir: process.cwd() }, bundle: true, write: false, jsx: 'automatic', define: { 'process.env': '{}', 'process.env.NODE_ENV': '"production"' } });
   const css = (await Promise.all(['globals.css', 'theme.css', 'calculator/calculator.css'].map(file => readFile(`src/app/${file}`, 'utf8')))).join('\n');
   await page.route('**/__gold-unit-fixture', route => route.fulfill({ contentType: 'text/html', body: `<html lang="fa" dir="rtl" class="site-ready"><meta name="viewport" content="width=device-width,initial-scale=1"><style>${css}</style><main id="root" style="max-width:980px;margin:16px auto;width:calc(100% - 32px)"></main><script>${bundle.outputFiles[0].text.replaceAll('</script', '<\\/script')}</script></html>` }));
   let sent: any;
@@ -41,6 +41,7 @@ test('gold and trade inputs convert once and preserve canonical calculation valu
   await page.keyboard.press('Escape');
   await expect(page.getByRole('dialog')).toHaveCount(0);
   const trade = page.locator('#trade');
+  await trade.getByRole('group', { name: 'واحد طلای ۱۸ عیار' }).getByRole('button', { name: 'گرم ۱۸', exact: true }).click();
   await trade.getByRole('textbox', { name: 'قیمت فعلی', exact: true }).fill('10000000');
   await trade.getByRole('textbox', { name: 'قیمت ورود', exact: true }).fill('9000000');
   await trade.getByRole('textbox', { name: 'وزن معامله', exact: true }).fill('4.3318');
@@ -77,5 +78,27 @@ test('gold and trade inputs convert once and preserve canonical calculation valu
   expect(outputs.find(o => o.label === 'ارزش فعلی')?.value).toBeCloseTo(104 * 113730000 / 4.3318, 2);
   expect(outputs.find(o => o.label === 'سود/زیان خالص در هدف')?.value).toBeCloseTo(104 * (115300000 - 113020000) / 4.3318 - 100000, 2);
   expect(outputs.find(o => o.label === 'سود/زیان خالص در حد ضرر')?.value).toBeCloseTo(104 * (113000000 - 113020000) / 4.3318 - 100000, 2);
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  const purchase = page.locator('#purchase');
+  await expect(purchase.getByRole('button', { name: 'مثقال', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await purchase.getByRole('textbox', { name: 'قیمت فعلی', exact: true }).fill('113900000');
+  for (const [index, price] of [110000000, 110750000].entries()) {
+    await purchase.getByRole('textbox', { name: `قیمت پله ${index + 1}`, exact: true }).fill(String(price));
+    await purchase.getByRole('textbox', { name: `وزن پله ${index + 1}`, exact: true }).fill('50');
+  }
+  await purchase.getByRole('button', { name: 'محاسبه', exact: true }).click();
+  const purchaseOutputs = calculateProfessional(sent, { mode: 'live', status: 'unavailable', quotes: [] }).outputs;
+  const invested = purchaseOutputs.find(output => output.label === 'سرمایه خرید')!.value;
+  expect(invested).toBeCloseTo(110375000 * 100 / 4.3318, 2);
+  const amount = page.getByRole('dialog').locator('.ds-overlay__result-row').filter({ has: page.getByText('سرمایه خرید', { exact: true }) }).locator('strong');
+  await expect(amount).toContainText(new Intl.NumberFormat('fa-IR', { maximumFractionDigits: 0 }).format(invested));
+  const typography = await amount.evaluate(element => {
+    const range = document.createRange(); range.selectNode(element.firstChild!);
+    return { size: Number.parseFloat(getComputedStyle(element).fontSize), lines: range.getClientRects().length };
+  });
+  expect(typography.size).toBeGreaterThanOrEqual(16);
+  expect(typography.size).toBeLessThanOrEqual(20);
+  expect(typography.lines).toBe(1);
   expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
 });

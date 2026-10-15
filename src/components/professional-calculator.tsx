@@ -77,7 +77,7 @@ const popularByProduct: Record<Product, PopularPick[]> = {
     { id: 'coinPnl', label: 'سود و زیان', Icon: popularIcons.goldBubble },
   ],
 };
-const number = (value: number) => new Intl.NumberFormat('en-US', { maximumFractionDigits: 4 }).format(value);
+const number = (value: number, maximumFractionDigits = 4) => new Intl.NumberFormat('en-US', { maximumFractionDigits }).format(value);
 const isLocalTool = (tool: string): tool is LocalTool => tool === 'marketWeight' || tool === 'weight' || tool === 'purity';
 const isOperation = (tool: string): tool is CalculatorOperation => !isLocalTool(tool) && tool in calculatorCatalog;
 const isMazanehOperation = (tool: Tool) => tool === 'mazanehTo18k' || tool === 'market18kToMazaneh';
@@ -551,7 +551,7 @@ export function ProfessionalCalculator({
                 {displayedOutputs!.map(output => (
                   <div className="calc-result-panel__row" key={output.label}>
                     <span>{output.label}</span>
-                    <bdi dir="ltr">{number(output.value)} <small>{output.unit}</small></bdi>
+                    <bdi dir="ltr">{number(output.value, output.unit.startsWith('تومان') ? 0 : 4)} <small>{output.unit}</small></bdi>
                   </div>
                 ))}
                 <small className="calc-result-panel__ver">{result.formulaId} · {result.version}</small>
@@ -595,7 +595,7 @@ export function ProfessionalCalculator({
               <div className="ds-overlay__result-row" key={output.label}>
                 <span>{output.label}</span>
                 <strong dir="ltr">
-                  <bdi>{number(output.value)}</bdi>
+                  <bdi>{number(output.value, output.unit.startsWith('تومان') ? 0 : 4)}</bdi>
                   <small>{output.unit}</small>
                 </strong>
               </div>

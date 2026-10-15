@@ -1,5 +1,7 @@
 # Calculator and mobile handoff — 2026-10-07
 
+- Native TradeCalculator defaults to MESGHAL PRICES with GRAM WEIGHTS (including scaleIn). Gram-price mode remains selectable. User enters common market mesghal prices; GoldUnitInput converts to canonical gram prices once, so capital is sum(weight * mesghalPrice / 4.3318), then total TMN fees once. Never divide engine money again. Toman outputs round to whole tomans for display only, preserving engine precision. Result typography: desktop 20px, mobile clamp(16px,4.5vw,20px), with 70% value column to keep money on one line.
+
 - Melted analysis report: keep engine values in gram-18, but display BOTH market and reference prices scaled by 4.3318 as TMN/mesghal for GOLD_MELTED (including related UAE gold amounts). Percentages and other asset reports remain unchanged. Use market-view-report.test.ts regression.
 
 - October 15 step averages: scaleOut accepts sale rows without initial inventory for weighted sale average/proceeds only; profit still requires both initial weight and buy average, and overselling stays invalid. ScaleIn/simulator targets are optional as a pair. Preserve weighted-average output for step/position tools (quickTrade still hides it). Regression: profile-trade-recovery browser fixture and trade-calculator unit tests.
