@@ -15,6 +15,11 @@ test('runtime Postgres uses one connection by default while preserving explicit 
   assert.equal(new URL(runtimeDatabaseUrl('postgres://u:p@example.test/db?connection_limit=2&pool_timeout=20')!).searchParams.get('connection_limit'), '2');
   assert.equal(runtimeDatabaseUrl('prisma+postgres://example.test/?api_key=test'), 'prisma+postgres://example.test/?api_key=test');
   assert.equal(runtimeDatabaseUrl(undefined), undefined);
+  const pooled = new URL(runtimeDatabaseUrl('postgresql://user:secret@db.prisma.io:5432/postgres?sslmode=require')!);
+  assert.equal(pooled.hostname, 'pooled.db.prisma.io');
+  assert.equal(pooled.username, 'user'); assert.equal(pooled.password, 'secret');
+  assert.equal(pooled.pathname, '/postgres'); assert.equal(pooled.searchParams.get('pgbouncer'), 'true');
+  assert.equal(pooled.searchParams.get('sslmode'), 'require');
 });
 
 test('concurrent profile-policy checks share the read, expire, and clear on admin changes', async () => {

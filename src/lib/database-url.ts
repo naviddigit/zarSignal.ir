@@ -4,6 +4,9 @@ export function runtimeDatabaseUrl(raw: string | undefined) {
   let url: URL;
   try { url = new URL(raw); } catch { return raw; }
   if (url.protocol !== 'postgres:' && url.protocol !== 'postgresql:') return raw;
+  // Prisma Postgres uses the same credentials for direct CLI and pooled runtime hosts.
+  if (url.hostname === 'db.prisma.io') url.hostname = 'pooled.db.prisma.io';
+  if (url.hostname === 'pooled.db.prisma.io') url.searchParams.set('pgbouncer', 'true');
   if (!url.searchParams.has('connection_limit')) url.searchParams.set('connection_limit', '1');
   if (!url.searchParams.has('pool_timeout')) url.searchParams.set('pool_timeout', '10');
   return url.toString();
