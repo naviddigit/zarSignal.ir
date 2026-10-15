@@ -483,10 +483,11 @@ function reasonSentence(row: MarketViewEvidenceRow, symbol?: Symbol | null) {
 }
 
 function goldBasisNote(symbol?: Symbol | null, basis?: 'DIRECT' | 'DERIVED' | null) {
+  if (symbol === 'GOLD_MELTED') return 'قیمت بازار و مرجع هر دو به تومان / مثقال نمایش داده می‌شوند.';
   if (basis === 'DIRECT' || symbol === 'GOLD_18K') {
     return 'درصد اختلاف از قیمت مستقیم تابلوی گرم ۱۸ عیار است، نه مشتق مظنه.';
   }
-  if (basis === 'DERIVED' || symbol === 'GOLD_MELTED') {
+  if (basis === 'DERIVED') {
     return 'مقایسه پس از تبدیل مظنه به گرم ۱۸ عیار است؛ جزئیات در فرمول.';
   }
   return 'اختلاف طلا از گرم ۱۸ در برابر اونس و دلار است؛ مبنای مشتق یا مستقیم در شواهد آمده است.';

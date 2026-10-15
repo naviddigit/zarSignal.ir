@@ -1,5 +1,7 @@
 # Calculator and mobile handoff — 2026-10-07
 
+- Melted analysis report: keep engine values in gram-18, but display BOTH market and reference prices scaled by 4.3318 as TMN/mesghal for GOLD_MELTED (including related UAE gold amounts). Percentages and other asset reports remain unchanged. Use market-view-report.test.ts regression.
+
 - October 15 step averages: scaleOut accepts sale rows without initial inventory for weighted sale average/proceeds only; profit still requires both initial weight and buy average, and overselling stays invalid. ScaleIn/simulator targets are optional as a pair. Preserve weighted-average output for step/position tools (quickTrade still hides it). Regression: profile-trade-recovery browser fixture and trade-calculator unit tests.
 
 - October 15: trade result sheets hide the eight requested average/return/break-even/risk rows, while the engine retains them for internal calculations. Tool star/lock badges sit outside the main icon. Confirmed native trade contract: weights remain GRAMS in both price modes, including steps/results; only prices switch to mesghal. Canonical prices apply /4.3318 once; total TMN fees are charged once. Do not divide money again.

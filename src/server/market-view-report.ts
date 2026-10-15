@@ -9,7 +9,7 @@ import {
   USD_AED_GAP_VERSION,
   USD_AED_PEG_VERSION,
 } from '@/server/bubble-formulas';
-import { MAZANEH_TO_18K_VERSION } from '@/server/mazaneh-to-18k';
+import { MAZANEH_TO_18K_VERSION, MAZANEH_TO_18K_DIVISOR } from '@/server/mazaneh-to-18k';
 import {
   computeMarketIndicators,
   relevantSymbolsForFocus,
@@ -63,14 +63,15 @@ function toEvidenceRow(args: {
   marketBasis?: 'DIRECT' | 'DERIVED' | null;
   impliedUsdLabel?: string | null;
   referenceDigits?: number;
+  priceScale?: number;
 }): MarketViewEvidenceRow {
   const ok = args.ind.status === 'ok' || args.ind.status === 'stale';
   const status = rowStatus(args.ind);
   return {
     id: args.id,
     marketLabel: args.marketLabel,
-    marketPriceLabel: moneyLabel(args.ind.marketPrice, args.marketUnit, args.referenceDigits ?? 0),
-    referenceLabel: ok ? moneyLabel(args.ind.reference, args.referenceUnit, args.referenceDigits ?? 0) : null,
+    marketPriceLabel: moneyLabel(args.ind.marketPrice == null ? null : args.ind.marketPrice * (args.priceScale ?? 1), args.marketUnit, args.referenceDigits ?? 0),
+    referenceLabel: ok ? moneyLabel(args.ind.reference == null ? null : args.ind.reference * (args.priceScale ?? 1), args.referenceUnit, args.referenceDigits ?? 0) : null,
     referenceBasis: args.referenceBasis,
     diffPercent: ok ? args.ind.percent : null,
     unitNote: args.unitNote,
@@ -87,7 +88,8 @@ function toEvidenceRow(args: {
   };
 }
 
-function buildEvidence(indicators: MarketIndicators): MarketViewEvidenceRow[] {
+function buildEvidence(indicators: MarketIndicators, symbol?: Symbol): MarketViewEvidenceRow[] {
+  const melted = symbol === 'GOLD_MELTED';
   const impliedUsd = indicators.usdImpliedGold.reference;
   const silverImplied = typeof indicators.silver.extra?.usdImplied === 'number'
     ? indicators.silver.extra.usdImplied
@@ -97,11 +99,12 @@ function buildEvidence(indicators: MarketIndicators): MarketViewEvidenceRow[] {
     toEvidenceRow({
       id: 'gold',
       ind: indicators.goldDerived,
-      marketLabel: 'طلا · گرم ۱۸ عیار (مشتق از مظنه)',
-      referenceBasis: 'ارزش محاسباتی از اونس جهانی × دلار بازار × ۰٫۷۵',
-      unitNote: `مبنای DERIVED · مظنه÷۴٫۳۳۱۸ (${MAZANEH_TO_18K_VERSION})؛ با مثقال خام مقایسه نمی‌شود`,
-      marketUnit: 'تومان / گرم',
-      referenceUnit: 'تومان / گرم',
+      marketLabel: melted ? 'طلای آب‌شده · مثقال' : 'طلا · گرم ۱۸ عیار (مشتق از مظنه)',
+      referenceBasis: melted ? 'اونس جهانی ÷ ۳۱٫۱۰۳۴۷۶۸ × دلار بازار × ۰٫۷۵ × ۴٫۳۳۱۸' : 'ارزش محاسباتی از اونس جهانی × دلار بازار × ۰٫۷۵',
+      unitNote: melted ? 'قیمت بازار و مرجع هر دو به تومان / مثقال؛ ضریب تبدیل ۴٫۳۳۱۸' : `مبنای DERIVED · مظنه÷۴٫۳۳۱۸ (${MAZANEH_TO_18K_VERSION})؛ با مثقال خام مقایسه نمی‌شود`,
+      marketUnit: melted ? 'تومان / مثقال' : 'تومان / گرم',
+      referenceUnit: melted ? 'تومان / مثقال' : 'تومان / گرم',
+      priceScale: melted ? MAZANEH_TO_18K_DIVISOR : 1,
       formulaVersion: FORMULA_VERSION,
       marketBasis: 'DERIVED',
       impliedUsdLabel: moneyLabel(impliedUsd, 'تومان'),
@@ -143,8 +146,9 @@ function buildEvidence(indicators: MarketIndicators): MarketViewEvidenceRow[] {
       marketLabel: 'اختلاف ایران با مرجع نظری امارات',
       referenceBasis: `UAE18K نظری (${UAE_GOLD_FORMULA_VERSION}) · نه قیمت خرده‌فروشی دبی`,
       unitNote: `مبنای ایران: ${indicators.iranUaeGold.iranBasis ?? 'نامشخص'} · پگ ${USD_AED_PEG_VERSION}`,
-      marketUnit: 'تومان / گرم',
-      referenceUnit: 'تومان / گرم',
+      marketUnit: melted ? 'تومان / مثقال' : 'تومان / گرم',
+      referenceUnit: melted ? 'تومان / مثقال' : 'تومان / گرم',
+      priceScale: melted ? MAZANEH_TO_18K_DIVISOR : 1,
       formulaVersion: UAE_GOLD_FORMULA_VERSION,
       marketBasis: indicators.iranUaeGold.iranBasis,
     }),
@@ -250,7 +254,7 @@ export function marketViewReportFromSnapshot(
   const asset = instruments.find(item => item.symbol === symbol);
   const quote = snapshot.mode === 'live' ? snapshot.quotes.find(item => item.symbol === symbol) : null;
   const quoteValid = quote && Number.isFinite(Number(quote.sell)) && Number(quote.sell) > 0 && quote.currency === asset?.currency && quote.unit === asset?.unit;
-  let evidence = buildEvidence(indicators);
+  let evidence = buildEvidence(indicators, symbol);
   if (focusIds) evidence = evidence.filter(row => focusIds.includes(row.id));
   if (symbol === 'ROB_SEKE') {
     const quarter = liveQuarterBubble(snapshot);

@@ -6,7 +6,14 @@ export const defaultMaintenanceMessage = 'زرسیگنال، مرجع تخصصی
 
 export type MaintenanceSettings = { enabled: boolean; message: string; writable: boolean };
 
-export async function getMaintenanceSettings(): Promise<MaintenanceSettings> {
+let cached: { until: number; value: Promise<MaintenanceSettings> } | undefined;
+export function getMaintenanceSettings(): Promise<MaintenanceSettings> {
+  if (cached && cached.until > Date.now()) return cached.value;
+  const value = readMaintenanceSettings();
+  cached = { until: Date.now() + 5000, value };
+  return value;
+}
+async function readMaintenanceSettings(): Promise<MaintenanceSettings> {
   try {
     const row = await withDeadline(db.integrationSetting.findUnique({ where: { key: MAINTENANCE_KEY } }), 2000);
     const message = row?.publicValue?.trim() || defaultMaintenanceMessage;
@@ -26,4 +33,5 @@ export async function saveMaintenanceSettings(actor: string, enabled: boolean, m
     create: { key: MAINTENANCE_KEY, category: 'site', label: 'وضعیت تعمیر سایت', enabled, publicValue: clean },
     update: { enabled, publicValue: clean },
   });
+  cached = undefined;
 }

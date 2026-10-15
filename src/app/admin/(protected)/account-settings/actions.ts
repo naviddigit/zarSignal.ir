@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { db } from '@/lib/db';
 import { requireAdmin } from '@/server/admin-auth';
-import { ACCOUNT_POLICY_KEY } from '@/server/account-policy';
+import { ACCOUNT_POLICY_KEY, clearAccountPolicyCache } from '@/server/account-policy';
 import { parseAccountPolicy } from '@/lib/account-policy';
 import { getResendConfig } from '@/server/email-verification';
 
@@ -18,6 +18,7 @@ export async function saveAccountPolicy(form: FormData) {
   } catch (error) {
     redirect(`/admin/account-settings?error=${encodeURIComponent(error instanceof Error ? error.message : 'ذخیره ممکن نشد.')}`);
   }
+  clearAccountPolicyCache();
   revalidatePath('/account/complete');
   revalidatePath('/login');
   revalidatePath('/admin/account-settings');

@@ -285,6 +285,19 @@ test('international ounce never masquerades as the local silver valuation', () =
   assert.equal(report.currentQuote?.unit, 'اونس تروا');
 });
 
+test('melted analysis converts both market and reference to mesghal without changing the percentage', () => {
+  const snapshot = liveSnapshot();
+  const grams = marketViewReportFromSnapshot(snapshot, 'full', 'GOLD_18K').evidence.find(row => row.id === 'gold')!;
+  const melted = marketViewReportFromSnapshot(snapshot, 'full', 'GOLD_MELTED');
+  const evidence = melted.evidence.find(row => row.id === 'gold')!;
+  assert.equal(evidence.diffPercent, grams.diffPercent);
+  assert.equal(evidence.marketPriceLabel, `${new Intl.NumberFormat('fa-IR').format(100000000)} تومان / مثقال`);
+  assert.match(evidence.referenceLabel!, /تومان \/ مثقال/);
+  assert.match(melted.marketSays, /تومان \/ مثقال/);
+  assert.doesNotMatch(melted.marketSays, /تومان \/ گرم/);
+  assert.match(grams.marketPriceLabel!, /تومان \/ گرم/);
+});
+
 test('report timestamp uses oldest relevant input and fingerprint ignores refetch time', () => {
   const snapshot = liveSnapshot();
   const oldTime = new Date(Date.now() - 20 * 60_000).toISOString();
