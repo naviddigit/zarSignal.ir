@@ -31,18 +31,20 @@ test('profile area and age accept only explicit choices and never infer age from
 test('profile completion persists area and age separately and enforces required age on the server', async () => {
   const module = { exports: {} as typeof import('../src/app/account/complete/actions') };
   let saved: any = null;
+  let saveError: unknown = null;
   const policy = parseAccountPolicy({ profileRequired: true, requiredFields: ['city', 'ageGroup'] });
   const source = readFileSync(new URL('../src/app/account/complete/actions.ts', import.meta.url), 'utf8');
   runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText, {
-    module, exports: module.exports, require: (name: string) => {
+    module, exports: module.exports, Error, require: (name: string) => {
       if (name === 'next/navigation') return { redirect: (url: string) => { throw new Error(`redirect:${url}`); } };
+      if (name === 'next/dist/client/components/redirect-error') return { isRedirectError: (error: Error) => error.message.startsWith('redirect:') };
       if (name === 'next/headers') return { cookies: async () => ({ delete: () => {} }) };
       if (name === 'next/cache') return { revalidatePath: () => {} };
       if (name === '@/auth') return { auth: async () => ({ user: { id: 'user-one' } }) };
       if (name === '@/server/account-policy') return { getAccountPolicy: async () => policy };
       if (name === '@/server/account-schema') return { ensureAccountSchema: async () => {} };
       if (name === '@/lib/account-policy') return { missingProfileFields, profileRequired, registrationProfile, profileDemographics, profileFields: { ageGroup: 'سن' } };
-      if (name === '@/lib/db') return { db: { user: { update: async ({ data }: any) => { saved = data; } } } };
+      if (name === '@/lib/db') return { db: { user: { update: async ({ data }: any) => { if (saveError) throw saveError; saved = data; } } } };
       return {};
     },
   });
@@ -54,6 +56,15 @@ test('profile completion persists area and age separately and enforces required 
   assert.equal((saved as any)?.city, 'بازار تهران');
   assert.equal((saved as any)?.ageGroup, 'زیر ۱۸ سال');
   assert.equal(Object.hasOwn(saved as unknown as object, 'occupation'), false);
+  saveError = { code: 'P2002', meta: { target: ['phone'] } };
+  await assert.rejects(() => module.exports.completeProfileAction(form), /شماره قبلاً/);
+  saveError = new Error('database connection failed while updating phone');
+  await assert.rejects(() => module.exports.completeProfileAction(form), /ذخیره اطلاعات ممکن نشد/);
+  form.set('phone', '1234');
+  await assert.rejects(() => module.exports.completeProfileAction(form), /موبایل معتبر/);
+  assert.match((await module.exports.submitProfileAction(form)).error, /موبایل معتبر/);
+  form.set('phone', '09121234567'); saveError = null;
+  await assert.rejects(() => module.exports.submitProfileAction(form), /redirect:\/account/);
 });
 
 test('mobile and user type are independently required without granting an access role', () => {

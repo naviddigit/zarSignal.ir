@@ -73,7 +73,7 @@ export function TradeCalculator({operation,snapshot,favoriteSlot}:{operation:Cal
     </section>
     {quick?<button type="button" className="chart-retry" disabled={!price} onClick={()=>update('entry',String(price))}>قیمت فعلی برای ورود</button>:null}
     {quick?<Select label="نوع معامله" value={direction} onChange={value=>{setDirection(value);setResult(null);setError('');}} options={[{value:'BUY',label:'خرید → فروش در هدف'},{value:'SELL',label:'فروش → بازخرید در هدف'}]}/>:null}
-    {(quick||position||sell)?<div className="trade-fields">{input('entry',quick?'قیمت ورود':'میانگین خرید')}{input('weight',quick?'وزن معامله':'وزن موجود','گرم')}</div>:null}
+    {sell?<details className="calc-result-details"><summary>موجودی و میانگین خرید برای محاسبه سود (اختیاری)</summary><div className="trade-fields">{input('entry','میانگین خرید')}{input('weight','وزن موجود','گرم')}</div></details>:(quick||position)?<div className="trade-fields">{input('entry',quick?'قیمت ورود':'میانگین خرید')}{input('weight',quick?'وزن معامله':'وزن موجود','گرم')}</div>:null}
     {simulator?input('capital','سرمایه در دسترس','تومان'):null}
     {!quick?<section className="trade-steps"><header><strong>{sell?'پله‌های فروش':position?'خریدهای جدید':'پله‌های خرید'}</strong><small>{rows.length} / {position?5:10}</small></header>
       {rows.map((row,i)=><div className="trade-step" key={i}>
@@ -84,11 +84,11 @@ export function TradeCalculator({operation,snapshot,favoriteSlot}:{operation:Cal
       </div>)}
       <button type="button" className="chart-retry" disabled={rows.length>=(position?5:10)} onClick={()=>updateRows(r=>[...r,{price:'',weight:'',percent:'',trigger:'PRICE'}])}><Plus size={16}/> افزودن پله</button>
     </section>:null}
-    {!sell ? position ? <details className="calc-result-details"><summary>هدف و حد ضرر (اختیاری)</summary><div className="trade-fields">{input('target','قیمت هدف')}{input('stop','حد ضرر')}</div></details> : <div className="trade-fields">{input('target','قیمت هدف')}{input('stop','حد ضرر')}</div> : null}
+    {!sell ? !quick ? <details className="calc-result-details"><summary>هدف و حد ضرر (اختیاری)</summary><div className="trade-fields">{input('target','قیمت هدف')}{input('stop','حد ضرر')}</div></details> : <div className="trade-fields">{input('target','قیمت هدف')}{input('stop','حد ضرر')}</div> : null}
     {position?<details className="calc-result-details"><summary>خرید لازم برای رسیدن به میانگین هدف</summary><div className="trade-fields">{input('desired','میانگین هدف')}{input('newPrice','قیمت خرید جدید')}</div></details>:null}
     <details className="calc-result-details"><summary>کارمزد و هزینه‌ها</summary><div className="trade-fields">{input('buyCost','کارمزد خرید','تومان')}{input('sellCost','کارمزد فروش','تومان')}{input('spread','هزینه اسپرد','تومان')}</div></details>
     <button className="button calc-tool-panel__go" disabled={pending}>{pending?'در حال محاسبه…':'محاسبه'}</button>
     {error?<p className="calc-error" role="alert">{error}</p>:null}
-    <OverlaySheet open={!!result} title="نتیجه سناریوی معامله" onClose={()=>setResult(null)}><div className="ds-overlay__result">{result?.outputs.filter(output=>!hiddenReportRows.has(output.label)).map(output=>({...output,...goldDisplay(output.value,output.unit,output.unit==='گرم'?'gram':goldUnit)})).map((o,i)=><div className="ds-overlay__result-row" key={i}><span>{o.label}</span><strong className={o.label.includes('سود')?(o.value<0?'is-down':'is-up'):''}>{num(o.value)} <small>{o.unit}</small></strong></div>)}<small>سناریوی محاسباتی بر اساس ورودی‌ها؛ قیمت هدف پیش‌بینی نشده است.</small></div></OverlaySheet>
+    <OverlaySheet open={!!result} title="نتیجه سناریوی معامله" onClose={()=>setResult(null)}><div className="ds-overlay__result">{result?.outputs.filter(output=>!hiddenReportRows.has(output.label) || !quick && output.label==='میانگین وزنی').map(output=>({...output,...goldDisplay(output.value,output.unit,output.unit==='گرم'?'gram':goldUnit)})).map((o,i)=><div className="ds-overlay__result-row" key={i}><span>{o.label}</span><strong className={o.label.includes('سود')?(o.value<0?'is-down':'is-up'):''}>{num(o.value)} <small>{o.unit}</small></strong></div>)}<small>سناریوی محاسباتی بر اساس ورودی‌ها؛ قیمت هدف پیش‌بینی نشده است.</small></div></OverlaySheet>
   </form>;
 }

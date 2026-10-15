@@ -416,6 +416,8 @@ html.ds-scroll-locked body{
  .ds-overlay__result-row>strong{flex:0 1 70%;font-size:clamp(14px,4vw,18px);letter-spacing:0}
 }
 .ds-overlay__result-pending{display:grid;place-items:center;gap:10px;min-height:120px;padding:24px 16px;color:var(--text-muted);font-size:13px}
+.phone-input-control{display:grid;flex:1;min-width:0;width:100%;gap:4px}
+.phone-input-control .calc-error{font-size:11px;line-height:1.7;padding-bottom:6px}
 @keyframes ds-overlay-fade-in{from{opacity:0}to{opacity:1}}
 @keyframes ds-overlay-fade-out{from{opacity:1}to{opacity:0}}
 @keyframes ds-overlay-sheet-in{from{transform:translateY(110%)}to{transform:translateY(0)}}

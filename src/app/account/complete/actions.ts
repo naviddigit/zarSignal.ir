@@ -8,6 +8,7 @@ import { revalidatePath } from 'next/cache';
 import { getAccountPolicy } from '@/server/account-policy';
 import { missingProfileFields, profileFields, profileRequired, registrationProfile, profileDemographics } from '@/lib/account-policy';
 import { ensureAccountSchema } from '@/server/account-schema';
+import { isRedirectError } from 'next/dist/client/components/redirect-error';
 
 const LATER_COOKIE = 'zs_profile_later';
 
@@ -62,11 +63,12 @@ export async function completeProfileAction(form: FormData) {
       },
     });
   } catch (error) {
-    const raw = error instanceof Error ? error.message : String(error);
-    if (/Unique constraint|P2002|phone/i.test(raw)) {
+    const failure = error as { code?: string; meta?: { target?: unknown } };
+    if (failure?.code === 'P2002' && (Array.isArray(failure.meta?.target) ? failure.meta.target.includes('phone') : typeof failure.meta?.target === 'string' && /phone/i.test(failure.meta.target))) {
       throw new Error('این شماره قبلاً برای حساب دیگری ثبت شده است.');
     }
-    throw error;
+    console.error('profile-save-failed', { code: failure?.code ?? 'unknown' });
+    throw new Error('ذخیره اطلاعات ممکن نشد؛ لطفاً دوباره تلاش کنید.');
   }
 
   const jar = await cookies();
@@ -74,6 +76,14 @@ export async function completeProfileAction(form: FormData) {
   revalidatePath('/account');
   revalidatePath('/admin/customers');
   redirect(next);
+}
+
+export async function submitProfileAction(form: FormData) {
+  try { await completeProfileAction(form); return { error: '' }; }
+  catch (error) {
+    if (isRedirectError(error)) throw error;
+    return { error: error instanceof Error ? error.message : 'ذخیره ممکن نشد.' };
+  }
 }
 
 export async function deferProfileAction(form: FormData) {

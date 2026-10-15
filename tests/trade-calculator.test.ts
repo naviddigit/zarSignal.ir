@@ -38,3 +38,17 @@ test('position target averaging works without additional purchases and simulator
   assert.equal(simulation['پله 1 · وزن'],10);
   assert.equal(simulation['سرمایه باقی‌مانده'],95);
 });
+
+test('step averages do not require inventory or target/stop, but profit still requires a complete inventory', () => {
+  const sale=values(run('scaleOut',{entry:0,weight:0,rows:[{price:120,weight:25},{price:100,weight:75}]}));
+  assert.equal(sale['فروخته‌شده'],100);
+  assert.equal(sale['میانگین فروش'],105);
+  assert.equal(sale['مبلغ فروش'],10500);
+  assert.equal(sale['دریافتی پس از هزینه فروش'],10495);
+  assert.equal(sale['سود/زیان کل'],undefined);
+  assert.throws(()=>run('scaleOut',{entry:100,weight:0,rows:[{price:120,weight:25}]}),/وزن موجود/);
+  assert.throws(()=>run('scaleOut',{entry:0,weight:100,rows:[{price:120,weight:25}]}),/میانگین خرید/);
+  const purchase=values(run('scaleIn',{rows:[{price:120,weight:25},{price:100,weight:75}],target:0,stop:0}));
+  assert.equal(purchase['میانگین وزنی'],105);
+  assert.equal(purchase['وزن کل'],100);
+});

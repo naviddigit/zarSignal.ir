@@ -3,14 +3,14 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { auth } from '@/auth';
 import { db } from '@/lib/db';
-import { PendingButton } from '@/components/pending-button';
-import { completeProfileAction, deferProfileAction } from './actions';
+import { ProfileCompletionForm } from '@/components/profile-completion-form';
+import { PhoneInput } from '@/components/phone-input';
+import { deferProfileAction } from './actions';
 import { getAccountPolicy } from '@/server/account-policy';
 import { missingProfileFields, fieldRequired, profileRequired } from '@/lib/account-policy';
 import { ProfileDemographics } from '@/components/profile-demographics';
 import { Select } from '@/components/ui/select';
 import { ensureAccountSchema } from '@/server/account-schema';
-import { isRedirectError } from 'next/dist/client/components/redirect-error';
 
 export const dynamic = 'force-dynamic';
 
@@ -61,21 +61,8 @@ export default async function CompleteProfilePage({
         <h1>یک قدم تا آماده‌شدن</h1>
         <p>{profileRequired(policy) ? 'موارد مشخص‌شده با ستاره لازم‌اند.' : 'تکمیل این اطلاعات اختیاری است.'}</p>
         {user?.email ? <p className="profile-complete-email" dir="ltr">{user.email}</p> : null}
-        {params.error ? <p className="calc-error" role="alert">{params.error}</p> : null}
 
-        <form
-          className="profile-complete-form"
-          action={async formData => {
-            'use server';
-            try {
-              await completeProfileAction(formData);
-            } catch (error) {
-              if (isRedirectError(error)) throw error;
-              const message = error instanceof Error ? error.message : 'ذخیره ممکن نشد.';
-              redirect(`/account/complete?next=${encodeURIComponent(String(formData.get('next') || '/account'))}&error=${encodeURIComponent(message)}`);
-            }
-          }}
-        >
+        <ProfileCompletionForm initialError={params.error}>
           <input type="hidden" name="next" value={next} />
           <div className="profile-complete-grid">
             <label>
@@ -91,7 +78,7 @@ export default async function CompleteProfilePage({
             <span>شماره موبایل {fieldRequired(policy, 'phone') ? '*' : ''}</span>
             <div className="phone-field">
               <span aria-hidden="true">+98</span>
-              <input
+              <PhoneInput
                 name="phone"
                 type="tel"
                 inputMode="tel"
@@ -105,8 +92,7 @@ export default async function CompleteProfilePage({
           </label>
           <ProfileDemographics city={user?.city} ageGroup={user?.ageGroup} areaRequired={fieldRequired(policy, 'city')} ageRequired={fieldRequired(policy, 'ageGroup')} />
           {policy.customerTypes.length > 0 ? <Select name="customerType" label={`نوع کاربر ${fieldRequired(policy, 'customerType') ? '*' : '(اختیاری)'}`} defaultValue={user?.customerType && policy.customerTypes.includes(user.customerType) ? user.customerType : ''} required={fieldRequired(policy, 'customerType')} options={policy.customerTypes.map(value => ({ value, label: value }))} /> : null}
-          <PendingButton className="button" pendingText="در حال ذخیره…">ادامه</PendingButton>
-        </form>
+        </ProfileCompletionForm>
 
         {!profileRequired(policy) && <form action={deferProfileAction}>
           <input type="hidden" name="next" value={next} />

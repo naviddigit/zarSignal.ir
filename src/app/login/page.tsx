@@ -1,3 +1,4 @@
+import { PhoneInput } from '@/components/phone-input';
 import { Activity, Mail } from 'lucide-react';
 import Link from 'next/link';
 import { auth, getAuthCapabilities, signIn, signOut } from '@/auth';
@@ -99,7 +100,7 @@ export default async function LoginPage({
                         <input id="name" name="name" autoComplete="name" placeholder="نام نمایشی" />
                       </div>
                       <label htmlFor="phone">شماره موبایل {policy && fieldRequired(policy, 'phone') ? '*' : '(اختیاری)'}</label>
-                      <div className="phone-field"><input id="phone" name="phone" type="tel" inputMode="tel" autoComplete="tel" dir="ltr" placeholder="09121234567" required={Boolean(policy && fieldRequired(policy, 'phone'))} /></div>
+                      <div className="phone-field"><PhoneInput id="phone" name="phone" type="tel" inputMode="tel" autoComplete="tel" dir="ltr" placeholder="09121234567" required={Boolean(policy && fieldRequired(policy, 'phone'))} /></div>
                       {policy && policy.customerTypes.length > 0 ? <Select name="customerType" label={`نوع کاربر ${fieldRequired(policy, 'customerType') ? '*' : '(اختیاری)'}`} defaultValue="" required={fieldRequired(policy, 'customerType')} options={policy.customerTypes.map(value => ({ value, label: value }))} /> : null}
                     </>
                   ) : null}

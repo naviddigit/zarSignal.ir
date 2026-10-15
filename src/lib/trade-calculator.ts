@@ -43,13 +43,19 @@ export function calculateTrade(body: unknown, snapshot: Snapshot): CalculatorRes
   const addAudit = (key:string,label:string,value:number,unit='تومان') => audit.push({key,label,value,unit,provenance:'MANUAL',observedAt:null,source:'ورودی شما'});
   for (const [i,row] of rows.entries()) { addAudit(`price${i}`,`قیمت پله ${i+1}`,row.price,'تومان / گرم'); addAudit(`weight${i}`,`وزن پله ${i+1}`,row.weight,'گرم'); }
   addAudit('buyCost','کارمزد خرید',buyCost); addAudit('sellCost','کارمزد فروش',sellCost); addAudit('spread','هزینه اسپرد',spread);
-  if (req.operation === 'scaleOut' || req.operation === 'positionManager') {
+  const hasInventory = req.operation !== 'scaleOut' || t.weight !== 0 || t.entry !== 0;
+  if ((req.operation === 'scaleOut' && hasInventory) || req.operation === 'positionManager') {
     weight = checked(t.weight,'وزن موجود'); invested = weight * checked(t.entry,'میانگین خرید');
     addAudit('weight','وزن موجود',weight,'گرم'); addAudit('entry','میانگین خرید',t.entry,'تومان / گرم');
   }
   if (req.operation === 'scaleOut') {
     if (!rows.length) throw new Error('حداقل یک پله فروش وارد کنید.');
     const sold = rows.reduce((a,r)=>a+r.weight,0), proceeds = rows.reduce((a,r)=>a+r.weight*r.price,0);
+    if (!hasInventory) {
+      out('فروخته‌شده',sold,'گرم'); out('میانگین فروش',proceeds/sold,'تومان / گرم');
+      out('مبلغ فروش',proceeds); out('دریافتی پس از هزینه فروش',proceeds-sellCost-spread);
+      return {formulaId:req.operation,version:'1.1',calculatedAt:new Date().toISOString(),inputs:audit,outputs,constants:[]};
+    }
     if (sold > weight + 1e-9) throw new Error('مقدار فروش نمی‌تواند از موجودی بیشتر باشد.');
     const remaining = Math.max(0,weight-sold), buyAllocation = buyCost * sold/weight;
     const realized = proceeds - t.entry*sold - buyAllocation - sellCost - spread;
@@ -86,7 +92,7 @@ export function calculateTrade(body: unknown, snapshot: Snapshot): CalculatorRes
     out('وزن کل',weight,'گرم'); out('سرمایه خرید',invested);out('سرمایه با کارمزد خرید',invested+buyCost);out('میانگین وزنی',average,'تومان / گرم');
     if(req.operation==='positionManager') out('سرمایه خریدهای جدید',additional);
     out('ارزش فعلی',current*weight);out('سود/زیان فعلی خالص',pnl(current));out('بازده فعلی',pnl(current)/(invested+buyCost)*100,'درصد');out('سربه‌سر با هزینه‌ها',breakEven,'تومان / گرم');out('فاصله قیمت فعلی تا سربه‌سر',(breakEven/current-1)*100,'درصد');
-    if(req.operation !== 'positionManager' || t.target > 0 || t.stop > 0) {
+    if(req.operation === 'quickTrade' || t.target > 0 || t.stop > 0) {
     const target=checked(t.target,'قیمت هدف'), stop=checked(t.stop,'حد ضرر');
     if(sign*(target-average)<=0 || sign*(stop-average)>=0) throw new Error('هدف باید در جهت سود و حد ضرر در جهت زیان نسبت به میانگین ورود باشد.');
     const profit=pnl(target), loss=pnl(stop);
