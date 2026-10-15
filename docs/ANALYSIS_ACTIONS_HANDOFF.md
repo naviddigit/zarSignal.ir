@@ -1,0 +1,8 @@
+# Analysis actions and story backgrounds — October 15, 2026
+
+- AnalysisEngagementPanel captures its page links and asks in OverlaySheet before navigation. /alerts opens MarketAlertsClient embedded in that same report instead. Keep plan checks in both UI and the existing alerts API; the editor really POSTs the condition to the server. No SMS/Push claim.
+- Feedback form has one padded layout, a centered rating strip, optional comment and full-width submit. Story creation is a labeled button, not an unexplained sparkle icon.
+- Admin `/admin/story-backgrounds` stores named gradients and optional public image URLs in IntegrationSetting, using validated `story-backgrounds-v1`. No Prisma schema change. Admin saves require requireAdmin. Public endpoint exposes enabled designs only. HTTPS or local image paths are accepted; external images must permit anonymous CORS for canvas PNG export. Keep default templates available if this endpoint fails.
+- Story renderer covers the 1080x1920 canvas with the chosen background, preserving public-only payload and readability layer for images. Image loading has a 15-second budget. A failed image must report failure rather than silently export another background.
+- Admin navigation has hover/focus pin and move controls (always visible on touch). Personal ordering/pins persist in this browser's localStorage `zs-admin-nav-v1`, with pinned items first and movements within the same group. New sections append automatically; no server/shared ordering is implied.
+- Checks: story-backgrounds unit tests (validation and authorization), existing analysis compact tests (feedback, confirmation, real PNG preview and alert POST), admin-story-navigation tests (edit/save and persistent order).

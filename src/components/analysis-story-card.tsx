@@ -16,6 +16,7 @@ import {
   type StoryTemplateId,
 } from '@/lib/analysis-story-templates';
 import type { AccessLevel } from '@/lib/capabilities';
+import { parseStoryBackgrounds, type StoryBackground } from '@/lib/story-backgrounds';
 
 export function AnalysisStoryCardButton({
   report,
@@ -43,6 +44,18 @@ export function AnalysisStoryCardButton({
   const [error, setError] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
+  const [backgrounds, setBackgrounds] = useState<StoryBackground[]>([]);
+  const [backgroundId, setBackgroundId] = useState('');
+  const [backgroundError, setBackgroundError] = useState('');
+  useEffect(() => {
+    if (!opened) return;
+    const controller = new AbortController();
+    void fetch('/api/public/story-backgrounds', { signal: controller.signal }).then(async response => {
+      if (!response.ok) throw new Error();
+      setBackgrounds(parseStoryBackgrounds((await response.json()).backgrounds)); setBackgroundError('');
+    }).catch(() => { if (!controller.signal.aborted) setBackgroundError('پس‌زمینه‌های جدید دریافت نشدند؛ قالب‌های اصلی در دسترس‌اند.'); });
+    return () => controller.abort();
+  }, [opened]);
 
   const build = useCallback(async (nextTemplate: StoryTemplateId = template) => {
     setStatus('building');
@@ -61,7 +74,7 @@ export function AnalysisStoryCardButton({
         payload.title = payload.metrics[0]!.label;
         payload.takeaway = `${payload.metrics[0]!.label}: ${payload.metrics[0]!.meaning}. این اختلاف، جهت حرکت بعدی قیمت را مشخص نمی‌کند.`;
       }
-      const blob = await renderAnalysisStoryPng(payload, { template: nextTemplate, dark });
+      const blob = await renderAnalysisStoryPng(payload, { template: nextTemplate, dark, background: backgrounds.find(item => item.id === backgroundId) });
       const nextFile = new File([blob], `zarsignal-story-${nextTemplate}-${Date.now()}.png`, { type: 'image/png' });
       const url = URL.createObjectURL(blob);
       setPreviewUrl(prev => {
@@ -74,7 +87,7 @@ export function AnalysisStoryCardButton({
       setStatus('error');
       setError(err instanceof Error ? err.message : 'ساخت کارت ممکن نشد');
     }
-  }, [report, planLevel, planLabel, planStatus, showPlanBadge, testDataLabel, template, dark, focus]);
+  }, [report, planLevel, planLabel, planStatus, showPlanBadge, testDataLabel, template, dark, focus, backgrounds, backgroundId]);
 
   useEffect(() => () => { if (previewUrl) URL.revokeObjectURL(previewUrl); }, [previewUrl]);
 
@@ -108,7 +121,7 @@ export function AnalysisStoryCardButton({
     <div className={compact ? 'market-view__story is-inline' : 'market-view__story'} data-follow-keep>
       <button
         type="button"
-        className={compact ? 'analysis-icon-action' : 'analysis-action'}
+        className={compact ? 'analysis-action analysis-story-trigger' : 'analysis-action'}
         aria-haspopup="dialog"
         aria-expanded={opened}
         title="ساخت استوری"
@@ -116,7 +129,7 @@ export function AnalysisStoryCardButton({
         onClick={() => setOpened(true)}
       >
         <Sparkles size={16} aria-hidden />
-        {!compact ? 'ساخت استوری' : null}
+        ساخت استوری
       </button>
       <OverlaySheet open={opened} title="استودیوی استوری" onClose={() => setOpened(false)}>
       <div className="analysis-story-studio">
@@ -141,6 +154,11 @@ export function AnalysisStoryCardButton({
         ))}
       </div>
       <Select label="تم تصویر" disabled={status === 'building'} value={dark ? 'dark' : 'light'} onChange={value => { setDark(value === 'dark'); setStatus('idle'); }} options={[{value:'dark',label:'شب طلایی'},{value:'light',label:'روشن و نقره‌ای'}]} />
+      {backgrounds.length ? <div className="story-background-picker" role="group" aria-label="پس‌زمینه استوری">
+        <button type="button" disabled={status === 'building'} aria-pressed={!backgroundId} onClick={() => { setBackgroundId(''); setStatus('idle'); }}>پس‌زمینه اصلی</button>
+        {backgrounds.map(item => <button type="button" key={item.id} disabled={status === 'building'} aria-pressed={backgroundId === item.id} onClick={() => { setBackgroundId(item.id); setStatus('idle'); }}><span style={{ background: `linear-gradient(${item.start},${item.end})` }}>{item.imageUrl ? <img src={item.imageUrl} alt="" /> : null}</span>{item.title}</button>)}
+      </div> : null}
+      {backgroundError ? <p role="status">{backgroundError}</p> : null}
       {template === 'studio_light' ? <Select label="دارایی" disabled={status === 'building'} value={String(focus)} onChange={value => { setFocus(Number(value)); setStatus('idle'); }} options={buildStoryPublicPayload(report, 'https://www.zarsignal.ir').metrics.map((metric, index) => ({value:String(index),label:metric.label}))} /> : null}
       <button
         type="button"

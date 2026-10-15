@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { Bell, Trash2 } from 'lucide-react';
 import { Select } from '@/components/ui/select';
 import { Input } from '@/components/ui/field';
+import { instruments } from '@/lib/market';
+import { sanitizeNumericInput } from '@/lib/numeric-input';
 
 type AlertRow = {
   id: string;
@@ -63,14 +65,15 @@ const SYMBOL_BY_CONDITION: Record<string, { value: string; label: string }[]> = 
   ],
 };
 
-export function MarketAlertsClient({ canManage }: { canManage: boolean }) {
+export function MarketAlertsClient({ canManage, embedded = false, initialSymbol }: { canManage: boolean; embedded?: boolean; initialSymbol?: string }) {
   const [alerts, setAlerts] = useState<AlertRow[]>([]);
   const [notifications, setNotifications] = useState<NotificationRow[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const [saved, setSaved] = useState(false);
   const [form, setForm] = useState({
     conditionType: 'GAP_PCT_CROSS',
-    symbol: 'GOLD_BUBBLE',
+    symbol: initialSymbol === 'USD' ? 'USD_BUBBLE' : initialSymbol === 'SILVER_999' ? 'SILVER_BUBBLE' : initialSymbol === 'ROB_SEKE' ? 'QUARTER_BUBBLE' : 'GOLD_BUBBLE',
     unit: '',
     direction: 'above',
     threshold: '1',
@@ -96,7 +99,7 @@ export function MarketAlertsClient({ canManage }: { canManage: boolean }) {
     setError(null);
   }, [canManage]);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => { void load().catch(() => setError('بارگذاری هشدارها ممکن نشد.')); }, [load]);
 
   useEffect(() => {
     if (!symbolOptions.some(o => o.value === form.symbol)) {
@@ -107,7 +110,7 @@ export function MarketAlertsClient({ canManage }: { canManage: boolean }) {
   async function createAlert(event: React.FormEvent) {
     event.preventDefault();
     setPending(true);
-    setError(null);
+    setError(null); setSaved(false);
     try {
       const res = await fetch('/api/public/alerts', {
         method: 'POST',
@@ -116,7 +119,7 @@ export function MarketAlertsClient({ canManage }: { canManage: boolean }) {
         body: JSON.stringify({
           conditionType: form.conditionType,
           symbol: form.symbol,
-          unit: form.conditionType === 'PRICE_CROSS' ? (form.unit || null) : null,
+          unit: form.conditionType === 'PRICE_CROSS' ? (embedded ? instruments.find(item => item.symbol === form.symbol)?.unit ?? null : form.unit || null) : null,
           direction: form.direction,
           threshold: Number(form.threshold),
           expiresHours: Number(form.expiresHours),
@@ -125,7 +128,7 @@ export function MarketAlertsClient({ canManage }: { canManage: boolean }) {
       });
       const data = await res.json().catch(() => null) as { message?: string; error?: string } | null;
       if (!res.ok) throw new Error(data?.message ?? data?.error ?? 'ایجاد نشد');
-      await load();
+      await load(); setSaved(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'ایجاد نشد');
     } finally {
@@ -155,7 +158,7 @@ export function MarketAlertsClient({ canManage }: { canManage: boolean }) {
 
   if (!canManage) {
     return (
-      <section className="alerts-gate panel">
+      <section className={embedded ? 'alerts-gate analysis-dialog-form' : 'alerts-gate panel'}>
         <h2>هشدار تغییر بازار</h2>
         <p>این‌ها هشدار تغییر بازار هستند، نه توصیهٔ خرید/فروش. برای فعال‌سازی به پلن دارای هشدار یا دورهٔ آزمایش نیاز دارید.</p>
         <p><Link className="button" href="/pricing">مشاهده پلن‌ها</Link></p>
@@ -165,8 +168,8 @@ export function MarketAlertsClient({ canManage }: { canManage: boolean }) {
   }
 
   return (
-    <div className="alerts-page">
-      <section className="alerts-card panel">
+    <div className={embedded ? "alerts-page analysis-alert-form" : "alerts-page"}>
+      {!embedded ? <section className="alerts-card panel">
         <header className="alerts-card__head">
           <Bell size={18} aria-hidden />
           <h2>اعلان‌های داخل سایت</h2>
@@ -189,7 +192,7 @@ export function MarketAlertsClient({ canManage }: { canManage: boolean }) {
             ))}
           </ul>
         )}
-      </section>
+      </section> : null}
 
       <section className="alerts-card panel">
         <header className="alerts-card__head">
@@ -218,14 +221,14 @@ export function MarketAlertsClient({ canManage }: { canManage: boolean }) {
             onChange={value => setForm(f => ({ ...f, direction: value }))}
           />
           <Input
-            label="آستانه"
+            label={embedded ? form.conditionType === 'PRICE_CROSS' ? `آستانه (تومان / ${instruments.find(item => item.symbol === form.symbol)?.unit ?? ''})` : 'آستانه (درصد)' : 'آستانه'}
             dir="ltr"
             inputMode="decimal"
             value={form.threshold}
-            onChange={e => setForm(f => ({ ...f, threshold: e.target.value }))}
+            onChange={e => setForm(f => ({ ...f, threshold: (/^[−-]/.test(e.target.value.trim()) ? '-' : '') + sanitizeNumericInput(e.target.value, 4) }))}
             required
           />
-          {form.conditionType === 'PRICE_CROSS' ? (
+          {form.conditionType === 'PRICE_CROSS' && !embedded ? (
             <Input
               label="واحد (برای عبور قیمت)"
               dir="ltr"
@@ -248,10 +251,11 @@ export function MarketAlertsClient({ canManage }: { canManage: boolean }) {
             {pending ? 'در حال ثبت…' : 'ثبت هشدار تغییر بازار'}
           </button>
         </form>
+        {saved ? <p role="status" className="alerts-success">هشدار شما ثبت شد؛ نتیجه در اعلان‌های حساب نمایش داده می‌شود.</p> : null}
         {error ? <p role="alert" className="alerts-error">{error}</p> : null}
       </section>
 
-      <section className="alerts-card panel">
+      {!embedded ? <section className="alerts-card panel">
         <header className="alerts-card__head">
           <h2>هشدارهای فعال</h2>
         </header>
@@ -279,7 +283,7 @@ export function MarketAlertsClient({ canManage }: { canManage: boolean }) {
             ))}
           </ul>
         )}
-      </section>
+      </section> : null}
     </div>
   );
 }

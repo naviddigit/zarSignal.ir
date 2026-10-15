@@ -2,6 +2,7 @@
 import QRCode from 'qrcode';
 import { STORY_HEIGHT, STORY_WIDTH, type StoryPublicPayload, type StoryPublicMetric } from '@/lib/analysis-story-card';
 import { storyPalette, type StoryTemplateId } from '@/lib/analysis-story-templates';
+import type { StoryBackground } from '@/lib/story-backgrounds';
 const FONT = 'Vazirmatn';
 let fontReady: Promise<void> | null = null;
 export async function ensureStoryFont(): Promise<void> {
@@ -15,12 +16,14 @@ export async function ensureStoryFont(): Promise<void> {
 function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const image = new Image();
-    image.onload = () => resolve(image);
-    image.onerror = () => reject(new Error('بارگذاری تصویر ممکن نشد؛ دوباره تلاش کنید.'));
+    image.crossOrigin = 'anonymous';
+    const timer = setTimeout(() => { image.src = ''; reject(new Error('دریافت تصویر طول کشید؛ دوباره تلاش کنید.')); }, 15000);
+    image.onload = () => { clearTimeout(timer); resolve(image); };
+    image.onerror = () => { clearTimeout(timer); reject(new Error('بارگذاری تصویر ممکن نشد؛ دوباره تلاش کنید.')); };
     image.src = src;
   });
 }
-export async function renderAnalysisStoryPng(payload: StoryPublicPayload, options?: { template?: StoryTemplateId; dark?: boolean }): Promise<Blob> {
+export async function renderAnalysisStoryPng(payload: StoryPublicPayload, options?: { template?: StoryTemplateId; dark?: boolean; background?: StoryBackground }): Promise<Blob> {
   const template = options?.template ?? 'vault_dark';
   const palette = storyPalette(options?.dark === false ? 'studio_light' : 'vault_dark');
   const [logo] = await Promise.all([loadImage('/icons/app-192.png'), ensureStoryFont()]);
@@ -29,8 +32,14 @@ export async function renderAnalysisStoryPng(payload: StoryPublicPayload, option
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('canvas_unavailable');
   const gradient = ctx.createLinearGradient(0, 0, 1080, 1920);
-  gradient.addColorStop(0, palette.bg); gradient.addColorStop(1, palette.bg2);
+  gradient.addColorStop(0, options?.background?.start ?? palette.bg); gradient.addColorStop(1, options?.background?.end ?? palette.bg2);
   ctx.fillStyle = gradient; ctx.fillRect(0, 0, 1080, 1920);
+  if (options?.background?.imageUrl) {
+    const background = await loadImage(options.background.imageUrl);
+    const scale = Math.max(STORY_WIDTH / background.width, STORY_HEIGHT / background.height);
+    ctx.drawImage(background, (STORY_WIDTH - background.width * scale) / 2, (STORY_HEIGHT - background.height * scale) / 2, background.width * scale, background.height * scale);
+    ctx.fillStyle = options.dark === false ? '#ffffffa6' : '#000000a6'; ctx.fillRect(0, 0, STORY_WIDTH, STORY_HEIGHT);
+  }
   const glow = ctx.createRadialGradient(540, 680, 20, 540, 680, 650);
   glow.addColorStop(0, options?.dark === false ? '#c59b3d33' : '#d2a84a25');
   glow.addColorStop(1, '#c59b3d00');

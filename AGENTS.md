@@ -11,3 +11,4 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 ## Shared change contract (Codex / Cursor)
 Read `docs/CALCULATOR_HANDOFF.md` before changing the calculator, boot splash or mobile market cards. Inspect the current working diff and preserve unrelated in-progress edits. Do not revert files to an older design to fix a local issue. Keep the shared live-price resolver and run the relevant regression checks before pushing.
+Read `docs/ANALYSIS_ACTIONS_HANDOFF.md` before changing report actions, inline alerts, story backgrounds or admin navigation; preserve the shared modal/drawer and server authorization.

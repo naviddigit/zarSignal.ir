@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { build } from 'esbuild';
 import { readFile } from 'node:fs/promises';
+test.setTimeout(90000);
 
 test('analysis summary and story trigger stay compact on the real page', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
@@ -27,12 +28,18 @@ test('history and feedback open only on request and saved feedback survives reop
     stdin: { contents: `import { createRoot } from 'react-dom/client';
       import { MarketViewReportView } from './src/components/market-view-report';
       import { LastVisitChanges } from './src/components/last-visit-changes';
-      createRoot(document.getElementById('root')).render(<MarketViewReportView initial={${JSON.stringify(report)}} signedIn canRefresh actions={<LastVisitChanges baselineAt="2026-10-10T10:00:00Z" changes={[{id:'silver',label:'نقره ۹۹۹',summary:'اختلاف با مرجع بیشتر شد',deltaPercent:1}]} />} />);`, loader: 'tsx', resolveDir: process.cwd() },
+      createRoot(document.getElementById('root')).render(<MarketViewReportView initial={${JSON.stringify(report)}} signedIn planLevel="HOME" planStatus="فعال" canRefresh actions={<><LastVisitChanges baselineAt="2026-10-10T10:00:00Z" changes={[{id:'silver',label:'نقره ۹۹۹',summary:'اختلاف با مرجع بیشتر شد',deltaPercent:1}]} /><a href="/calculator" className="analysis-icon-action" aria-label="محاسبه">محاسبه</a><a href="/alerts" className="analysis-icon-action" aria-label="هشدار">هشدار</a></>} />);`, loader: 'tsx', resolveDir: process.cwd() },
     bundle: true, write: false, jsx: 'automatic', define: { 'process.env': '{}', 'process.env.NODE_ENV': '"production"' },
   });
   const css = (await Promise.all(['globals.css', 'theme.css'].map(file => readFile(`src/app/${file}`, 'utf8')))).join('\n');
   await page.route('**/__analysis-ui-fixture', route => route.fulfill({ contentType: 'text/html', body: `<html lang="fa" dir="rtl" class="site-ready"><meta name="viewport" content="width=device-width,initial-scale=1"><style>${css}</style><main id="root" style="max-width:720px;margin:24px auto;width:calc(100% - 32px)"></main><script>${bundle.outputFiles[0].text.replaceAll('</script', '<\\/script')}</script></html>` }));
   let saved: { rating: number; comment: string } | null = null;
+  let alert: any = null;
+  await page.route('**/api/public/alerts', route => {
+    if (route.request().method() === 'POST') { alert = route.request().postDataJSON(); return route.fulfill({ status: 201, json: { id: 'test-alert' } }); }
+    return route.fulfill({ json: { alerts: [], notifications: [] } });
+  });
+  await page.route('**/api/public/story-backgrounds', route => route.fulfill({ json: { backgrounds: [{ id: 'blue', title: 'آبی اختصاصی', start: '#07111f', end: '#172a42', imageUrl: '', enabled: true }] } }));
   await page.route('**/api/public/analysis/read', route => route.fulfill({ json: { count: 19 } }));
   await page.route('**/api/public/analysis/feedback**', route => {
     if (route.request().method() === 'POST') saved = route.request().postDataJSON();
@@ -53,6 +60,7 @@ test('history and feedback open only on request and saved feedback survives reop
   await feedback.getByRole('radio', { name: '5 از ۵ — بسیار مفید' }).click();
   await feedback.getByText('توضیح اختیاری', { exact: true }).click();
   await feedback.getByRole('textbox', { name: 'بازخورد اختیاری' }).fill('مختصر و روشن');
+  await feedback.screenshot({ path: `artifacts/analysis-feedback-${test.info().project.name}.png` });
   await feedback.getByRole('button', { name: 'ارسال بازخورد', exact: true }).click();
   await expect(feedback).toContainText('بازخورد شما ثبت شد');
   expect(saved).toMatchObject({ rating: 5, comment: 'مختصر و روشن' });
@@ -62,6 +70,25 @@ test('history and feedback open only on request and saved feedback survives reop
   await expect(feedback).toContainText('مختصر و روشن');
   await page.keyboard.press('Escape');
   await expect(page.getByRole('dialog')).toHaveCount(0);
+  await page.getByRole('link', { name: 'محاسبه', exact: true }).click();
+  await expect(page.getByRole('dialog', { name: 'از گزارش خارج می‌شوید؟' })).toBeVisible();
+  expect(page.url()).toContain('__analysis-ui-fixture');
+  await page.getByRole('button', { name: 'ماندن در گزارش' }).click();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await page.getByRole('link', { name: 'هشدار', exact: true }).click();
+  const alertDialog = page.getByRole('dialog', { name: 'هشدار تغییر بازار' });
+  await expect(alertDialog).toBeVisible();
+  await alertDialog.getByRole('button', { name: 'ثبت هشدار تغییر بازار', exact: true }).click();
+  await expect(alertDialog.getByRole('status')).toContainText('هشدار شما ثبت شد');
+  expect(alert).toMatchObject({ conditionType: 'GAP_PCT_CROSS', threshold: 1, channel: 'IN_APP' });
+  await page.keyboard.press('Escape'); await expect(page.getByRole('dialog')).toHaveCount(0);
+  await page.getByRole('button', { name: 'ساخت استوری', exact: true }).click();
+  const studio = page.getByRole('dialog', { name: 'استودیوی استوری' });
+  await studio.getByRole('button', { name: 'آبی اختصاصی', exact: true }).click();
+  await expect(studio.getByRole('button', { name: 'آبی اختصاصی', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await studio.getByRole('button', { name: 'ساخت پیش‌نمایش', exact: true }).click();
+  await expect(studio.getByRole('img', { name: /پیش‌نمایش استوری/ })).toBeVisible({ timeout: 20000 });
+  await page.keyboard.press('Escape'); await expect(page.getByRole('dialog')).toHaveCount(0);
   expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
   await page.screenshot({ path: `artifacts/analysis-compact-${test.info().project.name}.png`, fullPage: true });
 });

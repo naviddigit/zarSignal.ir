@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Check, Copy, Share2, Star } from 'lucide-react';
+import { MarketAlertsClient } from '@/components/market-alerts-client';
+import { hasCapability } from '@/lib/capabilities';
 import { OverlaySheet } from '@/components/ui/overlay-sheet';
 import type { MarketViewReport } from '@/lib/market-view-report';
 import { buildPublicShareSummary } from '@/lib/analysis-share';
@@ -44,6 +46,8 @@ export function AnalysisEngagementPanel({
   const [shareError, setShareError] = useState<string | null>(null);
   const submitting = useRef(false);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const [leaving, setLeaving] = useState<{ href: string; label: string } | null>(null);
+  const [alertOpen, setAlertOpen] = useState(false);
 
   const engagementKey = `${report.reportId}:${report.schemaVersion}`;
   const collapsed = hasSaved && !editing;
@@ -219,7 +223,13 @@ export function AnalysisEngagementPanel({
   }, [report]);
 
   return (
-    <section className="market-view__engagement is-tidy" aria-label="بازخورد و اشتراک" data-follow-anchor>
+    <section className="market-view__engagement is-tidy" aria-label="بازخورد و اشتراک" data-follow-anchor onClickCapture={event => {
+        const link = (event.target as Element).closest('a[href]') as HTMLAnchorElement | null;
+        if (!link) return;
+        event.preventDefault(); event.stopPropagation();
+        if (new URL(link.href).pathname === '/alerts') setAlertOpen(true);
+        else setLeaving({ href: link.getAttribute('href')!, label: link.getAttribute('aria-label') || link.textContent || 'صفحه دیگر' });
+      }}>
       <div className="market-view__engagement-actions analysis-toolbar" role="group" aria-label="ابزارهای تحلیل">
         <button type="button" className="analysis-icon-action" title="کپی خلاصه" aria-label="کپی خلاصه" onClick={() => void shareSummary(true)}>
           {shareStatus === 'copied' ? <Check size={18} aria-hidden /> : <Copy size={18} aria-hidden />}
@@ -232,8 +242,14 @@ export function AnalysisEngagementPanel({
         {actions}
         {signedIn && readCount != null ? <small className="analysis-toolbar__reads" title="تعداد گزارش‌های مشاهده‌شده" role="status">{new Intl.NumberFormat('fa-IR').format(readCount)} مطالعه</small> : null}
       </div>
+      <OverlaySheet open={!!leaving} title="از گزارش خارج می‌شوید؟" onClose={() => setLeaving(null)}>
+        <div className="analysis-dialog-form"><p>برای باز کردن «{leaving?.label}» از این صفحه خارج می‌شوید.</p><div className="analysis-dialog-buttons"><button className="button" onClick={() => { const href = leaving?.href; setLeaving(null); if (href) window.location.assign(href); }}>ادامه و خروج</button><button className="analysis-action" onClick={() => setLeaving(null)}>ماندن در گزارش</button></div></div>
+      </OverlaySheet>
+      <OverlaySheet open={alertOpen} title="هشدار تغییر بازار" onClose={() => setAlertOpen(false)}>
+        {alertOpen ? <MarketAlertsClient embedded initialSymbol={report.symbol ?? undefined} canManage={signedIn && hasCapability(planLevel ?? 'FREE', 'BASIC_ALERTS') && planStatus !== 'در انتظار پرداخت'} /> : null}
+      </OverlaySheet>
       <OverlaySheet open={feedbackOpen} title="امتیاز و بازخورد" onClose={() => setFeedbackOpen(false)}>
-        <div className="market-view__feedback">
+        <div className="market-view__feedback analysis-dialog-form">
           {!feedbackReady || (!hasSaved && !canCreateNew) ? <div role="status">
             <p className="market-view__feedback-status">
               {!feedbackReady ? 'در حال بررسی بازخورد…' : nextAllowedAt
@@ -246,6 +262,7 @@ export function AnalysisEngagementPanel({
             <div className="market-view__stars is-readonly" aria-label={`امتیاز ${rating} از ۵`}>
               {RATING_LABELS.map((_, index) => <Star key={index} size={22} className={rating != null && index < rating ? 'is-on' : undefined} fill={rating != null && index < rating ? 'currentColor' : 'none'} aria-hidden />)}
             </div>
+            <p className="analysis-rating-caption" aria-live="polite">{rating ? RATING_LABELS[rating - 1] : 'برای امتیاز دادن یک ستاره انتخاب کنید'}</p>
             {comment ? <p>{comment}</p> : null}
             <button type="button" className="analysis-action" onClick={() => { setEditing(true); setFeedbackStatus('idle'); }}>ویرایش بازخورد</button>
           </div> : <form onSubmit={event => { event.preventDefault(); void submitFeedback(); }}>
@@ -259,6 +276,7 @@ export function AnalysisEngagementPanel({
                 </button>;
               })}
             </div>
+            <p className="analysis-rating-caption" aria-live="polite">{rating ? RATING_LABELS[rating - 1] : 'برای امتیاز دادن یک ستاره انتخاب کنید'}</p>
             <details className="market-view__comment-details">
               <summary>توضیح اختیاری</summary>
               <label className="market-view__feedback-comment">
@@ -267,7 +285,7 @@ export function AnalysisEngagementPanel({
               </label>
             </details>
             <div className="market-view__engagement-actions">
-              <button type="submit" className="analysis-action" disabled={rating == null || feedbackStatus === 'saving'}>{feedbackStatus === 'saving' ? 'در حال ارسال…' : hasSaved ? 'ذخیرهٔ ویرایش' : 'ارسال بازخورد'}</button>
+              <button type="submit" className="button" disabled={rating == null || feedbackStatus === 'saving'}>{feedbackStatus === 'saving' ? 'در حال ارسال…' : hasSaved ? 'ذخیرهٔ ویرایش' : 'ارسال بازخورد'}</button>
               {hasSaved ? <button type="button" className="analysis-action" onClick={() => { setEditing(false); setAvailabilityCheck(value => value + 1); }}>انصراف</button> : null}
             </div>
             {feedbackStatus === 'error' && feedbackError ? <p className="market-view__feedback-status is-error" role="alert">{feedbackError}</p> : null}

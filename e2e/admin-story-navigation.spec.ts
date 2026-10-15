@@ -1,0 +1,30 @@
+import { test, expect } from '@playwright/test';
+import { build } from 'esbuild';
+import { readFile } from 'node:fs/promises';
+test.setTimeout(60000);
+test('admin adds backgrounds and pins/reorders navigation persistently', async ({ page }) => {
+  const bundle = await build({ stdin: { contents: `import {createRoot} from 'react-dom/client';import {AdminNav} from './src/app/admin/(protected)/admin-nav';import {StoryBackgroundEditor} from './src/app/admin/(protected)/story-backgrounds/story-background-editor';createRoot(document.getElementById('root')).render(<><aside className="admin-sidebar"><AdminNav/></aside><section className="admin-content"><StoryBackgroundEditor initial={[]}/></section></>);`, loader: 'tsx', resolveDir: process.cwd() }, bundle: true, write: false, jsx: 'automatic', define: { 'process.env': '{}', 'process.env.NODE_ENV': '"production"' }, plugins: [{ name: 'admin-fixture', setup(builder) {
+    builder.onResolve({ filter: /actions$/ }, args => args.importer.includes('story-background-editor') ? { path: 'save', namespace: 'fixture' } : undefined);
+    builder.onLoad({ filter: /.*/, namespace: 'fixture' }, () => ({ contents: `export async function saveStoryBackgrounds(form){window.storySaved=JSON.parse(form.get('backgrounds'));return {error:'',saved:true}}`, loader: 'js' }));
+  } }] });
+  const css = (await Promise.all(['globals.css', 'theme.css'].map(file => readFile(`src/app/${file}`, 'utf8')))).join('\n');
+  await page.route('**/__admin-story-fixture', route => route.fulfill({ contentType: 'text/html; charset=utf-8', body: `<html lang="fa" dir="rtl"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>${css}</style><main id="root" class="admin-shell"></main><script>${bundle.outputFiles[0].text.replaceAll('</script', '<\\/script')}</script></html>` }));
+  await page.goto('/__admin-story-fixture');
+  await page.getByRole('button', { name: 'افزودن پس‌زمینه' }).click();
+  await page.getByRole('textbox', { name: 'نام طرح', exact: true }).fill('طرح آبی');
+  await page.getByRole('button', { name: 'افزودن پس‌زمینه' }).click();
+  await page.getByRole('textbox', { name: 'نام طرح', exact: true }).nth(1).fill('طرح دوم');
+  await page.getByRole('button', { name: 'ذخیره تغییرات' }).click();
+  await expect(page.getByRole('status')).toContainText('ذخیره شدند');
+  expect(await page.evaluate(() => (window as any).storySaved.length)).toBe(2);
+  const nav = page.getByRole('navigation', { name: 'ناوبری مدیریت' });
+  await nav.getByRole('link', { name: 'محتوای صفحه اصلی', exact: true }).hover();
+  await nav.getByRole('button', { name: 'پین محتوای صفحه اصلی', exact: true }).click();
+  await expect(nav.locator('a').first()).toHaveAttribute('href', '/admin/content');
+  await nav.getByRole('link', { name: 'وضعیت سایت', exact: true }).hover();
+  await nav.getByRole('button', { name: 'پایین بردن وضعیت سایت', exact: true }).click();
+  const order = await nav.locator('a').evaluateAll(items => items.map(item => item.getAttribute('href')));
+  await page.reload();
+  await expect(nav.locator('a').first()).toHaveAttribute('href', '/admin/content');
+  expect(await nav.locator('a').evaluateAll(items => items.map(item => item.getAttribute('href')))).toEqual(order);
+});
