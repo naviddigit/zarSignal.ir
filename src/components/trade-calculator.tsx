@@ -13,6 +13,7 @@ import { GoldUnitInput } from '@/components/gold-unit-input';
 import { GoldUnitSwitch } from '@/components/gold-unit-switch';
 import { goldDisplay, type GoldDisplayUnit } from '@/lib/gold-display-unit';
 const num = (value:number) => new Intl.NumberFormat('fa-IR',{maximumFractionDigits:4}).format(value);
+const hiddenReportRows = new Set(['میانگین وزنی','بازده فعلی','سربه‌سر با هزینه‌ها','فاصله قیمت فعلی تا سربه‌سر','بازده در هدف','بازده در حد ضرر','نسبت فاصله هدف به حد ضرر','نسبت سود به ریسک خالص']);
 export function TradeCalculator({operation,snapshot,favoriteSlot}:{operation:CalculatorOperation;snapshot:Snapshot;favoriteSlot?:ReactNode}) {
   const [market,setMarket]=useState(snapshot);
   const [goldUnit,setGoldUnit]=useState<GoldDisplayUnit>('gram');
@@ -47,7 +48,7 @@ export function TradeCalculator({operation,snapshot,favoriteSlot}:{operation:Cal
   const price=mode==='LIVE'?live?.value:Number(current);
   const update=(key:string,value:string)=>{setFields(f=>({...f,[key]:value}));setResult(null);setError('');};
   const updateRows=(change:(current:typeof rows)=>typeof rows)=>{setRows(change);setResult(null);setError('');};
-  const input=(key:string,label:string,unit='تومان / گرم')=><label className="trade-field"><span>{label}</span><GoldUnitInput className="ds-input" inputMode="decimal" dir="ltr" value={fields[key]??''} unit={unit} display={goldUnit} onValueChange={value=>update(key,value)} aria-label={label}/><small>{goldDisplay(1,unit,goldUnit).unit}</small></label>;
+  const input=(key:string,label:string,unit='تومان / گرم')=><label className="trade-field"><span>{label}</span><GoldUnitInput className="ds-input" inputMode="decimal" dir="ltr" value={fields[key]??''} unit={unit} display={unit==='گرم'?'gram':goldUnit} onValueChange={value=>update(key,value)} aria-label={label}/><small>{goldDisplay(1,unit,unit==='گرم'?'gram':goldUnit).unit}</small></label>;
   async function refresh() {
     setPending(true);setError('');
     try { const next=await fetchJson<Snapshot>('/api/public/markets?fresh=1',new AbortController().signal,60000);setMarket(next);if(!resolveCalculatorLiveValue(calculatorCatalog.quickTrade.fields[0],next)) setError('قیمت تازه موجود نیست؛ ورود دستی در دسترس است.'); }
@@ -78,7 +79,7 @@ export function TradeCalculator({operation,snapshot,favoriteSlot}:{operation:Cal
       {rows.map((row,i)=><div className="trade-step" key={i}>
         <header><b>پله {num(i+1)}</b><button type="button" className="calc-tool-panel__refresh" aria-label={`حذف پله ${i+1}`} onClick={()=>updateRows(r=>r.filter((_,index)=>index!==i))}><Trash2 size={15}/></button></header>
         {simulator?<Select label="مبنای قیمت" value={row.trigger} onChange={value=>updateRows(r=>r.map((x,index)=>index===i?{...x,trigger:value}:x))} options={[{value:'PRICE',label:'قیمت ثابت'},{value:'PERCENT',label:'درصد از قیمت پایه'}]}/>:null}
-        <div className="trade-fields">{(['price','weight'] as const).map(key=>{const percent=key==='price'&&simulator&&row.trigger==='PERCENT';const k=percent?'percent':key;return <label className="trade-field" key={key}><span>{percent?'فاصله از قیمت پایه':key==='price'?(goldUnit==='gram'?'قیمت هر گرم':'قیمت هر مثقال'):(goldUnit==='gram'?'وزن (گرم)':'وزن (مثقال)')}</span><GoldUnitInput className="ds-input" inputMode="decimal" dir="ltr" aria-label={`${percent?'درصد':key==='price'?'قیمت':'وزن'} پله ${i+1}`} value={row[k]} unit={percent?'درصد':key==='price'?'تومان / گرم':'گرم'} display={goldUnit} allowNegative={percent} onValueChange={value=>updateRows(r=>r.map((x,index)=>index===i?{...x,[k]:value}:x))}/></label>;})}</div>
+        <div className="trade-fields">{(['price','weight'] as const).map(key=>{const percent=key==='price'&&simulator&&row.trigger==='PERCENT';const k=percent?'percent':key;return <label className="trade-field" key={key}><span>{percent?'فاصله از قیمت پایه':key==='price'?(goldUnit==='gram'?'قیمت هر گرم':'قیمت هر مثقال'):'وزن (گرم)'}</span><GoldUnitInput className="ds-input" inputMode="decimal" dir="ltr" aria-label={`${percent?'درصد':key==='price'?'قیمت':'وزن'} پله ${i+1}`} value={row[k]} unit={percent?'درصد':key==='price'?'تومان / گرم':'گرم'} display={key==='weight'?'gram':goldUnit} allowNegative={percent} onValueChange={value=>updateRows(r=>r.map((x,index)=>index===i?{...x,[k]:value}:x))}/></label>;})}</div>
         <small className="trade-step__value">ارزش پله: {num((row.trigger==='PERCENT'?Number(price)*(1+Number(row.percent)/100):Number(row.price))*Number(row.weight))} تومان</small>
       </div>)}
       <button type="button" className="chart-retry" disabled={rows.length>=(position?5:10)} onClick={()=>updateRows(r=>[...r,{price:'',weight:'',percent:'',trigger:'PRICE'}])}><Plus size={16}/> افزودن پله</button>
@@ -88,6 +89,6 @@ export function TradeCalculator({operation,snapshot,favoriteSlot}:{operation:Cal
     <details className="calc-result-details"><summary>کارمزد و هزینه‌ها</summary><div className="trade-fields">{input('buyCost','کارمزد خرید','تومان')}{input('sellCost','کارمزد فروش','تومان')}{input('spread','هزینه اسپرد','تومان')}</div></details>
     <button className="button calc-tool-panel__go" disabled={pending}>{pending?'در حال محاسبه…':'محاسبه'}</button>
     {error?<p className="calc-error" role="alert">{error}</p>:null}
-    <OverlaySheet open={!!result} title="نتیجه سناریوی معامله" onClose={()=>setResult(null)}><div className="ds-overlay__result">{result?.outputs.map(output=>({...output,...goldDisplay(output.value,output.unit,goldUnit)})).map((o,i)=><div className="ds-overlay__result-row" key={i}><span>{o.label}</span><strong className={o.label.includes('سود')?(o.value<0?'is-down':'is-up'):''}>{num(o.value)} <small>{o.unit}</small></strong></div>)}<small>سناریوی محاسباتی بر اساس ورودی‌ها؛ قیمت هدف پیش‌بینی نشده است.</small></div></OverlaySheet>
+    <OverlaySheet open={!!result} title="نتیجه سناریوی معامله" onClose={()=>setResult(null)}><div className="ds-overlay__result">{result?.outputs.filter(output=>!hiddenReportRows.has(output.label)).map(output=>({...output,...goldDisplay(output.value,output.unit,output.unit==='گرم'?'gram':goldUnit)})).map((o,i)=><div className="ds-overlay__result-row" key={i}><span>{o.label}</span><strong className={o.label.includes('سود')?(o.value<0?'is-down':'is-up'):''}>{num(o.value)} <small>{o.unit}</small></strong></div>)}<small>سناریوی محاسباتی بر اساس ورودی‌ها؛ قیمت هدف پیش‌بینی نشده است.</small></div></OverlaySheet>
   </form>;
 }
