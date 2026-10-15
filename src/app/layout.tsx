@@ -5,6 +5,7 @@ import { Header } from '@/components/header';
 import { MobileTabBar } from '@/components/mobile-tab-bar';
 import { JsonLd } from '@/components/json-ld';
 import { SiteBoot } from '@/components/site-boot';
+import { PublicSiteChrome } from '@/components/public-site-chrome';
 import './globals.css';
 import './theme.css';
 import './product-quality.css';
@@ -49,9 +50,9 @@ export default function Layout({ children }: Readonly<{ children: React.ReactNod
         <SiteBoot />
         <JsonLd data={{ '@context': 'https://schema.org', '@type': 'WebSite', name: 'زرسیگنال', url: siteUrl, inLanguage: 'fa-IR', description: 'دیده‌بان فارسی بازار طلا، نقره و ارز با زمان و منبع مشخص داده.' }} />
         <a href="#main" className="skip-link">رفتن به محتوای اصلی</a>
-        <Header />
+        <PublicSiteChrome><Header /></PublicSiteChrome>
         {children}
-        <footer className="shell footer">
+        <PublicSiteChrome><footer className="shell footer">
           <Link prefetch={false} href="/" className="footer-brand">زرسیگنال <span>دید روشن‌تر به بازار.</span></Link>
           <div>
             <Link prefetch={false} href="/methodology">شفافیت داده</Link>
@@ -62,7 +63,7 @@ export default function Layout({ children }: Readonly<{ children: React.ReactNod
           </div>
           <small>نسخهٔ اولیه · تحلیل، تضمین نتیجهٔ معامله نیست.</small>
         </footer>
-        <MobileTabBar />
+        <MobileTabBar /></PublicSiteChrome>
       </body>
     </html>
   );

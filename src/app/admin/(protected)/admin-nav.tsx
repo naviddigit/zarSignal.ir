@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import { Pin, ChevronUp, ChevronDown, Search, Menu, LayoutDashboard, Users, SlidersHorizontal, FileText, Server, type LucideIcon } from 'lucide-react';
 import { Input } from '@/components/ui/field';
 import { OverlaySheet } from '@/components/ui/overlay-sheet';
+import { AdminSidebarActions } from './admin-sidebar-actions';
 
 const GROUPS: { id: string; label: string; icon: LucideIcon }[] = [
   { id: 'people', label: 'کاربران و فروش', icon: Users },
@@ -90,6 +91,6 @@ export function AdminNav() {
   return <>
     <div className="admin-nav-desktop">{content('desktop')}</div>
     <button type="button" className="admin-nav-mobile-trigger" aria-haspopup="dialog" aria-expanded={mobileOpen} onClick={() => setMobileOpen(true)}><Menu size={18} />منوی مدیریت</button>
-    <OverlaySheet open={mobileOpen} title="مدیریت زرسیگنال" onClose={() => setMobileOpen(false)}>{mobileOpen ? <div className="admin-nav-drawer">{content('mobile')}</div> : null}</OverlaySheet>
+    <OverlaySheet open={mobileOpen} title="مدیریت زرسیگنال" onClose={() => setMobileOpen(false)}>{mobileOpen ? <div className="admin-nav-drawer">{content('mobile')}<AdminSidebarActions /></div> : null}</OverlaySheet>
   </>;
 }

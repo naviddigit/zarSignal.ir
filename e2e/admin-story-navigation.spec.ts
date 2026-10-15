@@ -2,6 +2,40 @@ import { test, expect } from '@playwright/test';
 import { build } from 'esbuild';
 import { readFile } from 'node:fs/promises';
 test.setTimeout(60000);
+test('public navigation stays outside admin routes', async ({ page }) => {
+  await page.goto('/admin/login');
+  await expect(page.locator('.admin-login')).toBeVisible();
+  await expect(page.locator('.site-header')).toHaveCount(0);
+  await expect(page.locator('.footer')).toHaveCount(0);
+  await expect(page.locator('.mobile-tab-bar')).toHaveCount(0);
+  await page.goto('/pricing');
+  await expect(page.locator('.site-header')).toBeVisible();
+});
+
+test('admin sidebar fills the viewport and stays fixed while content moves', async ({ page }) => {
+  const bundle=await build({stdin:{contents:`import {createRoot} from 'react-dom/client';import {AdminSidebar} from './src/app/admin/(protected)/admin-sidebar';createRoot(document.getElementById('root')).render(<><AdminSidebar/><section className="admin-content"><header className="admin-title"><div><span className="eyebrow">FEEDBACK</span><h1>بازخورد تحلیل</h1><p>مدیریت بازخوردهای کاربران</p></div></header><div className="admin-stats">{['کل','بررسی‌شده','بررسی‌نشده'].map((label,i)=><article className="admin-stat" key={label}><span>{label}</span><strong>{i+1}</strong></article>)}</div><section className="admin-card"><h2>بازخوردهای اخیر</h2><p>اطلاعات و ابزارهای مدیریت در همین بخش نمایش داده می‌شوند.</p></section><section className="admin-card" style={{minHeight:'120vh'}}><h2>جزئیات گزارش‌ها</h2></section></section></>);`,loader:'tsx',resolveDir:process.cwd()},bundle:true,write:false,jsx:'automatic',define:{'process.env':'{}','process.env.NODE_ENV':'"production"'},plugins:[{name:'sidebar-path',setup(builder){builder.onResolve({filter:/^next\/navigation$/},()=>({path:'navigation',namespace:'sidebar'}));builder.onLoad({filter:/.*/,namespace:'sidebar'},()=>({contents:`export const usePathname=()=>'/admin/feedback'`,loader:'js'}));}}]});
+  const css=(await Promise.all(['src/app/globals.css','src/app/theme.css','src/app/product-quality.css','src/app/admin/(protected)/admin-design-system.css'].map(file=>readFile(file,'utf8')))).join('\n');
+  await page.route('**/__admin-sidebar',route=>route.fulfill({contentType:'text/html; charset=utf-8',body:`<html lang="fa" dir="rtl" data-theme="dark"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>${css}</style><main id="root" class="admin-shell"></main><script>${bundle.outputFiles[0].text.replaceAll('</script','<\\/script')}</script></html>`}));
+  await page.goto('/__admin-sidebar');
+  const mobile=(page.viewportSize()?.width ?? 1280)<=900;
+  if(!mobile){
+    const sidebar=page.locator('.admin-sidebar');
+    const layout=await sidebar.evaluate(element=>({top:element.getBoundingClientRect().top,height:element.getBoundingClientRect().height,viewport:innerHeight,overflow:getComputedStyle(element).overflowY,scrolls:element.scrollHeight>element.clientHeight+1}));
+    expect(layout).toEqual({top:0,height:page.viewportSize()!.height,viewport:page.viewportSize()!.height,overflow:'visible',scrolls:false});
+    await page.screenshot({path:'artifacts/admin-full-height-desktop.png'});
+    await page.evaluate(()=>window.scrollTo(0,600));
+    expect(await sidebar.evaluate(element=>element.getBoundingClientRect().top)).toBe(0);
+    expect(await page.evaluate(()=>getComputedStyle(document.documentElement).scrollbarWidth)).toBe('none');
+    const footer=page.locator('.admin-sidebar-footer');
+    await expect(footer.getByRole('button',{name:'خروج از مدیریت'})).toBeVisible();
+  }else{
+    await page.getByRole('button',{name:'منوی مدیریت',exact:true}).click();
+    await expect(page.getByRole('navigation',{name:'ناوبری مدیریت'}).getByRole('link',{name:'بازخوردها',exact:true})).toHaveAttribute('aria-current','page');
+    await expect(page.getByRole('dialog').getByRole('button',{name:'خروج از مدیریت'})).toBeVisible();
+    await page.screenshot({path:'artifacts/admin-full-height-mobile.png'});
+  }
+});
+
 test('admin adds backgrounds and pins/reorders navigation persistently', async ({ page }) => {
   const bundle = await build({ stdin: { contents: `import {createRoot} from 'react-dom/client';import {AdminNav} from './src/app/admin/(protected)/admin-nav';import {StoryBackgroundEditor} from './src/app/admin/(protected)/story-backgrounds/story-background-editor';createRoot(document.getElementById('root')).render(<><aside className="admin-sidebar"><AdminNav/></aside><section className="admin-content"><StoryBackgroundEditor initial={[]}/></section></>);`, loader: 'tsx', resolveDir: process.cwd() }, bundle: true, write: false, jsx: 'automatic', define: { 'process.env': '{}', 'process.env.NODE_ENV': '"production"' }, plugins: [{ name: 'admin-fixture', setup(builder) {
     builder.onResolve({ filter: /actions$/ }, args => args.importer.includes('story-background-editor') ? { path: 'save', namespace: 'fixture' } : undefined);
