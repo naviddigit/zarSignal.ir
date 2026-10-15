@@ -40,6 +40,7 @@ export function AnalysisEngagementPanel({
   const [feedbackError, setFeedbackError] = useState<string | null>(null);
   const [nextAllowedAt, setNextAllowedAt] = useState<string | null>(null);
   const [feedbackReady, setFeedbackReady] = useState(false);
+  const [feedbackLoadError, setFeedbackLoadError] = useState<string | null>(null);
   const [canCreateNew, setCanCreateNew] = useState(false);
   const [availabilityCheck, setAvailabilityCheck] = useState(0);
   const [shareStatus, setShareStatus] = useState<'idle' | 'shared' | 'copied' | 'error'>('idle');
@@ -65,6 +66,7 @@ export function AnalysisEngagementPanel({
       return;
     }
     setFeedbackReady(false);
+    setFeedbackLoadError(null);
     setCanCreateNew(false);
     setNextAllowedAt(null);
     setRating(null);
@@ -78,7 +80,7 @@ export function AnalysisEngagementPanel({
           `/api/public/analysis/feedback?reportId=${encodeURIComponent(report.reportId)}&schemaVersion=${encodeURIComponent(report.schemaVersion)}`,
           { credentials: 'same-origin', cache: 'no-store', signal: AbortSignal.timeout(8000) },
         );
-        if (!existing.ok) throw new Error('feedback_unavailable');
+        if (!existing.ok) throw new Error(existing.status === 401 ? 'نشست شما منقضی شده است؛ دوباره وارد حساب شوید.' : 'دریافت بازخورد قبلی ممکن نشد؛ دوباره تلاش کنید.');
         if (!cancelled && existing.ok) {
           const data = await existing.json() as {
             feedback?: { rating: number; comment: string | null } | null;
@@ -100,9 +102,10 @@ export function AnalysisEngagementPanel({
           setCanCreateNew(data.canCreateNew === true);
           setFeedbackReady(true);
         }
-      } catch {
+      } catch (error) {
         if (!cancelled) {
           setCanCreateNew(false);
+          setFeedbackLoadError(error instanceof Error && error.name === 'Error' ? error.message : 'پاسخ سرور نرسید؛ دوباره تلاش کنید.');
           setFeedbackReady(true);
         }
       }
@@ -250,7 +253,7 @@ export function AnalysisEngagementPanel({
       </OverlaySheet>
       <OverlaySheet open={feedbackOpen} title="امتیاز و بازخورد" onClose={() => setFeedbackOpen(false)}>
         <div className="market-view__feedback analysis-dialog-form">
-          {!feedbackReady || (!hasSaved && !canCreateNew) ? <div role="status">
+          {feedbackReady && !feedbackLoadError && !hasSaved && !canCreateNew ? <div role="status">
             <p className="market-view__feedback-status">
               {!feedbackReady ? 'در حال بررسی بازخورد…' : nextAllowedAt
                 ? `بازخورد جدید از ${new Intl.DateTimeFormat('fa-IR', { timeZone: 'Asia/Tehran', dateStyle: 'short', timeStyle: 'short' }).format(new Date(nextAllowedAt))} امکان‌پذیر است.`
@@ -266,6 +269,8 @@ export function AnalysisEngagementPanel({
             {comment ? <p>{comment}</p> : null}
             <button type="button" className="analysis-action" onClick={() => { setEditing(true); setFeedbackStatus('idle'); }}>ویرایش بازخورد</button>
           </div> : <form onSubmit={event => { event.preventDefault(); void submitFeedback(); }}>
+            {!feedbackReady ? <p className="market-view__feedback-status" role="status">در حال دریافت بازخورد قبلی؛ پس از بررسی می‌توانید ارسال کنید.</p> : null}
+            {feedbackLoadError ? <div role="alert"><p className="market-view__feedback-status is-error">{feedbackLoadError}</p><button type="button" className="analysis-action" onClick={() => setAvailabilityCheck(value => value + 1)}>تلاش دوباره</button></div> : null}
             <p className="market-view__feedback-prompt" id="analysis-feedback-label">این تحلیل چقدر برایتان مفید بود؟</p>
             <div className="market-view__stars" role="radiogroup" aria-labelledby="analysis-feedback-label" onMouseLeave={() => setHover(null)}>
               {RATING_LABELS.map((label, index) => {
@@ -285,7 +290,7 @@ export function AnalysisEngagementPanel({
               </label>
             </details>
             <div className="market-view__engagement-actions">
-              <button type="submit" className="button" disabled={rating == null || feedbackStatus === 'saving'}>{feedbackStatus === 'saving' ? 'در حال ارسال…' : hasSaved ? 'ذخیرهٔ ویرایش' : 'ارسال بازخورد'}</button>
+              <button type="submit" className="button" disabled={!feedbackReady || !!feedbackLoadError || rating == null || feedbackStatus === 'saving'}>{feedbackStatus === 'saving' ? 'در حال ارسال…' : hasSaved ? 'ذخیرهٔ ویرایش' : 'ارسال بازخورد'}</button>
               {hasSaved ? <button type="button" className="analysis-action" onClick={() => { setEditing(false); setAvailabilityCheck(value => value + 1); }}>انصراف</button> : null}
             </div>
             {feedbackStatus === 'error' && feedbackError ? <p className="market-view__feedback-status is-error" role="alert">{feedbackError}</p> : null}

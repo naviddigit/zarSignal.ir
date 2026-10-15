@@ -34,6 +34,7 @@ test('history and feedback open only on request and saved feedback survives reop
   const css = (await Promise.all(['globals.css', 'theme.css'].map(file => readFile(`src/app/${file}`, 'utf8')))).join('\n');
   await page.route('**/__analysis-ui-fixture', route => route.fulfill({ contentType: 'text/html', body: `<html lang="fa" dir="rtl" class="site-ready"><meta name="viewport" content="width=device-width,initial-scale=1"><style>${css}</style><main id="root" style="max-width:720px;margin:24px auto;width:calc(100% - 32px)"></main><script>${bundle.outputFiles[0].text.replaceAll('</script', '<\\/script')}</script></html>` }));
   let saved: { rating: number; comment: string } | null = null;
+  let failFirstFeedbackCheck = true;
   let alert: any = null;
   await page.route('**/api/public/alerts', route => {
     if (route.request().method() === 'POST') { alert = route.request().postDataJSON(); return route.fulfill({ status: 201, json: { id: 'test-alert' } }); }
@@ -41,7 +42,12 @@ test('history and feedback open only on request and saved feedback survives reop
   });
   await page.route('**/api/public/story-backgrounds', route => route.fulfill({ json: { backgrounds: [{ id: 'blue', title: 'آبی اختصاصی', start: '#07111f', end: '#172a42', imageUrl: '', enabled: true }] } }));
   await page.route('**/api/public/analysis/read', route => route.fulfill({ json: { count: 19 } }));
-  await page.route('**/api/public/analysis/feedback**', route => {
+  await page.route('**/api/public/analysis/feedback**', async route => {
+    if (route.request().method() === 'GET' && failFirstFeedbackCheck) {
+      failFirstFeedbackCheck = false;
+      await new Promise(resolve => setTimeout(resolve, 2500));
+      return route.fulfill({ status: 503, json: { error: 'unavailable' } });
+    }
     if (route.request().method() === 'POST') saved = route.request().postDataJSON();
     return route.fulfill({ json: { feedback: saved, canCreateNew: true } });
   });
@@ -49,6 +55,15 @@ test('history and feedback open only on request and saved feedback survives reop
   await page.goto('/__analysis-ui-fixture');
   await page.waitForTimeout(500);
   expect(errors).toEqual([]);
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await page.getByRole('button', { name: 'امتیاز و بازخورد', exact: true }).click();
+  const pendingFeedback = page.getByRole('dialog', { name: 'امتیاز و بازخورد' });
+  await expect(pendingFeedback.getByRole('radio')).toHaveCount(5);
+  await expect(pendingFeedback.getByRole('button', { name: 'ارسال بازخورد', exact: true })).toBeDisabled();
+  await expect(pendingFeedback.getByRole('alert')).toContainText('دریافت بازخورد قبلی ممکن نشد');
+  await pendingFeedback.getByRole('button', { name: 'تلاش دوباره', exact: true }).click();
+  await expect(pendingFeedback.getByRole('alert')).toHaveCount(0);
+  await page.keyboard.press('Escape');
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(page.getByText('اختلاف با مرجع بیشتر شد')).toHaveCount(0);
   await page.getByRole('button', { name: 'از آخرین بازدید شما', exact: true }).click();

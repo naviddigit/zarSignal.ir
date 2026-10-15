@@ -1,5 +1,7 @@
 # Analysis actions and story backgrounds — October 15, 2026
 
+- Feedback stars/form remain visible while the existing-feedback request is pending. Submission stays disabled until the server confirms availability; failed/expired-session checks show an explicit error and retry. Do not hide the whole editor behind a loading message or bypass the server cooldown.
+
 - Overlay layout polish: the panel is a flex column with hidden overflow and a fixed header; only its body scrolls with a thin scrollbar. Desktop modal width is 520px, capped at 88dvh/760px; mobile remains a bottom drawer. Compact inline alerts use short condition names and direction segments, and should fit without unnecessary scrolling. Story theme has two direct buttons. Last-visit cards show labels and baseline date once; delta is percentage points, not a second repeated paragraph.
 
 - AnalysisEngagementPanel captures its page links and asks in OverlaySheet before navigation. /alerts opens MarketAlertsClient embedded in that same report instead. Keep plan checks in both UI and the existing alerts API; the editor really POSTs the condition to the server. No SMS/Push claim.
