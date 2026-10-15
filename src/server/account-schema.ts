@@ -3,7 +3,7 @@ import { db } from '@/lib/db';
 let ready: Promise<void> | undefined;
 export function ensureAccountSchema() {
   return ready ??= (async () => {
-    for (const field of ['firstName', 'lastName', 'city', 'occupation', 'customerType']) {
+    for (const field of ['firstName', 'lastName', 'city', 'occupation', 'customerType', 'ageGroup']) {
       await db.$executeRawUnsafe(`ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "${field}" TEXT`);
     }
     await db.$executeRawUnsafe(`CREATE TABLE IF NOT EXISTS "LoginEvent" (

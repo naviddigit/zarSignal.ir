@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { parseAccountPolicy, missingProfileFields, profileRequired, fieldRequired, registrationProfile, normalizePhone } from '../src/lib/account-policy';
+import { parseAccountPolicy, missingProfileFields, profileRequired, fieldRequired, registrationProfile, normalizePhone, profileDemographics } from '../src/lib/account-policy';
 import { verificationHash, verificationMatches } from '../src/lib/email-verification';
 import { loginMetadata } from '../src/lib/login-metadata';
 import { readFileSync } from 'node:fs';
@@ -13,8 +13,47 @@ test('account requirements default off and accept only known fields', () => {
   assert.equal(parseAccountPolicy(null).profileRequired, false);
   const policy = parseAccountPolicy({ profileRequired: true, requiredFields: ['city', 'phone', 'city', 'unknown', '__proto__'] });
   assert.deepEqual(policy.requiredFields, ['city', 'phone']);
-  assert.deepEqual(missingProfileFields({ city: 'تهران', phone: '' }, policy), ['phone']);
+  assert.deepEqual(missingProfileFields({ city: 'بازار تهران', phone: '' }, policy), ['phone']);
   assert.deepEqual(missingProfileFields({ name: 'سارا محمدی', phone: '+989121234567' }, parseAccountPolicy(null)), []);
+});
+
+test('profile area and age accept only explicit choices and never infer age from occupation', () => {
+  const policy = parseAccountPolicy({ profileRequired: true, requiredFields: ['city', 'ageGroup', 'occupation'] });
+  assert.deepEqual(policy.requiredFields, ['city', 'ageGroup']);
+  assert.deepEqual(missingProfileFields({ city: 'تهران' }, policy), ['city', 'ageGroup']);
+  assert.deepEqual(missingProfileFields({ city: 'شهرستان', ageGroup: 'زیر ۱۸ سال' }, policy), []);
+  assert.deepEqual(profileDemographics({ city: ' خارج از کشور ', ageGroup: '۱۸ سال و بالاتر' }), { city: 'خارج از کشور', ageGroup: '۱۸ سال و بالاتر' });
+  assert.deepEqual(profileDemographics({ city: '', ageGroup: '' }), { city: null, ageGroup: null });
+  assert.throws(() => profileDemographics({ city: 'arbitrary', ageGroup: 'زیر ۱۸ سال' }), /محدوده/);
+  assert.throws(() => profileDemographics({ city: 'بازار تهران', ageGroup: 'معامله‌گر' }), /سنی/);
+});
+
+test('profile completion persists area and age separately and enforces required age on the server', async () => {
+  const module = { exports: {} as typeof import('../src/app/account/complete/actions') };
+  let saved: any = null;
+  const policy = parseAccountPolicy({ profileRequired: true, requiredFields: ['city', 'ageGroup'] });
+  const source = readFileSync(new URL('../src/app/account/complete/actions.ts', import.meta.url), 'utf8');
+  runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText, {
+    module, exports: module.exports, require: (name: string) => {
+      if (name === 'next/navigation') return { redirect: (url: string) => { throw new Error(`redirect:${url}`); } };
+      if (name === 'next/headers') return { cookies: async () => ({ delete: () => {} }) };
+      if (name === 'next/cache') return { revalidatePath: () => {} };
+      if (name === '@/auth') return { auth: async () => ({ user: { id: 'user-one' } }) };
+      if (name === '@/server/account-policy') return { getAccountPolicy: async () => policy };
+      if (name === '@/server/account-schema') return { ensureAccountSchema: async () => {} };
+      if (name === '@/lib/account-policy') return { missingProfileFields, profileRequired, registrationProfile, profileDemographics, profileFields: { ageGroup: 'سن' } };
+      if (name === '@/lib/db') return { db: { user: { update: async ({ data }: any) => { saved = data; } } } };
+      return {};
+    },
+  });
+  const form = new FormData(); form.set('city', 'بازار تهران');
+  await assert.rejects(() => module.exports.completeProfileAction(form), /سن/);
+  assert.equal(saved, null);
+  form.set('ageGroup', 'زیر ۱۸ سال'); form.set('occupation', 'legacy');
+  await assert.rejects(() => module.exports.completeProfileAction(form), /redirect:\/account/);
+  assert.equal((saved as any)?.city, 'بازار تهران');
+  assert.equal((saved as any)?.ageGroup, 'زیر ۱۸ سال');
+  assert.equal(Object.hasOwn(saved as unknown as object, 'occupation'), false);
 });
 
 test('mobile and user type are independently required without granting an access role', () => {

@@ -47,7 +47,7 @@ export async function proxy(request: NextRequest) {
         const policy = await getAccountPolicy();
         if (profileRequired(policy)) {
           await ensureAccountSchema();
-          const user = await db.user.findUnique({ where: { id: session.user.id }, select: { role: true, name: true, firstName: true, lastName: true, phone: true, city: true, occupation: true, customerType: true } });
+          const user = await db.user.findUnique({ where: { id: session.user.id }, select: { role: true, name: true, firstName: true, lastName: true, phone: true, city: true, ageGroup: true, customerType: true } });
           if (user && user.role !== 'ADMIN' && missingProfileFields(user, policy).length) {
             if (gatedApi) return NextResponse.json({ code: 'profile_required', error: 'ابتدا پروفایل خود را تکمیل کنید.' }, { status: 403 });
             const url = new URL('/account/complete', request.url);

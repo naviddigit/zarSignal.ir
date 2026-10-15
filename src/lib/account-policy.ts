@@ -1,4 +1,6 @@
-export const profileFields = { firstName: 'نام', lastName: 'نام خانوادگی', phone: 'شماره موبایل', city: 'شهر فعالیت', occupation: 'حوزه فعالیت', customerType: 'نوع کاربر' } as const;
+export const activityAreas = ['خارج از کشور', 'بازار تهران', 'شهرستان'] as const;
+export const ageGroups = ['زیر ۱۸ سال', '۱۸ سال و بالاتر'] as const;
+export const profileFields = { firstName: 'نام', lastName: 'نام خانوادگی', phone: 'شماره موبایل', city: 'محدوده فعالیت', ageGroup: 'سن', customerType: 'نوع کاربر' } as const;
 export type ProfileField = keyof typeof profileFields;
 export type AccountPolicy = { emailVerificationRequired: boolean; profileRequired: boolean; requiredFields: ProfileField[]; phoneRequired: boolean; customerTypeRequired: boolean; customerTypes: string[] };
 export const defaultAccountPolicy: AccountPolicy = { emailVerificationRequired: false, profileRequired: false, requiredFields: ['firstName', 'lastName', 'phone'], phoneRequired: false, customerTypeRequired: false, customerTypes: ['خانگی', 'حرفه‌ای'] };
@@ -23,15 +25,25 @@ export function profileRequired(policy: AccountPolicy) {
   return policy.profileRequired || policy.phoneRequired || policy.customerTypeRequired;
 }
 
-export function missingProfileFields(user: { name?: string | null; firstName?: string | null; lastName?: string | null; phone?: string | null; city?: string | null; occupation?: string | null; customerType?: string | null }, policy: AccountPolicy) {
+export function missingProfileFields(user: { name?: string | null; firstName?: string | null; lastName?: string | null; phone?: string | null; city?: string | null; ageGroup?: string | null; customerType?: string | null }, policy: AccountPolicy) {
   const parts = user.name?.trim().split(/\s+/) ?? [];
   const fields = [...new Set([...policy.requiredFields, ...(policy.phoneRequired ? ['phone' as const] : []), ...(policy.customerTypeRequired ? ['customerType' as const] : [])])];
   return fields.filter(key => {
     if (profileRequired(policy) && !fieldRequired(policy, key)) return false;
     if (key === 'customerType') return !user.customerType || !policy.customerTypes.includes(user.customerType);
     if (key === 'phone') return !normalizePhone(user.phone ?? '');
+    if (key === 'city') return !activityAreas.some(value => value === user.city);
+    if (key === 'ageGroup') return !ageGroups.some(value => value === user.ageGroup);
     return !(key === 'firstName' ? user.firstName || parts[0] : key === 'lastName' ? user.lastName || parts.slice(1).join(' ') : user[key])?.trim();
   });
+}
+
+export function profileDemographics(raw: { city: string; ageGroup: string }) {
+  const city = raw.city.trim() || null;
+  const ageGroup = raw.ageGroup.trim() || null;
+  if (city && !activityAreas.some(value => value === city)) throw new Error('محدوده فعالیت را از گزینه‌های موجود انتخاب کنید.');
+  if (ageGroup && !ageGroups.some(value => value === ageGroup)) throw new Error('گروه سنی را از گزینه‌های موجود انتخاب کنید.');
+  return { city, ageGroup };
 }
 
 export function normalizePhone(raw: string) {

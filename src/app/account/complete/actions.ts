@@ -6,7 +6,7 @@ import { auth } from '@/auth';
 import { db } from '@/lib/db';
 import { revalidatePath } from 'next/cache';
 import { getAccountPolicy } from '@/server/account-policy';
-import { missingProfileFields, profileFields, profileRequired, registrationProfile } from '@/lib/account-policy';
+import { missingProfileFields, profileFields, profileRequired, registrationProfile, profileDemographics } from '@/lib/account-policy';
 import { ensureAccountSchema } from '@/server/account-schema';
 
 const LATER_COOKIE = 'zs_profile_later';
@@ -42,9 +42,8 @@ export async function completeProfileAction(form: FormData) {
   const lastName = String(form.get('lastName') ?? '').trim();
   const phoneRaw = String(form.get('phone') ?? '').trim();
   const { phone, customerType } = registrationProfile({ phone: phoneRaw, customerType: String(form.get('customerType') ?? '') }, policy);
-  const city = String(form.get('city') ?? '').trim();
-  const occupation = String(form.get('occupation') ?? '').trim();
-  const fields = { firstName, lastName, phone, city, occupation, customerType };
+  const { city, ageGroup } = profileDemographics({ city: String(form.get('city') ?? ''), ageGroup: String(form.get('ageGroup') ?? '') });
+  const fields = { firstName, lastName, phone, city, ageGroup, customerType };
   for (const [key, value] of Object.entries(fields)) {
     if (value && (value.length < 2 || value.length > 80)) throw new Error('هر مقدار باید بین ۲ و ۸۰ نویسه باشد.');
   }
@@ -59,7 +58,7 @@ export async function completeProfileAction(form: FormData) {
         name: `${firstName} ${lastName}`.trim(),
         phone,
         customerType,
-        firstName: firstName || null, lastName: lastName || null, city: city || null, occupation: occupation || null,
+        firstName: firstName || null, lastName: lastName || null, city, ageGroup,
       },
     });
   } catch (error) {

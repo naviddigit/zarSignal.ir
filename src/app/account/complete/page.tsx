@@ -7,6 +7,7 @@ import { PendingButton } from '@/components/pending-button';
 import { completeProfileAction, deferProfileAction } from './actions';
 import { getAccountPolicy } from '@/server/account-policy';
 import { missingProfileFields, fieldRequired, profileRequired } from '@/lib/account-policy';
+import { ProfileDemographics } from '@/components/profile-demographics';
 import { Select } from '@/components/ui/select';
 import { ensureAccountSchema } from '@/server/account-schema';
 import { isRedirectError } from 'next/dist/client/components/redirect-error';
@@ -39,7 +40,7 @@ export default async function CompleteProfilePage({
   const policy = await getAccountPolicy();
   const user = await db.user.findUnique({
     where: { id: session.user.id },
-    select: { name: true, phone: true, email: true, firstName: true, lastName: true, city: true, occupation: true, customerType: true },
+    select: { name: true, phone: true, email: true, firstName: true, lastName: true, city: true, ageGroup: true, customerType: true },
   });
   const jar = await cookies();
   const deferred = jar.get('zs_profile_later')?.value === '1';
@@ -58,7 +59,7 @@ export default async function CompleteProfilePage({
       <section className="auth-card profile-complete-card">
         <span className="eyebrow gold-text">تکمیل حساب</span>
         <h1>یک قدم تا آماده‌شدن</h1>
-        <p>{profileRequired(policy) ? 'موارد مشخص‌شده با ستاره لازم‌اند.' : 'تکمیل این اطلاعات اختیاری است.'} شهر فعالیت را خودتان وارد می‌کنید؛ با موقعیت تقریبی IP متفاوت است.</p>
+        <p>{profileRequired(policy) ? 'موارد مشخص‌شده با ستاره لازم‌اند.' : 'تکمیل این اطلاعات اختیاری است.'}</p>
         {user?.email ? <p className="profile-complete-email" dir="ltr">{user.email}</p> : null}
         {params.error ? <p className="calc-error" role="alert">{params.error}</p> : null}
 
@@ -102,10 +103,7 @@ export default async function CompleteProfilePage({
               />
             </div>
           </label>
-          <div className="profile-complete-grid">
-            <label><span>شهر فعالیت {fieldRequired(policy, 'city') ? '*' : ''}</span><input name="city" defaultValue={user?.city ?? ''} maxLength={80} required={fieldRequired(policy, 'city')} autoComplete="address-level2" /></label>
-            <label><span>حوزه فعالیت {fieldRequired(policy, 'occupation') ? '*' : ''}</span><input name="occupation" defaultValue={user?.occupation ?? ''} maxLength={80} required={fieldRequired(policy, 'occupation')} placeholder="مثلاً معامله‌گر طلا" /></label>
-          </div>
+          <ProfileDemographics city={user?.city} ageGroup={user?.ageGroup} areaRequired={fieldRequired(policy, 'city')} ageRequired={fieldRequired(policy, 'ageGroup')} />
           {policy.customerTypes.length > 0 ? <Select name="customerType" label={`نوع کاربر ${fieldRequired(policy, 'customerType') ? '*' : '(اختیاری)'}`} defaultValue={user?.customerType && policy.customerTypes.includes(user.customerType) ? user.customerType : ''} required={fieldRequired(policy, 'customerType')} options={policy.customerTypes.map(value => ({ value, label: value }))} /> : null}
           <PendingButton className="button" pendingText="در حال ذخیره…">ادامه</PendingButton>
         </form>
