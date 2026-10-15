@@ -1,6 +1,7 @@
 import { CheckCircle2, ChevronDown, FlaskConical, History, ShieldAlert } from 'lucide-react';
 import { PendingButton } from '@/components/pending-button';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Input, Textarea } from '@/components/ui/field';
 import { Select } from '@/components/ui/select';
 import { formatPrice, instruments, type Quote, type Snapshot } from '@/lib/market';
 import { getSnapshot } from '@/server/quotes';
@@ -199,11 +200,11 @@ function FormulaCard({
         <form action={saveFormula} className="formula-form">
           <input type="hidden" name="key" value={formulaKey} />
           <div className="formula-form__row">
-            <label>عنوان<input name="title" defaultValue={catalog.title} required disabled={!canSave} /></label>
-            <label>نسخه<input name="version" type="number" min="1" defaultValue={(current?.version ?? 0) + 1} required dir="ltr" disabled={!canSave} /></label>
+            <Input label="عنوان" name="title" defaultValue={catalog.title} required disabled={!canSave} />
+            <Input label="نسخه" name="version" type="number" min="1" defaultValue={(current?.version ?? 0) + 1} required dir="ltr" disabled={!canSave} />
           </div>
-          <label>شرح قابل فهم<textarea name="description" rows={2} placeholder="این فرمول چه چیزی را محاسبه می‌کند و محدودیتش چیست؟" required disabled={!canSave} /></label>
-          <label>عبارت دقیق فرمول<textarea name="expression" rows={3} dir="ltr" placeholder="Example: (market_price - theoretical_price) / theoretical_price * 100" required disabled={!canSave} /></label>
+          <Textarea label="شرح قابل فهم" name="description" rows={2} placeholder="این فرمول چه چیزی را محاسبه می‌کند و محدودیتش چیست؟" required disabled={!canSave} />
+          <Textarea label="عبارت دقیق فرمول" name="expression" rows={3} dir="ltr" placeholder="Example: (market_price - theoretical_price) / theoretical_price * 100" required disabled={!canSave} />
           <fieldset className="formula-source-picker">
             <legend>منابع زندهٔ موردنیاز فرمول</legend>
             <p>هر سمت قیمتی که در عبارت استفاده شده را انتخاب کنید. واحدها از کاتالوگ بازار ثبت می‌شوند.</p>
@@ -220,15 +221,15 @@ function FormulaCard({
               })}
             </div>
           </fieldset>
-          <label>ثابت‌ها؛ هر خط یک مورد<textarea name="constants" rows={2} dir="ltr" placeholder="نام = مقدار = منبع" disabled={!canSave} /></label>
-          <label>قاعدهٔ گردکردن<input name="rounding" placeholder="تعداد رقم اعشار و روش گردکردن" required disabled={!canSave} /></label>
+          <Textarea label="ثابت‌ها؛ هر خط یک مورد" name="constants" rows={2} dir="ltr" placeholder="نام = مقدار = منبع" disabled={!canSave} />
+          <Input label="قاعدهٔ گردکردن" name="rounding" placeholder="تعداد رقم اعشار و روش گردکردن" required disabled={!canSave} />
           <div className="formula-form__columns">
-            <label>حالت‌های مرزی؛ هر خط یک مورد<textarea name="edgeCases" rows={3} required disabled={!canSave} /></label>
-            <label>نمونهٔ مرجع؛ هر خط ورودی و خروجی مورد انتظار<textarea name="fixtures" rows={3} dir="ltr" disabled={!canSave} /></label>
+            <Textarea label="حالت‌های مرزی؛ هر خط یک مورد" name="edgeCases" rows={3} required disabled={!canSave} />
+            <Textarea label="نمونهٔ مرجع؛ هر خط ورودی و خروجی مورد انتظار" name="fixtures" rows={3} dir="ltr" disabled={!canSave} />
           </div>
           <div className="formula-form__row">
             <Select name="status" label="وضعیت" defaultValue="DRAFT" disabled={!canSave} options={[{ value: 'DRAFT', label: 'پیش‌نویس' }, { value: 'REVIEW', label: 'در حال بررسی' }, { value: 'APPROVED', label: 'تأییدشده' }, { value: 'ARCHIVED', label: 'بایگانی' }]} />
-            <label>تاریخ اجرا<input name="effectiveAt" type="datetime-local" dir="ltr" disabled={!canSave} /></label>
+            <Input label="تاریخ اجرا" name="effectiveAt" type="datetime-local" dir="ltr" disabled={!canSave} />
           </div>
           <PendingButton pendingText="در حال ثبت نسخه…" disabled={!canSave}>
             <FlaskConical size={16} /> ثبت نسخهٔ جدید

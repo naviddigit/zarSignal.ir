@@ -4,6 +4,7 @@ import { useActionState } from 'react';
 import { BrainCircuit, DatabaseZap, LogIn, Save, ShieldCheck } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { PendingButton } from '@/components/pending-button';
+import { Field, Input } from '@/components/ui/field';
 import { saveIntegrationAction, type SaveIntegrationState } from '@/app/admin/(protected)/integrations/actions';
 
 const ICONS = {
@@ -66,9 +67,8 @@ export function IntegrationCardForm({
         </div>
       ) : null}
       <div className="integration-fields">
-        <label>
-          <span>{google ? 'Google Client ID' : itemKey === 'resend_email' ? 'ایمیل فرستنده' : 'آدرس سرویس'}</span>
-          <input
+        <Field label={google ? 'Google Client ID' : itemKey === 'resend_email' ? 'ایمیل فرستنده' : 'آدرس سرویس'}>
+          <Input
             name="publicValue"
             type={google ? 'text' : itemKey === 'resend_email' ? 'email' : 'url'}
             defaultValue={publicValue ?? ''}
@@ -76,10 +76,9 @@ export function IntegrationCardForm({
             dir="ltr"
             required={google && enabled}
           />
-        </label>
-        <label>
-          <span>{google ? 'Google Client Secret' : 'کلید API'}</span>
-          <input
+        </Field>
+        <Field label={google ? 'Google Client Secret' : 'کلید API'}>
+          <Input
             name="secret"
             type="password"
             placeholder={hasSecret ? 'کلید ذخیره شده؛ برای حفظ آن خالی بگذارید' : 'کلید جدید'}
@@ -87,7 +86,7 @@ export function IntegrationCardForm({
             dir="ltr"
             required={google && enabled && !hasSecret}
           />
-        </label>
+        </Field>
       </div>
       <div className="integration-actions">
         <Checkbox name="enabled" label="اتصال فعال باشد" defaultChecked={enabled} className="integration-switch" />

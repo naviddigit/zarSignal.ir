@@ -116,13 +116,13 @@ export function AnalysisReadingSettingsForm({
           سریع: <bdi dir="ltr">{Math.round(effectiveTypingCps(normalized, 2))}</bdi> نویسه/ثانیه
           {settings.fallback ? ' · هنوز تنظیم ذخیره‌شده‌ای نیست؛ پیش‌فرض فعال است.' : null}
         </p>
-        <div className="market-view__speed" role="group" aria-label="پیش‌نمایش سرعت" style={{ marginBlock: '0.75rem' }}>
+        <div className="market-view__speed admin-reading-speed" role="group" aria-label="پیش‌نمایش سرعت">
           <span>پیش‌نمایش:</span>
           <button type="button" className={previewSpeed === 1 ? 'is-active' : undefined} onClick={() => setPreviewSpeed(1)}>۱×</button>
           <button type="button" className={previewSpeed === 2 ? 'is-active' : undefined} onClick={() => setPreviewSpeed(2)}>۲×</button>
           <small dir="ltr">{Math.round(cps)} cps</small>
         </div>
-        <p aria-live="polite" style={{ minHeight: '3rem', fontFamily: 'inherit' }}>
+        <p aria-live="polite" className="admin-reading-preview">
           {SAMPLE.slice(0, previewShown)}
           {previewShown < SAMPLE.length ? <span aria-hidden>·</span> : null}
         </p>

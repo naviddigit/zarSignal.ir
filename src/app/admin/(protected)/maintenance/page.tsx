@@ -1,6 +1,8 @@
 import { getMaintenanceSettings } from '@/server/maintenance';
 import { requireAdmin } from '@/server/admin-auth';
 import { updateMaintenance } from './actions';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Textarea } from '@/components/ui/field';
 import '../admin-settings.css';
 
 export const dynamic = 'force-dynamic';
@@ -13,9 +15,8 @@ export default async function MaintenanceAdminPage({ searchParams }: { searchPar
     <form action={updateMaintenance} className="admin-card maintenance-admin-form">
       <h2>حالت تعمیر و به‌روزرسانی</h2>
       <p>صفحهٔ اصلی با متن برند و پاسخ عادی باز می‌ماند؛ دیگر صفحه‌های عمومی پاسخ موقت ۵۰۳ می‌دهند. بسته‌بودن چندروزه ممکن است به رتبهٔ صفحات داخلی آسیب بزند.</p>
-      <label className="maintenance-admin-toggle"><input type="checkbox" name="enabled" defaultChecked={settings.enabled} disabled={!settings.writable} /><span>بستن موقت سایت</span></label>
-      <label htmlFor="maintenance-message">متن پیام برای بازدیدکنندگان</label>
-      <textarea id="maintenance-message" name="message" minLength={20} maxLength={600} rows={5} required defaultValue={settings.message} disabled={!settings.writable} />
+      <Checkbox name="enabled" label="بستن موقت سایت" defaultChecked={settings.enabled} disabled={!settings.writable} />
+      <Textarea label="متن پیام برای بازدیدکنندگان" id="maintenance-message" name="message" minLength={20} maxLength={600} rows={5} required defaultValue={settings.message} disabled={!settings.writable} />
       <p>عنوان «در حال تعمیر و به‌روزرسانی هستیم» و لوگوی زرسیگنال همراه این متن نمایش داده می‌شود.</p>
       <button className="button" type="submit" disabled={!settings.writable}>ذخیره وضعیت سایت</button>
       {settings.enabled && <p role="status" className="admin-message">سایت اکنون در حالت تعمیر است. برای بازگشایی، تیک بالا را بردارید و ذخیره کنید.</p>}

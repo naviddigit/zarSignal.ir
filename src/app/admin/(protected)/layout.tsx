@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { requireAdmin } from '@/server/admin-auth';
 import { AdminNav } from './admin-nav';
+import './admin-design-system.css';
 
 export default async function AdminLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   await requireAdmin();
