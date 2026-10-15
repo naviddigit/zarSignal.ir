@@ -410,6 +410,11 @@ html.ds-scroll-locked body{
 .ds-overlay__result-row span{color:var(--text-secondary);font-size:13px;line-height:1.7}
 .ds-overlay__result-row strong{font-size:clamp(22px,4vw,30px);font-variant-numeric:tabular-nums;color:var(--accent);line-height:1.3;text-align:left;min-width:0;overflow-wrap:anywhere}
 .ds-overlay__result-row small{display:block;margin-top:4px;font:400 11px Vazirmatn;color:var(--text-muted)}
+@media(max-width:760px){
+ .ds-overlay__result-row{gap:10px}
+ .ds-overlay__result-row>span{flex:1;min-width:0;font-size:12px}
+ .ds-overlay__result-row>strong{flex:0 1 70%;font-size:clamp(14px,4vw,18px);letter-spacing:0}
+}
 .ds-overlay__result-pending{display:grid;place-items:center;gap:10px;min-height:120px;padding:24px 16px;color:var(--text-muted);font-size:13px}
 @keyframes ds-overlay-fade-in{from{opacity:0}to{opacity:1}}
 @keyframes ds-overlay-fade-out{from{opacity:1}to{opacity:0}}
