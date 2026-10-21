@@ -13,7 +13,7 @@ import { GoldUnitInput } from '@/components/gold-unit-input';
 import { GoldUnitSwitch } from '@/components/gold-unit-switch';
 import { goldDisplay, type GoldDisplayUnit } from '@/lib/gold-display-unit';
 const num = (value:number, maximumFractionDigits=4) => new Intl.NumberFormat('fa-IR',{maximumFractionDigits}).format(value);
-const hiddenReportRows = new Set(['میانگین وزنی','بازده فعلی','سربه‌سر با هزینه‌ها','فاصله قیمت فعلی تا سربه‌سر','بازده در هدف','بازده در حد ضرر','نسبت فاصله هدف به حد ضرر','نسبت سود به ریسک خالص']);
+const hiddenReportRows = new Set(['میانگین خرید','بازده فعلی','سربه‌سر با هزینه‌ها','فاصله قیمت فعلی تا سربه‌سر','بازده در هدف','بازده در حد ضرر','نسبت فاصله هدف به حد ضرر','نسبت سود به ریسک خالص']);
 const tradePriceField = calculatorCatalog.quickTrade.fields[0];
 
 function keepFreshTradeQuote(current: Snapshot, next: Snapshot): Snapshot {
@@ -99,6 +99,6 @@ export function TradeCalculator({operation,snapshot,favoriteSlot}:{operation:Cal
     <details className="calc-result-details"><summary>کارمزد و هزینه‌ها</summary><div className="trade-fields">{input('buyCost','کارمزد خرید','تومان')}{input('sellCost','کارمزد فروش','تومان')}{input('spread','هزینه اسپرد','تومان')}</div></details>
     <button className="button calc-tool-panel__go" disabled={pending || (mode==='LIVE' ? !live : !(Number(current)>0))}>{pending?'در حال محاسبه…':'محاسبه'}</button>
     {error?<p className="calc-error" role="alert">{error}</p>:null}
-    <OverlaySheet open={!!result} title="نتیجه سناریوی معامله" onClose={()=>setResult(null)}><div className="ds-overlay__result trade-calculator__result">{result?.outputs.filter(output=>!hiddenReportRows.has(output.label) || !quick && output.label==='میانگین وزنی').map(output=>({...output,...goldDisplay(output.value,output.unit,output.unit==='گرم'?'gram':goldUnit)})).map((o,i)=><div className="ds-overlay__result-row" key={i}><span>{o.label}</span><strong className={o.label.includes('سود')?(o.value<0?'is-down':'is-up'):''}>{num(o.value,o.unit.startsWith('تومان')?0:4)} <small>{o.unit}</small></strong></div>)}<small>سناریوی محاسباتی بر اساس ورودی‌ها؛ قیمت هدف پیش‌بینی نشده است.</small></div></OverlaySheet>
+    <OverlaySheet open={!!result} title="نتیجه سناریوی معامله" onClose={()=>setResult(null)}><div className="ds-overlay__result trade-calculator__result">{result?.outputs.filter(output=>!hiddenReportRows.has(output.label) || !quick && output.label==='میانگین خرید').map(output=>({...output,...goldDisplay(output.value,output.unit,output.unit==='گرم'?'gram':goldUnit)})).map((o,i)=><div className="ds-overlay__result-row" key={i}><span>{o.label}</span><strong className={o.label.includes('سود')?(o.value<0?'is-down':'is-up'):''}>{num(o.value,o.unit.startsWith('تومان')?0:4)} <small>{o.unit}</small></strong></div>)}<small>سناریوی محاسباتی بر اساس ورودی‌ها؛ قیمت هدف پیش‌بینی نشده است.</small></div></OverlaySheet>
   </form>;
 }

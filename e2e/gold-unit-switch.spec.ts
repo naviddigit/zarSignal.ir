@@ -29,7 +29,10 @@ test('gold and trade inputs convert once and preserve canonical calculation valu
   await expect(gold.getByRole('textbox', { name: /قیمت (گرم|مثقال) طلای ۱۸ عیار/ })).toHaveValue('43,318,000');
   await gold.getByRole('button', { name: 'محاسبه', exact: true }).click();
   expect(sent.inputs.gram.value).toBe(10000000);
-  await expect(page.getByRole('dialog', { name: 'نتیجه محاسبه' })).toContainText('مثقال');
+  const capitalResult = page.getByRole('dialog', { name: 'نتیجه محاسبه' });
+  const availableWeight = capitalResult.locator('.ds-overlay__result-row').filter({ has: page.getByText('وزن نظری قابل تهیه', { exact: true }) });
+  await expect(availableWeight).toContainText('10');
+  await expect(availableWeight).toContainText('گرم');
   await page.keyboard.press('Escape');
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await gold.getByRole('button', { name: 'طلای خالص', exact: true }).click();
@@ -62,7 +65,7 @@ test('gold and trade inputs convert once and preserve canonical calculation valu
   expect(sent.trade.weight).toBeCloseTo(4.33185);
   await expect(page.getByRole('dialog', { name: 'نتیجه سناریوی معامله' })).toContainText('گرم');
   const report = page.getByRole('dialog', { name: 'نتیجه سناریوی معامله' });
-  for (const label of ['میانگین وزنی', 'بازده فعلی', 'سربه‌سر با هزینه‌ها', 'فاصله قیمت فعلی تا سربه‌سر', 'بازده در هدف', 'بازده در حد ضرر', 'نسبت فاصله هدف به حد ضرر', 'نسبت سود به ریسک خالص']) {
+  for (const label of ['میانگین خرید', 'بازده فعلی', 'سربه‌سر با هزینه‌ها', 'فاصله قیمت فعلی تا سربه‌سر', 'بازده در هدف', 'بازده در حد ضرر', 'نسبت فاصله هدف به حد ضرر', 'نسبت سود به ریسک خالص']) {
     await expect(report.getByText(label, { exact: true })).toHaveCount(0);
   }
   await expect(report.getByText('سود/زیان خالص در هدف', { exact: true })).toBeVisible();

@@ -89,7 +89,7 @@ export function calculateTrade(body: unknown, snapshot: Snapshot): CalculatorRes
     const pnl=(price:number)=>sign*(price-average)*weight-costs;
     const breakEven=average+sign*costs/weight;
     if(req.operation === 'tradeSimulator') out('سرمایه باقی‌مانده',t.capital-invested-buyCost);
-    out('وزن کل',weight,'گرم'); out('سرمایه خرید',invested);out('سرمایه با کارمزد خرید',invested+buyCost);out('میانگین وزنی',average,'تومان / گرم');
+    out('وزن کل',weight,'گرم'); out('سرمایه خرید',invested);out('سرمایه با کارمزد خرید',invested+buyCost);out('میانگین خرید',average,'تومان / گرم');
     if(req.operation==='positionManager') out('سرمایه خریدهای جدید',additional);
     out('ارزش فعلی',current*weight);out('سود/زیان فعلی خالص',pnl(current));out('بازده فعلی',pnl(current)/(invested+buyCost)*100,'درصد');out('سربه‌سر با هزینه‌ها',breakEven,'تومان / گرم');out('فاصله قیمت فعلی تا سربه‌سر',(breakEven/current-1)*100,'درصد');
     if(req.operation === 'quickTrade' || t.target > 0 || t.stop > 0) {

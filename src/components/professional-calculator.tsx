@@ -410,7 +410,9 @@ export function ProfessionalCalculator({
   }
 
   const convertible = operation === 'fineGold' || operation === 'capitalGold' || product === 'trade';
-  const shown = (value: number, unit: string) => convertible ? goldDisplay(value, unit, goldUnit) : { value, unit };
+  // Capital-to-gold accepts a mesghal price, but its purchase-weight result is always grams.
+  // Keep the display switch on its inputs only so the canonical gram result is not divided again.
+  const shown = (value: number, unit: string) => convertible && operation !== 'capitalGold' ? goldDisplay(value, unit, goldUnit) : { value, unit };
   const shownLabel = (label: string, unit: string) => convertible && shown(1, unit).unit !== unit ? label.replace(goldUnit === 'mesghal' ? /گرم/g : /مثقال/g, goldUnit === 'mesghal' ? 'مثقال' : 'گرم') : label;
   const displayedOutputs = result?.outputs.map(output => {
     const converted = operation === 'fineGold' && output.label === 'طلای خالص' ? output : shown(output.value, output.unit);

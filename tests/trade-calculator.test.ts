@@ -11,11 +11,11 @@ const values=(result:ReturnType<typeof run>)=>Object.fromEntries(result.outputs.
 test('quick-trade weighted entries, cost accounting, sell direction and partial exits',()=>{
   const quick=values(run('quickTrade',{}));assert.equal(quick['سود/زیان خالص در هدف'],190);assert.equal(quick['سربه‌سر با هزینه‌ها'],101);
   const sale=values(run('quickTrade',{direction:'SELL',target:80,stop:110}));assert.equal(sale['سود/زیان خالص در هدف'],190);assert.equal(sale['سربه‌سر با هزینه‌ها'],99);
-  const scaled=values(run('scaleIn',{rows:[{price:100,weight:10},{price:80,weight:30}],target:120,stop:70}));assert.equal(scaled['میانگین وزنی'],85);assert.equal(scaled['وزن کل'],40);
+  const scaled=values(run('scaleIn',{rows:[{price:100,weight:10},{price:80,weight:30}],target:120,stop:70}));assert.equal(scaled['میانگین خرید'],85);assert.equal(scaled['وزن کل'],40);
   const exit=values(run('scaleOut',{rows:[{price:120,weight:4}]}));assert.equal(exit['باقی‌مانده'],6);assert.equal(exit['سود/زیان تحقق‌یافته'],73);assert.equal(exit['سود/زیان تحقق‌نیافته'],-3);assert.equal(exit['سود/زیان کل'],70);
   assert.throws(()=>run('scaleOut',{rows:[{price:120,weight:11}]}),/موجودی/);
-  const position=values(run('positionManager',{rows:[{price:80,weight:10}],desired:90,newPrice:80,stop:70}));assert.equal(position['میانگین وزنی'],90);assert.equal(position['خرید لازم برای میانگین هدف'],10);
-  const sim=values(run('tradeSimulator',{rows:[{price:0,percent:-10,weight:10}],stop:70}));assert.equal(sim['میانگین وزنی'],90);
+  const position=values(run('positionManager',{rows:[{price:80,weight:10}],desired:90,newPrice:80,stop:70}));assert.equal(position['میانگین خرید'],90);assert.equal(position['خرید لازم برای میانگین هدف'],10);
+  const sim=values(run('tradeSimulator',{rows:[{price:0,percent:-10,weight:10}],stop:70}));assert.equal(sim['میانگین خرید'],90);
   assert.throws(()=>run('tradeSimulator',{capital:800,rows:[{price:90,weight:10}],stop:70}),/سرمایه/);
   assert.throws(()=>run('scaleIn',{rows:Array.from({length:11},()=>({price:100,weight:1}))}),/حداکثر/);
 });
@@ -32,7 +32,7 @@ test('position target averaging works without additional purchases and simulator
   assert.equal(position['خرید لازم برای میانگین هدف'],10);
   assert.equal(position['سرمایه لازم برای میانگین هدف'],800);
   assert.equal(position['وزن کل'],10);
-  assert.equal(position['میانگین وزنی'],100);
+  assert.equal(position['میانگین خرید'],100);
   assert.throws(()=>run('positionManager',{rows:[],desired:80,newPrice:80,target:0,stop:0}),/دست‌یافتنی/);
   const simulation=values(run('tradeSimulator',{capital:1000,rows:[{price:0,percent:-10,weight:10}],stop:70}));
   assert.equal(simulation['پله 1 · وزن'],10);
@@ -49,6 +49,6 @@ test('step averages do not require inventory or target/stop, but profit still re
   assert.throws(()=>run('scaleOut',{entry:100,weight:0,rows:[{price:120,weight:25}]}),/وزن موجود/);
   assert.throws(()=>run('scaleOut',{entry:0,weight:100,rows:[{price:120,weight:25}]}),/میانگین خرید/);
   const purchase=values(run('scaleIn',{rows:[{price:120,weight:25},{price:100,weight:75}],target:0,stop:0}));
-  assert.equal(purchase['میانگین وزنی'],105);
+  assert.equal(purchase['میانگین خرید'],105);
   assert.equal(purchase['وزن کل'],100);
 });
