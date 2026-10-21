@@ -9,8 +9,9 @@ test('gold and trade inputs convert once and preserve canonical calculation valu
     import {TradeCalculator} from './src/components/trade-calculator';
     import {defaultCalculatorAccessPolicy} from './src/lib/calculator-access';
     import {defaultCalculatorNavigation} from './src/lib/calculator-navigation';
-    const snapshot={mode:'live',status:'unavailable',quotes:[]};
-    createRoot(document.getElementById('root')).render(<><ProfessionalCalculator snapshot={snapshot} accessPolicy={defaultCalculatorAccessPolicy} navigation={defaultCalculatorNavigation}/><div id="trade"><TradeCalculator operation="quickTrade" snapshot={snapshot}/></div><div id="purchase"><TradeCalculator operation="scaleIn" snapshot={snapshot}/></div></>);`, loader: 'tsx', resolveDir: process.cwd() }, bundle: true, write: false, jsx: 'automatic', define: { 'process.env': '{}', 'process.env.NODE_ENV': '"production"' } });
+    const snapshot={mode:'live',status:'ok',quotes:[{symbol:'GOLD_MELTED',buy:'113000000',sell:'115000000',currency:'TMN',unit:'مثقال',source:'test',sourceUrl:null,observedAt:new Date().toISOString(),fetchedAt:new Date().toISOString()}]};
+    const emptySnapshot={mode:'live',status:'stale',quotes:[]};
+    createRoot(document.getElementById('root')).render(<><ProfessionalCalculator snapshot={emptySnapshot} accessPolicy={defaultCalculatorAccessPolicy} navigation={defaultCalculatorNavigation}/><div id="trade"><TradeCalculator operation="quickTrade" snapshot={snapshot}/></div><div id="purchase"><TradeCalculator operation="scaleIn" snapshot={snapshot}/></div></>);`, loader: 'tsx', resolveDir: process.cwd() }, bundle: true, write: false, jsx: 'automatic', define: { 'process.env': '{}', 'process.env.NODE_ENV': '"production"' } });
   const css = (await Promise.all(['globals.css', 'theme.css', 'calculator/calculator.css'].map(file => readFile(`src/app/${file}`, 'utf8')))).join('\n');
   await page.route('**/__gold-unit-fixture', route => route.fulfill({ contentType: 'text/html', body: `<html lang="fa" dir="rtl" class="site-ready"><meta name="viewport" content="width=device-width,initial-scale=1"><style>${css}</style><main id="root" style="max-width:980px;margin:16px auto;width:calc(100% - 32px)"></main><script>${bundle.outputFiles[0].text.replaceAll('</script', '<\\/script')}</script></html>` }));
   let sent: any;
@@ -18,6 +19,7 @@ test('gold and trade inputs convert once and preserve canonical calculation valu
     sent = route.request().postDataJSON();
     return route.fulfill({ json: calculateProfessional(sent, { mode: 'live', status: 'unavailable', quotes: [] }) });
   });
+  await page.route('**/api/public/markets', route => route.fulfill({ json: { mode: 'live', status: 'stale', quotes: [] } }));
   await page.goto('/__gold-unit-fixture');
   const gold = page.locator('.professional-calculator');
   await gold.getByRole('button', { name: 'سرمایه به طلا', exact: true }).click();
@@ -41,6 +43,8 @@ test('gold and trade inputs convert once and preserve canonical calculation valu
   await page.keyboard.press('Escape');
   await expect(page.getByRole('dialog')).toHaveCount(0);
   const trade = page.locator('#trade');
+  await expect(trade.locator('.trade-price__number')).toContainText(new Intl.NumberFormat('fa-IR').format(114000000));
+  await trade.getByRole('group', { name: 'منبع قیمت فعلی' }).getByRole('button', { name: 'دستی', exact: true }).click();
   await trade.getByRole('group', { name: 'واحد طلای ۱۸ عیار' }).getByRole('button', { name: 'گرم ۱۸', exact: true }).click();
   await trade.getByRole('textbox', { name: 'قیمت فعلی', exact: true }).fill('10000000');
   await trade.getByRole('textbox', { name: 'قیمت ورود', exact: true }).fill('9000000');
@@ -81,6 +85,8 @@ test('gold and trade inputs convert once and preserve canonical calculation valu
   await page.keyboard.press('Escape');
   await expect(page.getByRole('dialog')).toHaveCount(0);
   const purchase = page.locator('#purchase');
+  await expect(purchase.locator('.trade-price__number')).toContainText(new Intl.NumberFormat('fa-IR').format(114000000));
+  await purchase.getByRole('group', { name: 'منبع قیمت فعلی' }).getByRole('button', { name: 'دستی', exact: true }).click();
   await expect(purchase.getByRole('button', { name: 'مثقال', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await purchase.getByRole('textbox', { name: 'قیمت فعلی', exact: true }).fill('113900000');
   for (const [index, price] of [110000000, 110750000].entries()) {

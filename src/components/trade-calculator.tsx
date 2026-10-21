@@ -14,10 +14,20 @@ import { GoldUnitSwitch } from '@/components/gold-unit-switch';
 import { goldDisplay, type GoldDisplayUnit } from '@/lib/gold-display-unit';
 const num = (value:number, maximumFractionDigits=4) => new Intl.NumberFormat('fa-IR',{maximumFractionDigits}).format(value);
 const hiddenReportRows = new Set(['میانگین وزنی','بازده فعلی','سربه‌سر با هزینه‌ها','فاصله قیمت فعلی تا سربه‌سر','بازده در هدف','بازده در حد ضرر','نسبت فاصله هدف به حد ضرر','نسبت سود به ریسک خالص']);
+const tradePriceField = calculatorCatalog.quickTrade.fields[0];
+
+function keepFreshTradeQuote(current: Snapshot, next: Snapshot): Snapshot {
+  if (next.mode !== 'live' || resolveCalculatorLiveValue(tradePriceField, next)) return next;
+  if (!resolveCalculatorLiveValue(tradePriceField, current)) return next;
+  const quote = current.quotes.find(item => item.symbol === 'GOLD_MELTED');
+  if (!quote) return next;
+  return { ...next, quotes: [...next.quotes.filter(item => item.symbol !== quote.symbol), quote] };
+}
+
 export function TradeCalculator({operation,snapshot,favoriteSlot}:{operation:CalculatorOperation;snapshot:Snapshot;favoriteSlot?:ReactNode}) {
   const [market,setMarket]=useState(snapshot);
   const [goldUnit,setGoldUnit]=useState<GoldDisplayUnit>('mesghal');
-  const initial=resolveCalculatorLiveValue(calculatorCatalog.quickTrade.fields[0],snapshot);
+  const initial=resolveCalculatorLiveValue(tradePriceField,snapshot);
   const [mode,setMode]=useState<'LIVE'|'MANUAL'>(initial?'LIVE':'MANUAL');
   const [current,setCurrent]=useState(initial?String(initial.value):'');
   const [direction,setDirection]=useState('BUY');
@@ -34,7 +44,7 @@ export function TradeCalculator({operation,snapshot,favoriteSlot}:{operation:Cal
       busy = true;
       try {
         const next = await fetchJson<Snapshot>('/api/public/markets', controller.signal, 10000);
-        if (!controller.signal.aborted) setMarket(next);
+        if (!controller.signal.aborted) setMarket(current => keepFreshTradeQuote(current, next));
       } catch { /* Keep the stored quote and its original freshness timestamp. */ }
       finally { busy = false; }
     };
@@ -44,14 +54,14 @@ export function TradeCalculator({operation,snapshot,favoriteSlot}:{operation:Cal
   }, [mode, snapshot.pollSeconds]);
   if(!isTradeOperation(operation)) return null;
   const sell=operation==='scaleOut',position=operation==='positionManager',quick=operation==='quickTrade',simulator=operation==='tradeSimulator';
-  const live=resolveCalculatorLiveValue(calculatorCatalog.quickTrade.fields[0],market);
+  const live=resolveCalculatorLiveValue(tradePriceField,market);
   const price=mode==='LIVE'?live?.value:Number(current);
   const update=(key:string,value:string)=>{setFields(f=>({...f,[key]:value}));setResult(null);setError('');};
   const updateRows=(change:(current:typeof rows)=>typeof rows)=>{setRows(change);setResult(null);setError('');};
   const input=(key:string,label:string,unit='تومان / گرم')=><label className="trade-field"><span>{label}</span><GoldUnitInput className="ds-input" inputMode="decimal" dir="ltr" value={fields[key]??''} unit={unit} display={unit==='گرم'?'gram':goldUnit} onValueChange={value=>update(key,value)} aria-label={label}/><small>{goldDisplay(1,unit,unit==='گرم'?'gram':goldUnit).unit}</small></label>;
   async function refresh() {
     setPending(true);setError('');
-    try { const next=await fetchJson<Snapshot>('/api/public/markets?fresh=1',new AbortController().signal,60000);setMarket(next);if(!resolveCalculatorLiveValue(calculatorCatalog.quickTrade.fields[0],next)) setError('قیمت تازه موجود نیست؛ ورود دستی در دسترس است.'); }
+    try { const next=keepFreshTradeQuote(market,await fetchJson<Snapshot>('/api/public/markets?fresh=1',new AbortController().signal,60000));setMarket(next);if(!resolveCalculatorLiveValue(tradePriceField,next)) setError('قیمت زندهٔ تازه در دسترس نیست؛ حالت دستی را انتخاب کنید.'); }
     catch {setError('دریافت قیمت ناموفق بود.');} finally {setPending(false);}
   }
   return <form className="calc-tool-panel trade-calculator" onSubmit={async e=>{
@@ -69,7 +79,7 @@ export function TradeCalculator({operation,snapshot,favoriteSlot}:{operation:Cal
     <section className="trade-price" aria-label="قیمت فعلی طلای آب‌شده">
       <div className="trade-price__head"><strong>آب‌شده · {goldUnit==='gram'?'تومان / گرم ۱۸':'تومان / مثقال'}</strong><button type="button" className="calc-tool-panel__refresh" onClick={refresh} disabled={pending} aria-label="تازه‌سازی قیمت"><RefreshCw size={16}/></button></div>
       <div className="calc-mode" role="group" aria-label="منبع قیمت فعلی"><button type="button" aria-pressed={mode==='LIVE'} className={mode==='LIVE'?'is-on':''} onClick={()=>{setMode('LIVE');if(!live)void refresh();}}>لحظه‌ای</button><button type="button" aria-pressed={mode==='MANUAL'} className={mode==='MANUAL'?'is-on':''} onClick={()=>{setMode('MANUAL');if(live)setCurrent(String(live.value));}}>دستی</button></div>
-      {mode==='LIVE'?<strong className="trade-price__number">{live?num(goldDisplay(live.value,'تومان / گرم',goldUnit).value):'در انتظار قیمت'}<small>{live?new Date(live.observedAt).toLocaleTimeString('fa-IR',{timeZone:'Asia/Tehran'}):''}</small></strong>:<GoldUnitInput className="ds-input" aria-label="قیمت فعلی" inputMode="decimal" dir="ltr" value={current} unit="تومان / گرم" display={goldUnit} onValueChange={value=>{setCurrent(value);setResult(null);setError('');}}/>}
+      {mode==='LIVE'?live?<strong className="trade-price__number">{num(goldDisplay(live.value,'تومان / گرم',goldUnit).value)}<small>{new Date(live.observedAt).toLocaleTimeString('fa-IR',{timeZone:'Asia/Tehran'})}</small></strong>:<div className="trade-price__unavailable" role="status"><strong>قیمت زنده در دسترس نیست</strong><small>تازه‌سازی کنید یا «دستی» را انتخاب کنید.</small></div>:<GoldUnitInput className="ds-input" aria-label="قیمت فعلی" inputMode="decimal" dir="ltr" value={current} unit="تومان / گرم" display={goldUnit} onValueChange={value=>{setCurrent(value);setResult(null);setError('');}}/>}
     </section>
     {quick?<button type="button" className="chart-retry" disabled={!price} onClick={()=>update('entry',String(price))}>قیمت فعلی برای ورود</button>:null}
     {quick?<Select label="نوع معامله" value={direction} onChange={value=>{setDirection(value);setResult(null);setError('');}} options={[{value:'BUY',label:'خرید → فروش در هدف'},{value:'SELL',label:'فروش → بازخرید در هدف'}]}/>:null}
@@ -87,8 +97,8 @@ export function TradeCalculator({operation,snapshot,favoriteSlot}:{operation:Cal
     {!sell ? !quick ? <details className="calc-result-details"><summary>هدف و حد ضرر (اختیاری)</summary><div className="trade-fields">{input('target','قیمت هدف')}{input('stop','حد ضرر')}</div></details> : <div className="trade-fields">{input('target','قیمت هدف')}{input('stop','حد ضرر')}</div> : null}
     {position?<details className="calc-result-details"><summary>خرید لازم برای رسیدن به میانگین هدف</summary><div className="trade-fields">{input('desired','میانگین هدف')}{input('newPrice','قیمت خرید جدید')}</div></details>:null}
     <details className="calc-result-details"><summary>کارمزد و هزینه‌ها</summary><div className="trade-fields">{input('buyCost','کارمزد خرید','تومان')}{input('sellCost','کارمزد فروش','تومان')}{input('spread','هزینه اسپرد','تومان')}</div></details>
-    <button className="button calc-tool-panel__go" disabled={pending}>{pending?'در حال محاسبه…':'محاسبه'}</button>
+    <button className="button calc-tool-panel__go" disabled={pending || (mode==='LIVE' ? !live : !(Number(current)>0))}>{pending?'در حال محاسبه…':'محاسبه'}</button>
     {error?<p className="calc-error" role="alert">{error}</p>:null}
-    <OverlaySheet open={!!result} title="نتیجه سناریوی معامله" onClose={()=>setResult(null)}><div className="ds-overlay__result">{result?.outputs.filter(output=>!hiddenReportRows.has(output.label) || !quick && output.label==='میانگین وزنی').map(output=>({...output,...goldDisplay(output.value,output.unit,output.unit==='گرم'?'gram':goldUnit)})).map((o,i)=><div className="ds-overlay__result-row" key={i}><span>{o.label}</span><strong className={o.label.includes('سود')?(o.value<0?'is-down':'is-up'):''}>{num(o.value,o.unit.startsWith('تومان')?0:4)} <small>{o.unit}</small></strong></div>)}<small>سناریوی محاسباتی بر اساس ورودی‌ها؛ قیمت هدف پیش‌بینی نشده است.</small></div></OverlaySheet>
+    <OverlaySheet open={!!result} title="نتیجه سناریوی معامله" onClose={()=>setResult(null)}><div className="ds-overlay__result trade-calculator__result">{result?.outputs.filter(output=>!hiddenReportRows.has(output.label) || !quick && output.label==='میانگین وزنی').map(output=>({...output,...goldDisplay(output.value,output.unit,output.unit==='گرم'?'gram':goldUnit)})).map((o,i)=><div className="ds-overlay__result-row" key={i}><span>{o.label}</span><strong className={o.label.includes('سود')?(o.value<0?'is-down':'is-up'):''}>{num(o.value,o.unit.startsWith('تومان')?0:4)} <small>{o.unit}</small></strong></div>)}<small>سناریوی محاسباتی بر اساس ورودی‌ها؛ قیمت هدف پیش‌بینی نشده است.</small></div></OverlaySheet>
   </form>;
 }
