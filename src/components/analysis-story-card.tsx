@@ -39,7 +39,7 @@ export function AnalysisStoryCardButton({
   const [opened, setOpened] = useState(false);
   const [dark, setDark] = useState(true);
   const [focus, setFocus] = useState(0);
-  const [template, setTemplate] = useState<StoryTemplateId>('vault_dark');
+  const [template, setTemplate] = useState<StoryTemplateId>('market_overview_clean');
   const [status, setStatus] = useState<'idle' | 'building' | 'ready' | 'error'>('idle');
   const [error, setError] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -148,13 +148,13 @@ export function AnalysisStoryCardButton({
               setStatus('idle');
             }}
           >
-            <span className={`analysis-story-swatch is-${id}`} aria-hidden="true"><i /><i /><i /></span>
+            <span className={`analysis-story-swatch is-${id}`} style={id.startsWith('market_overview') ? { backgroundImage: `url(/story-templates/${id === 'market_overview_clean' ? 'market-overview-clean.webp' : 'market-overview-rich.webp'})` } : undefined} aria-hidden="true">{id.startsWith('market_overview') ? null : <><i /><i /><i /></>}</span>
             {STORY_TEMPLATE_LABELS[id]}
           </button>
         ))}
       </div>
-      <div className="story-theme-row"><span>رنگ تصویر</span><div className="alert-direction-options" role="group" aria-label="تم تصویر">{[{ value: true, label: 'تیره' }, { value: false, label: 'روشن' }].map(item => <button key={item.label} type="button" disabled={status === 'building'} aria-pressed={dark === item.value} onClick={() => { setDark(item.value); setStatus('idle'); }}>{item.label}</button>)}</div></div>
-      {backgrounds.length ? <div className="story-background-picker" role="group" aria-label="پس‌زمینه استوری">
+      {!template.startsWith('market_overview') ? <div className="story-theme-row"><span>رنگ تصویر</span><div className="alert-direction-options" role="group" aria-label="تم تصویر">{[{ value: true, label: 'تیره' }, { value: false, label: 'روشن' }].map(item => <button key={item.label} type="button" disabled={status === 'building'} aria-pressed={dark === item.value} onClick={() => { setDark(item.value); setStatus('idle'); }}>{item.label}</button>)}</div></div> : null}
+      {!template.startsWith('market_overview') && backgrounds.length ? <div className="story-background-picker" role="group" aria-label="پس‌زمینه استوری">
         <button type="button" disabled={status === 'building'} aria-pressed={!backgroundId} onClick={() => { setBackgroundId(''); setStatus('idle'); }}>پس‌زمینه اصلی</button>
         {backgrounds.map(item => <button type="button" key={item.id} disabled={status === 'building'} aria-pressed={backgroundId === item.id} onClick={() => { setBackgroundId(item.id); setStatus('idle'); }}><span style={{ background: `linear-gradient(${item.start},${item.end})` }}>{item.imageUrl ? <img src={item.imageUrl} alt="" /> : null}</span>{item.title}</button>)}
       </div> : null}

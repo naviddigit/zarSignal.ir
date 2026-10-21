@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { build } from 'esbuild';
-import { readFile } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
 test.setTimeout(90000);
 
 test('analysis summary and story trigger stay compact on the real page', async ({ page }) => {
@@ -107,13 +107,35 @@ test('history and feedback open only on request and saved feedback survives reop
   await page.keyboard.press('Escape'); await expect(page.getByRole('dialog')).toHaveCount(0);
   await page.getByRole('button', { name: 'ساخت استوری', exact: true }).click();
   const studio = page.getByRole('dialog', { name: 'استودیوی استوری' });
+  const cleanTemplate = studio.getByRole('button', { name: 'نمای کلی بازار', exact: true });
+  await expect(cleanTemplate).toHaveAttribute('aria-pressed', 'true');
+  await studio.getByRole('button', { name: 'ساخت پیش‌نمایش', exact: true }).click();
+  const cleanPreview = studio.getByRole('img', { name: /پیش‌نمایش استوری/ });
+  await expect(cleanPreview).toBeVisible({ timeout: 20000 });
+  await expect.poll(() => cleanPreview.evaluate(image => { const element = image as HTMLImageElement; return [element.naturalWidth, element.naturalHeight]; })).toEqual([1080, 1920]);
+  const cleanPng = await cleanPreview.evaluate(async image => { const blob = await (await fetch((image as HTMLImageElement).src)).blob(); return await new Promise<string>(resolve => { const reader = new FileReader(); reader.onload = () => resolve(String(reader.result).split(',')[1] ?? ''); reader.readAsDataURL(blob); }); });
+  await writeFile(`artifacts/story-template-clean-full-${test.info().project.name}.png`, Buffer.from(cleanPng, 'base64'));
+  await cleanPreview.screenshot({ path: `artifacts/story-template-clean-${test.info().project.name}.png` });
+  const richTemplate = studio.getByRole('button', { name: 'نمای کلی بازار · طلایی', exact: true });
+  await richTemplate.click();
+  await expect(richTemplate).toHaveAttribute('aria-pressed', 'true');
+  await studio.getByRole('button', { name: 'ساخت پیش‌نمایش', exact: true }).click();
+  const richPreview = studio.getByRole('img', { name: /پیش‌نمایش استوری/ });
+  await expect(richPreview).toBeVisible({ timeout: 20000 });
+  await expect.poll(() => richPreview.evaluate(image => { const element = image as HTMLImageElement; return [element.naturalWidth, element.naturalHeight]; })).toEqual([1080, 1920]);
+  const richPng = await richPreview.evaluate(async image => { const blob = await (await fetch((image as HTMLImageElement).src)).blob(); return await new Promise<string>(resolve => { const reader = new FileReader(); reader.onload = () => resolve(String(reader.result).split(',')[1] ?? ''); reader.readAsDataURL(blob); }); });
+  await writeFile(`artifacts/story-template-rich-full-${test.info().project.name}.png`, Buffer.from(richPng, 'base64'));
+  await richPreview.screenshot({ path: `artifacts/story-template-rich-${test.info().project.name}.png` });
+  const originalTemplate = studio.getByRole('button', { name: 'نبض بازار', exact: true });
+  await originalTemplate.click();
+  await expect(originalTemplate).toHaveAttribute('aria-pressed', 'true');
   await studio.getByRole('button', { name: 'آبی اختصاصی', exact: true }).click();
-  await expect(studio.getByRole('button', { name: 'آبی اختصاصی', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await studio.getByRole('button', { name: 'روشن', exact: true }).click();
+  await expect(studio.getByRole('button', { name: 'آبی اختصاصی', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await expect(studio.getByRole('button', { name: 'روشن', exact: true })).toHaveAttribute('aria-pressed', 'true');
-  await studio.screenshot({ path: `artifacts/analysis-studio-${test.info().project.name}.png` });
   await studio.getByRole('button', { name: 'ساخت پیش‌نمایش', exact: true }).click();
   await expect(studio.getByRole('img', { name: /پیش‌نمایش استوری/ })).toBeVisible({ timeout: 20000 });
+  await studio.screenshot({ path: `artifacts/analysis-studio-${test.info().project.name}.png` });
   await page.keyboard.press('Escape'); await expect(page.getByRole('dialog')).toHaveCount(0);
   expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
   await page.screenshot({ path: `artifacts/analysis-compact-${test.info().project.name}.png`, fullPage: true });

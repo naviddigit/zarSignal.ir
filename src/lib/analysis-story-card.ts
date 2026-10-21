@@ -30,7 +30,20 @@ export type StoryPublicPayload = {
   /** Optional; only from a real commercial entitlement — never invented for guests. */
   planBadge: string | null;
   testDataLabel: string | null;
+  marketBoard: {
+    gold: string;
+    goldUnit: 'گرم' | 'مثقال';
+    silver: string;
+    coin: string;
+    notes: string;
+    summary: string;
+    observedDate: string;
+  };
 };
+
+function valueOnly(label: string | null | undefined) {
+  return label?.trim().split(/\s+/)[0] || '—';
+}
 
 function toneFor(diff: number | null): StoryMetricTone {
   if (diff == null || !Number.isFinite(diff)) return 'missing';
@@ -92,6 +105,9 @@ export function buildStoryPublicPayload(
   const planBadge = options?.showPlanBadge && commercial
     ? options.planLabel!.trim()
     : null;
+  const evidence = (id: string) => report.evidence.find(row => row.id === id);
+  const gold = report.symbol === 'GOLD_MELTED' ? evidence('gold') : evidence('gold_direct') ?? evidence('gold');
+  const observedDate = report.dataObservedAtIso ? formatTehranStamp(report.dataObservedAtIso).split('،')[0] : '';
 
   return {
     brand: 'زرسیگنال',
@@ -104,6 +120,15 @@ export function buildStoryPublicPayload(
     linkLabel,
     planBadge,
     testDataLabel: options?.testDataLabel ?? null,
+    marketBoard: {
+      gold: valueOnly(gold?.marketPriceLabel),
+      goldUnit: report.symbol === 'GOLD_MELTED' ? 'مثقال' : 'گرم',
+      silver: valueOnly(evidence('silver')?.marketPriceLabel),
+      coin: valueOnly(evidence('coin')?.marketPriceLabel),
+      notes: report.marketSays,
+      summary: report.summaryLines[0],
+      observedDate,
+    },
   };
 }
 

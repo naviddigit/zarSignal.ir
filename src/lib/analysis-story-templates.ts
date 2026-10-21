@@ -1,9 +1,11 @@
 /** Story layout templates for 1080×1920 Instagram PNG export. */
 
-export const STORY_TEMPLATES = ['vault_dark', 'studio_light', 'dual_metal'] as const;
+export const STORY_TEMPLATES = ['market_overview_clean', 'market_overview_rich', 'vault_dark', 'studio_light', 'dual_metal'] as const;
 export type StoryTemplateId = (typeof STORY_TEMPLATES)[number];
 
 export const STORY_TEMPLATE_LABELS: Record<StoryTemplateId, string> = {
+  market_overview_clean: 'نمای کلی بازار',
+  market_overview_rich: 'نمای کلی بازار · طلایی',
   vault_dark: 'نبض بازار',
   studio_light: 'تمرکز روی یک دارایی',
   dual_metal: 'مقایسهٔ طلا و نقره',

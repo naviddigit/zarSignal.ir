@@ -109,8 +109,19 @@ test('story payload stays public and uses live summary link wording', () => {
   assert.doesNotMatch(payload.url, /request=/);
   assert.equal(payload.metrics.length, 3);
   assert.match(payload.disclaimer, /نه سیگنال خرید و فروش/);
+  assert.equal(payload.marketBoard.gold, '1');
+  assert.equal(payload.marketBoard.goldUnit, 'گرم');
+  assert.equal(payload.marketBoard.silver, '1');
+  assert.equal(payload.marketBoard.coin, '—');
+  assert.equal(payload.marketBoard.summary, 'طلا پایین‌تر و نقره بالاتر از مرجع است.');
   assert.doesNotMatch(JSON.stringify(payload), /نتیجه خصوصی|محدودیت خصوصی|خصوصی/);
   assertStoryPayloadPublic(payload);
+});
+
+test('melted gold story labels the main gold price per mesghal', () => {
+  const payload = buildStoryPublicPayload(sampleReport({ symbol: 'GOLD_MELTED' }), 'https://www.zarsignal.ir');
+  assert.equal(payload.marketBoard.gold, '1');
+  assert.equal(payload.marketBoard.goldUnit, 'مثقال');
 });
 
 test('story plan badge only from active commercial entitlement when opted in', () => {
@@ -164,7 +175,8 @@ test('specialized plan is not sellable on inactive engine alone', () => {
 
 test('story templates are named and USD gap is labeled honestly', () => {
   const { STORY_TEMPLATES, STORY_TEMPLATE_LABELS } = require('../src/lib/analysis-story-templates') as typeof import('../src/lib/analysis-story-templates');
-  assert.deepEqual([...STORY_TEMPLATES], ['vault_dark', 'studio_light', 'dual_metal']);
+  assert.deepEqual([...STORY_TEMPLATES], ['market_overview_clean', 'market_overview_rich', 'vault_dark', 'studio_light', 'dual_metal']);
+  assert.match(STORY_TEMPLATE_LABELS.market_overview_clean, /بازار/);
   assert.match(STORY_TEMPLATE_LABELS.vault_dark, /نبض/);
   assert.match(STORY_TEMPLATE_LABELS.studio_light, /دارایی/);
   const payload = buildStoryPublicPayload(sampleReport(), 'https://www.zarsignal.ir');

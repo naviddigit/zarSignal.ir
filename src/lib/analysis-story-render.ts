@@ -66,6 +66,45 @@ export async function renderAnalysisStoryPng(payload: StoryPublicPayload, option
     ctx!.fillStyle = color;
     lines.forEach((line, i) => ctx!.fillText(line, x, y + i * size * 1.6));
   }
+  if (template === 'market_overview_clean' || template === 'market_overview_rich') {
+    const image = await loadImage(`/story-templates/${template === 'market_overview_clean' ? 'market-overview-clean.webp' : 'market-overview-rich.webp'}`);
+    ctx.drawImage(image, 0, 0, STORY_WIDTH, STORY_HEIGHT);
+    const scaleX = STORY_WIDTH / image.width;
+    const scaleY = STORY_HEIGHT / image.height;
+    const centered = (value: string, sourceX: number, sourceY: number, sourceWidth: number, size: number, color = '#ffe07b') => {
+      ctx!.save(); ctx!.direction = 'rtl'; ctx!.textAlign = 'center'; ctx!.textBaseline = 'middle';
+      let fontSize = size;
+      while (fontSize > 16) { ctx!.font = `800 ${fontSize}px ${FONT}`; if (ctx!.measureText(value).width <= sourceWidth * scaleX - 20) break; fontSize -= 2; }
+      ctx!.font = `800 ${fontSize}px ${FONT}`; ctx!.fillStyle = color;
+      ctx!.fillText(value, sourceX * scaleX, sourceY * scaleY, sourceWidth * scaleX - 20); ctx!.restore();
+    };
+    const panel = (x: number, y: number, width: number, height: number, heading: string, value: string) => {
+      ctx!.save(); ctx!.fillStyle = '#070b10ed'; ctx!.strokeStyle = '#e6bd55'; ctx!.lineWidth = 2;
+      ctx!.beginPath(); ctx!.roundRect(x, y, width, height, 20); ctx!.fill(); ctx!.stroke(); ctx!.restore();
+      text(heading, x + width - 24, y + 18, width - 48, 26, '#f5d776', 1, 800);
+      text(value, x + width - 24, y + 62, width - 48, 28, '#f8f5eb', 3, 600);
+    };
+    // Price fields are measured against the supplied 941×1671 blank artwork.
+    if (payload.marketBoard.gold !== '—') centered(payload.marketBoard.gold, 155, 770, 280, 34);
+    if (payload.marketBoard.silver !== '—') centered(payload.marketBoard.silver, 470, 770, 280, 34, '#d5e5f4');
+    if (payload.marketBoard.coin !== '—') centered(payload.marketBoard.coin, 785, 770, 280, 34);
+    if (payload.marketBoard.goldUnit === 'مثقال') {
+      ctx.fillStyle = '#080a0b';
+      ctx.fillRect(42 * scaleX, 727 * scaleY, 240 * scaleX, 24 * scaleY);
+      centered('قیمت لحظه‌ای (تومان/مثقال)', 162, 739, 238, 13, '#f5f1e8');
+    }
+    // Replace the sample date and QR with the live, public report date and its public URL.
+    ctx.fillStyle = '#070b10'; ctx.beginPath(); ctx.roundRect(34 * scaleX, 270 * scaleY, 225 * scaleX, 42 * scaleY, 12); ctx.fill();
+    if (payload.marketBoard.observedDate) centered(payload.marketBoard.observedDate, 145, 288, 210, 20, '#f7f3e9');
+    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.roundRect(776 * scaleX, 33 * scaleY, 126 * scaleX, 126 * scaleY, 12); ctx.fill();
+    const qr = await QRCode.toDataURL(payload.url, { errorCorrectionLevel: 'M', margin: 1, width: 160, color: { dark: '#101010', light: '#ffffff' } });
+    ctx.drawImage(await loadImage(qr), 782 * scaleX, 39 * scaleY, 114 * scaleX, 114 * scaleY);
+    panel(34 * scaleX, 930 * scaleY, 872 * scaleX, 154 * scaleY, 'نکات مهم', payload.marketBoard.notes);
+    panel(34 * scaleX, 1115 * scaleY, 872 * scaleX, 205 * scaleY, 'جمع‌بندی', payload.marketBoard.summary);
+    const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png'));
+    if (!blob) throw new Error('png_encode_failed');
+    return blob;
+  }
   function metric(item: StoryPublicMetric, x: number, y: number, width: number, height: number, large = false) {
     ctx!.fillStyle = palette.card;
     ctx!.beginPath(); ctx!.roundRect(x, y, width, height, 24); ctx!.fill();

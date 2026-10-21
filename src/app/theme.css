@@ -1591,6 +1591,7 @@ html[data-theme='light'] .market-view__watermark{opacity:.14;filter:none}
 .analysis-story-swatch i{position:absolute;width:17px;height:17px;border-radius:50%;background:linear-gradient(130deg,#fff4c7,#a17721);top:18px;left:45%}
 .analysis-story-swatch i:nth-child(2){top:57px;left:20%;background:linear-gradient(130deg,#f0f5ff,#74849a)}
 .analysis-story-swatch i:nth-child(3){top:57px;left:66%;background:linear-gradient(130deg,#b4ddc7,#326956)}
+.analysis-story-swatch.is-market_overview_clean,.analysis-story-swatch.is-market_overview_rich{background-size:cover;background-position:center}
 .analysis-story-swatch.is-studio_light{background:radial-gradient(circle,#d6b66b77,transparent),#eee8dc}
 .analysis-story-swatch.is-studio_light i:first-child{width:38px;height:38px;top:28px;left:calc(50% - 19px)}
 .analysis-story-swatch.is-studio_light i:not(:first-child){display:none}
