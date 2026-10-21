@@ -12,6 +12,7 @@ import {
   buildPlanCapabilityMatrix,
   specializedOfferReady,
 } from '../src/lib/plan-capability-matrix';
+import { demoQuotes } from '../src/lib/market';
 
 function sampleReport(partial?: Partial<MarketViewReport>): MarketViewReport {
   return {
@@ -109,8 +110,8 @@ test('story payload stays public and uses live summary link wording', () => {
   assert.doesNotMatch(payload.url, /request=/);
   assert.equal(payload.metrics.length, 3);
   assert.match(payload.disclaimer, /نه سیگنال خرید و فروش/);
-  assert.equal(payload.marketBoard.gold, '1');
-  assert.equal(payload.marketBoard.goldUnit, 'گرم');
+  assert.equal(payload.marketBoard.gold, '—');
+  assert.equal(payload.marketBoard.goldUnit, 'مثقال');
   assert.equal(payload.marketBoard.silver, '1');
   assert.equal(payload.marketBoard.coin, '—');
   assert.equal(payload.marketBoard.summary, 'طلا پایین‌تر و نقره بالاتر از مرجع است.');
@@ -122,6 +123,27 @@ test('melted gold story labels the main gold price per mesghal', () => {
   const payload = buildStoryPublicPayload(sampleReport({ symbol: 'GOLD_MELTED' }), 'https://www.zarsignal.ir');
   assert.equal(payload.marketBoard.gold, '1');
   assert.equal(payload.marketBoard.goldUnit, 'مثقال');
+});
+
+test('market overview story fills all three cards from the public snapshot', () => {
+  const prices: Record<string, string> = {
+    GOLD_MELTED: '115770000', GOLD_18K: '26750000', SILVER_999: '480000',
+    SEKE_CASH: '720000000', ROB_SEKE: '90000000',
+  };
+  const payload = buildStoryPublicPayload(sampleReport({ symbol: 'GOLD_MELTED' }), 'https://www.zarsignal.ir', {
+    snapshot: { mode: 'live', status: 'ok', quotes: demoQuotes.map(quote => ({
+      ...quote, sell: prices[quote.symbol] ?? quote.sell,
+    })) },
+    charts: { gold: [1, 2], silver: [3, 4], coin: [5, 6] },
+  });
+  assert.equal(payload.marketBoard.gold, '۱۱۵٬۷۷۰٬۰۰۰');
+  assert.equal(payload.marketBoard.silver, '۴۸۰٬۰۰۰');
+  assert.equal(payload.marketBoard.coin, '۷۲۰٬۰۰۰٬۰۰۰');
+  assert.notEqual(payload.marketBoard.gold18k, '—');
+  assert.notEqual(payload.marketBoard.coinIntrinsic, '—');
+  assert.notEqual(payload.marketBoard.coinBubble, '—');
+  assert.notEqual(payload.marketBoard.quarterBubble, '—');
+  assert.deepEqual(payload.marketBoard.charts, { gold: [1, 2], silver: [3, 4], coin: [5, 6] });
 });
 
 test('story plan badge only from active commercial entitlement when opted in', () => {

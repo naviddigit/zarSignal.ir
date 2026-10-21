@@ -72,35 +72,77 @@ export async function renderAnalysisStoryPng(payload: StoryPublicPayload, option
     const scaleX = STORY_WIDTH / image.width;
     const scaleY = STORY_HEIGHT / image.height;
     const centered = (value: string, sourceX: number, sourceY: number, sourceWidth: number, size: number, color = '#ffe07b') => {
+      if (!value) return;
       ctx!.save(); ctx!.direction = 'rtl'; ctx!.textAlign = 'center'; ctx!.textBaseline = 'middle';
+      const maxWidth = sourceWidth * scaleX - 18;
       let fontSize = size;
-      while (fontSize > 16) { ctx!.font = `800 ${fontSize}px ${FONT}`; if (ctx!.measureText(value).width <= sourceWidth * scaleX - 20) break; fontSize -= 2; }
-      ctx!.font = `800 ${fontSize}px ${FONT}`; ctx!.fillStyle = color;
-      ctx!.fillText(value, sourceX * scaleX, sourceY * scaleY, sourceWidth * scaleX - 20); ctx!.restore();
+      ctx!.font = `800 ${fontSize}px ${FONT}`;
+      while (fontSize > 11 && ctx!.measureText(value).width > maxWidth) {
+        fontSize -= 1;
+        ctx!.font = `800 ${fontSize}px ${FONT}`;
+      }
+      ctx!.fillStyle = color;
+      ctx!.fillText(value, sourceX * scaleX, sourceY * scaleY);
+      ctx!.restore();
     };
-    const panel = (x: number, y: number, width: number, height: number, heading: string, value: string) => {
-      ctx!.save(); ctx!.fillStyle = '#070b10ed'; ctx!.strokeStyle = '#e6bd55'; ctx!.lineWidth = 2;
-      ctx!.beginPath(); ctx!.roundRect(x, y, width, height, 20); ctx!.fill(); ctx!.stroke(); ctx!.restore();
-      text(heading, x + width - 24, y + 18, width - 48, 26, '#f5d776', 1, 800);
-      text(value, x + width - 24, y + 62, width - 48, 28, '#f8f5eb', 3, 600);
+    // All coordinates are measured on the actual 941×1671 artwork. The labels
+    // and headings are part of that artwork and must remain visible.
+    const isRichArtwork = template === 'market_overview_rich';
+    const verticalOffset = isRichArtwork ? 20 : 0;
+    centered(payload.marketBoard.gold, isRichArtwork ? 168 : 143, 772 + verticalOffset, isRichArtwork ? 255 : 210, 26);
+    centered(payload.marketBoard.silver, isRichArtwork ? 472 : 450, 772 + verticalOffset, isRichArtwork ? 255 : 210, 26, '#d5e5f4');
+    centered(payload.marketBoard.coin, isRichArtwork ? 778 : 755, 772 + verticalOffset, isRichArtwork ? 255 : 210, 26);
+    // The artwork labels this field per gram. For melted gold the value shown
+    // here is per mesghal, so update just the printed unit label's own bounds.
+    ctx.save(); ctx.fillStyle = '#0a0a0a';
+    ctx.fillRect(98 * scaleX, 728 * scaleY, 184 * scaleX, (isRichArtwork ? 32 : 22) * scaleY);
+    ctx.restore();
+    centered('قیمت لحظه‌ای (تومان/مثقال)', 190, 739, 180, 12, '#f5f1e8');
+
+    // Replace only the icon wells in the three mini-stat rows; keep their
+    // printed labels intact and put the actual figures in the icon position.
+    const miniValue = (value: string, x: number, color: string) => {
+      if (!value) return;
+      ctx!.save();
+      ctx!.fillStyle = '#080b0e';
+      ctx!.fillRect((x - 39) * scaleX, (858 + verticalOffset) * scaleY, 78 * scaleX, 34 * scaleY);
+      ctx!.restore();
+      centered(value, x, 875 + verticalOffset, 78, 13, color);
     };
-    // Price fields are measured against the supplied 941×1671 blank artwork.
-    if (payload.marketBoard.gold !== '—') centered(payload.marketBoard.gold, 155, 770, 280, 34);
-    if (payload.marketBoard.silver !== '—') centered(payload.marketBoard.silver, 470, 770, 280, 34, '#d5e5f4');
-    if (payload.marketBoard.coin !== '—') centered(payload.marketBoard.coin, 785, 770, 280, 34);
-    if (payload.marketBoard.goldUnit === 'مثقال') {
-      ctx.fillStyle = '#080a0b';
-      ctx.fillRect(42 * scaleX, 727 * scaleY, 240 * scaleX, 24 * scaleY);
-      centered('قیمت لحظه‌ای (تومان/مثقال)', 162, 739, 238, 13, '#f5f1e8');
-    }
+    const board = payload.marketBoard;
+    [board.goldUsd, board.gold18k, board.goldMesghal].forEach((value, i) => miniValue(value, [79, 180, 270][i]!, '#f1d274'));
+    [board.silverUsd, board.silverPurity, board.silverWeight].forEach((value, i) => miniValue(value, [382, 478, 570][i]!, '#d5e5f4'));
+    [board.coinIntrinsic, board.coinBubble, board.quarterBubble].forEach((value, i) => miniValue(value, [869, 775, 680][i]!, '#f1d274'));
+
+    // The source has no half-coin quote, so use the available full-coin bubble
+    // in the center cell and label it accurately without covering neighboring text.
+    ctx.save(); ctx.fillStyle = '#080b0e';
+    ctx.fillRect(729 * scaleX, (820 + verticalOffset) * scaleY, 90 * scaleX, 30 * scaleY);
+    ctx.restore();
+    centered('حباب سکه', 774, 836 + verticalOffset, 88, 11, '#f4f1e9');
+
+    const drawTrend = (values: number[], x: number, y: number, width: number, height: number, color: string) => {
+      const points = values.filter(value => Number.isFinite(value) && value > 0);
+      if (points.length < 2) return;
+      const low = Math.min(...points); const high = Math.max(...points); const span = high - low || high * 0.001 || 1;
+      ctx!.save(); ctx!.strokeStyle = color; ctx!.lineWidth = 2.5; ctx!.lineJoin = 'round'; ctx!.lineCap = 'round';
+      ctx!.beginPath();
+      points.forEach((value, index) => {
+        const px = (x + (index / (points.length - 1)) * width) * scaleX;
+        const py = (y + height - ((value - low) / span) * height) * scaleY;
+        if (index === 0) ctx!.moveTo(px, py); else ctx!.lineTo(px, py);
+      });
+      ctx!.stroke(); ctx!.restore();
+    };
+    drawTrend(board.charts.gold, 43, 1001 + verticalOffset, 242, 70, '#f3c957');
+    drawTrend(board.charts.silver, 349, 1001 + verticalOffset, 242, 70, '#b5d4ee');
+    drawTrend(board.charts.coin, 653, 1001 + verticalOffset, 242, 70, '#f3c957');
     // Replace the sample date and QR with the live, public report date and its public URL.
-    ctx.fillStyle = '#070b10'; ctx.beginPath(); ctx.roundRect(34 * scaleX, 270 * scaleY, 225 * scaleX, 42 * scaleY, 12); ctx.fill();
-    if (payload.marketBoard.observedDate) centered(payload.marketBoard.observedDate, 145, 288, 210, 20, '#f7f3e9');
+    ctx.fillStyle = '#070b10'; ctx.fillRect(52 * scaleX, 280 * scaleY, 166 * scaleX, 30 * scaleY);
+    centered(payload.marketBoard.observedDate || 'زمان ثبت نشده', 135, 295, 162, 16, '#f7f3e9');
     ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.roundRect(776 * scaleX, 33 * scaleY, 126 * scaleX, 126 * scaleY, 12); ctx.fill();
     const qr = await QRCode.toDataURL(payload.url, { errorCorrectionLevel: 'M', margin: 1, width: 160, color: { dark: '#101010', light: '#ffffff' } });
     ctx.drawImage(await loadImage(qr), 782 * scaleX, 39 * scaleY, 114 * scaleX, 114 * scaleY);
-    panel(34 * scaleX, 930 * scaleY, 872 * scaleX, 154 * scaleY, 'نکات مهم', payload.marketBoard.notes);
-    panel(34 * scaleX, 1115 * scaleY, 872 * scaleX, 205 * scaleY, 'جمع‌بندی', payload.marketBoard.summary);
     const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png'));
     if (!blob) throw new Error('png_encode_failed');
     return blob;

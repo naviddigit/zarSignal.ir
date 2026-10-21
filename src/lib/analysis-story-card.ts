@@ -1,8 +1,10 @@
 /** Public-only story card payload — never includes private narrative, user, or request params. */
 
 import type { AccessLevel } from '@/lib/capabilities';
+import { coinSpecs, coinValuation } from '@/lib/coin-calculator';
 import type { MarketViewReport } from '@/lib/market-view-report';
-import { formatFaPercent, formatTehranStamp, selectReportMetrics } from '@/lib/market-view-report';
+import { formatFaMoney, formatFaPercent, formatTehranStamp, selectReportMetrics } from '@/lib/market-view-report';
+import type { Snapshot, Symbol } from '@/lib/market';
 import { publicAnalysisPath } from '@/lib/analysis-share';
 
 export const STORY_WIDTH = 1080;
@@ -33,8 +35,18 @@ export type StoryPublicPayload = {
   marketBoard: {
     gold: string;
     goldUnit: 'گرم' | 'مثقال';
+    goldUsd: string;
+    gold18k: string;
+    goldMesghal: string;
     silver: string;
+    silverUsd: string;
+    silverPurity: string;
+    silverWeight: string;
     coin: string;
+    coinIntrinsic: string;
+    coinBubble: string;
+    quarterBubble: string;
+    charts: { gold: number[]; silver: number[]; coin: number[] };
     notes: string;
     summary: string;
     observedDate: string;
@@ -43,6 +55,18 @@ export type StoryPublicPayload = {
 
 function valueOnly(label: string | null | undefined) {
   return label?.trim().split(/\s+/)[0] || '—';
+}
+
+function quoteValue(snapshot: Snapshot | null | undefined, symbol: Symbol) {
+  if (!snapshot || snapshot.mode !== 'live') return null;
+  const quote = snapshot.quotes.find(item => item.symbol === symbol);
+  const value = Number(quote?.sell);
+  return Number.isFinite(value) && value > 0 ? value : null;
+}
+
+function quoteLabel(snapshot: Snapshot | null | undefined, symbol: Symbol) {
+  const value = quoteValue(snapshot, symbol);
+  return value == null ? '—' : formatFaMoney(value);
 }
 
 function toneFor(diff: number | null): StoryMetricTone {
@@ -68,6 +92,9 @@ export function buildStoryPublicPayload(
     planStatus?: 'فعال' | 'آزمایشی' | 'رایگان' | 'در انتظار پرداخت' | 'تعلیق‌شده' | null;
     showPlanBadge?: boolean;
     testDataLabel?: string | null;
+    snapshot?: Snapshot | null;
+    silverReport?: MarketViewReport | null;
+    charts?: Partial<Record<'gold' | 'silver' | 'coin', number[]>>;
   },
 ): StoryPublicPayload {
   const origin = new URL(siteOrigin).origin;
@@ -106,8 +133,16 @@ export function buildStoryPublicPayload(
     ? options.planLabel!.trim()
     : null;
   const evidence = (id: string) => report.evidence.find(row => row.id === id);
+  const silverEvidence = options?.silverReport?.evidence.find(row => row.id === 'silver') ?? evidence('silver');
   const gold = report.symbol === 'GOLD_MELTED' ? evidence('gold') : evidence('gold_direct') ?? evidence('gold');
+  const meltedEvidence = report.symbol === 'GOLD_MELTED' ? evidence('gold') : undefined;
   const observedDate = report.dataObservedAtIso ? formatTehranStamp(report.dataObservedAtIso).split('،')[0] : '';
+  const melted = quoteValue(options?.snapshot, 'GOLD_MELTED');
+  const gold18k = quoteValue(options?.snapshot, 'GOLD_18K');
+  const fullCoin = quoteValue(options?.snapshot, 'SEKE_CASH');
+  const quarterCoin = quoteValue(options?.snapshot, 'ROB_SEKE');
+  const coinValue = gold18k && fullCoin ? coinValuation(coinSpecs.emami.weight, coinSpecs.emami.purity, gold18k, fullCoin) : null;
+  const quarterValue = gold18k && quarterCoin ? coinValuation(coinSpecs.quarter.weight, coinSpecs.quarter.purity, gold18k, quarterCoin) : null;
 
   return {
     brand: 'زرسیگنال',
@@ -121,10 +156,20 @@ export function buildStoryPublicPayload(
     planBadge,
     testDataLabel: options?.testDataLabel ?? null,
     marketBoard: {
-      gold: valueOnly(gold?.marketPriceLabel),
-      goldUnit: report.symbol === 'GOLD_MELTED' ? 'مثقال' : 'گرم',
-      silver: valueOnly(evidence('silver')?.marketPriceLabel),
-      coin: valueOnly(evidence('coin')?.marketPriceLabel),
+      gold: melted == null ? valueOnly(meltedEvidence?.marketPriceLabel) : formatFaMoney(melted),
+      goldUnit: 'مثقال',
+      goldUsd: valueOnly(gold?.impliedUsdLabel),
+      gold18k: quoteLabel(options?.snapshot, 'GOLD_18K') === '—' ? valueOnly(evidence('gold_direct')?.marketPriceLabel) : quoteLabel(options?.snapshot, 'GOLD_18K'),
+      goldMesghal: melted == null ? valueOnly(meltedEvidence?.marketPriceLabel) : formatFaMoney(melted),
+      silver: quoteLabel(options?.snapshot, 'SILVER_999') === '—' ? valueOnly(silverEvidence?.marketPriceLabel) : quoteLabel(options?.snapshot, 'SILVER_999'),
+      silverUsd: valueOnly(silverEvidence?.impliedUsdLabel),
+      silverPurity: '۹۹۹',
+      silverWeight: '۱',
+      coin: quoteLabel(options?.snapshot, 'SEKE_CASH') === '—' ? valueOnly(evidence('coin')?.marketPriceLabel) : quoteLabel(options?.snapshot, 'SEKE_CASH'),
+      coinIntrinsic: coinValue ? formatFaMoney(coinValue.intrinsic) : '—',
+      coinBubble: coinValue ? `${formatFaPercent(coinValue.percent)}٪` : '—',
+      quarterBubble: quarterValue ? `${formatFaPercent(quarterValue.percent)}٪` : '—',
+      charts: { gold: options?.charts?.gold ?? [], silver: options?.charts?.silver ?? [], coin: options?.charts?.coin ?? [] },
       notes: report.marketSays,
       summary: report.summaryLines[0],
       observedDate,

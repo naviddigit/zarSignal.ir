@@ -105,6 +105,20 @@ test('history and feedback open only on request and saved feedback survives reop
   await expect(alertDialog.getByRole('status')).toContainText('هشدار شما ثبت شد');
   expect(alert).toMatchObject({ conditionType: 'GAP_PCT_CROSS', threshold: 1, channel: 'IN_APP' });
   await page.keyboard.press('Escape'); await expect(page.getByRole('dialog')).toHaveCount(0);
+  const observedAt = '2026-10-21T10:00:00.000Z';
+  const storyPrices: Record<string, string> = {
+    GOLD_MELTED: '115770000', GOLD_18K: '26750000', SILVER_999: '480000',
+    SEKE_CASH: '720000000', ROB_SEKE: '90000000',
+  };
+  await page.route('**/api/public/markets', route => route.fulfill({ json: {
+    mode: 'live', status: 'ok', quotes: Object.entries(storyPrices).map(([symbol, sell]) => ({
+      symbol, buy: sell, sell, currency: 'TMN', unit: 'تومان', source: 'test', sourceUrl: null,
+      observedAt, fetchedAt: observedAt,
+    })),
+  } }));
+  await page.route('**/api/public/markets/*/history?*', route => route.fulfill({ json: {
+    bars: [1, 2, 3, 4, 5, 6, 7].map((_, index) => ({ c: 100 + index * 3 })),
+  } }));
   await page.getByRole('button', { name: 'ساخت استوری', exact: true }).click();
   const studio = page.getByRole('dialog', { name: 'استودیوی استوری' });
   const cleanTemplate = studio.getByRole('button', { name: 'نمای کلی بازار', exact: true });

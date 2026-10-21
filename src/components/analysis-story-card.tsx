@@ -16,6 +16,7 @@ import {
   type StoryTemplateId,
 } from '@/lib/analysis-story-templates';
 import type { AccessLevel } from '@/lib/capabilities';
+import type { Snapshot } from '@/lib/market';
 import { parseStoryBackgrounds, type StoryBackground } from '@/lib/story-backgrounds';
 
 export function AnalysisStoryCardButton({
@@ -61,12 +62,34 @@ export function AnalysisStoryCardButton({
     setStatus('building');
     setError(null);
     try {
+      const readJson = async <T,>(url: string): Promise<T | null> => {
+        try {
+          const response = await fetch(url, { cache: 'no-store' });
+          return response.ok ? await response.json() as T : null;
+        } catch { return null; }
+      };
+      const [snapshot, silverReport, goldHistory, silverHistory, coinHistory] = nextTemplate.startsWith('market_overview')
+        ? await Promise.all([
+          readJson<Snapshot>('/api/public/markets'),
+          readJson<MarketViewReport>('/api/public/market-view?symbol=SILVER_999'),
+          readJson<{ bars?: { c: number }[] }>('/api/public/markets/gold_melted/history?days=7&resolution=1D'),
+          readJson<{ bars?: { c: number }[] }>('/api/public/markets/silver_999/history?days=7&resolution=1D'),
+          readJson<{ bars?: { c: number }[] }>('/api/public/markets/seke_cash/history?days=7&resolution=1D'),
+        ])
+        : [null, null, null, null, null] as const;
       const payload = buildStoryPublicPayload(report, 'https://www.zarsignal.ir', {
         planLevel,
         planLabel,
         planStatus,
         showPlanBadge,
         testDataLabel,
+        snapshot,
+        silverReport,
+        charts: {
+          gold: goldHistory?.bars?.map(bar => Number(bar.c)).filter(Number.isFinite) ?? [],
+          silver: silverHistory?.bars?.map(bar => Number(bar.c)).filter(Number.isFinite) ?? [],
+          coin: coinHistory?.bars?.map(bar => Number(bar.c)).filter(Number.isFinite) ?? [],
+        },
       });
       assertStoryPayloadPublic(payload);
       if (nextTemplate === 'studio_light' && payload.metrics[focus]) {
