@@ -1,10 +1,10 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { ArrowUpLeft, Calculator, Bell, ChartNoAxesCombined, BookOpen } from 'lucide-react';
+import { Calculator, Bell, ChartNoAxesCombined, BookOpen } from 'lucide-react';
 import { auth } from '@/auth';
 import { instruments } from '@/lib/market';
 import { hasCapability } from '@/lib/capabilities';
-import { getWarningPolicy, analysisUserId, acknowledgedRequest } from '@/server/time-reliability';
+import { getWarningPolicy, acknowledgedRequest } from '@/server/time-reliability';
 import { timeReliability } from '@/lib/time-reliability';
 import { AnalysisReliabilityWarning } from '@/components/analysis-reliability-warning';
 import { analysisTrial } from '@/server/analysis-trial';
@@ -17,6 +17,7 @@ import { ChartWorkspace } from '@/components/chart-workspace';
 import { LastVisitChanges } from '@/components/last-visit-changes';
 import { getAnalysisReadingSettings } from '@/server/analysis-reading-settings';
 import { resolveLastVisitChanges } from '@/server/last-visit';
+import { AnalysisRegistrationGate } from '@/components/analysis-registration-gate';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,16 +28,17 @@ export default async function AnalysisPage({ params, searchParams }: {
   const { symbol } = await params;
   const asset = instruments.find(item => item.symbol.toLowerCase() === symbol);
   if (!asset) notFound();
+  const session = await auth().catch(() => null);
+  if (!session?.user?.id) return <AnalysisRegistrationGate returnTo={`/analysis/${symbol}`} />;
   const query = await searchParams;
   const policy = await getWarningPolicy();
   const reliability = timeReliability(policy);
   if (reliability === 'WARNING') {
-    const userId = await analysisUserId();
+    const userId = session.user.id;
     if (!await acknowledgedRequest(userId, query.request, symbol, policy.version)) {
-      return <AnalysisReliabilityWarning policy={policy} symbol={symbol} loggedIn={Boolean(userId)} error={query.warning} />;
+      return <AnalysisReliabilityWarning policy={policy} symbol={symbol} loggedIn error={query.warning} />;
     }
   }
-  const session = await auth().catch(() => null);
   const entitlement = session?.user?.id ? await resolveAccountEntitlement(session.user.id) : null;
   const fullAccess = entitlement ? hasCapability(entitlement.level, 'ANALYSIS_BASIC') : false;
   const [report, trial, readingSettings] = await Promise.all([
@@ -64,16 +66,12 @@ export default async function AnalysisPage({ params, searchParams }: {
       <MarketViewReportView
         initial={report}
         canRefresh
-        signedIn={Boolean(session?.user?.id)}
+        signedIn
         planLevel={entitlement?.level ?? null}
         planLabel={entitlement?.planLabel ?? null}
         planStatus={entitlement?.statusLabel ?? null}
         readingSettings={readingSettings}
-        trialCta={!fullAccess ? (
-          <Link className="button" href={`/login?next=${encodeURIComponent(path)}`}>
-            ورود / شروع آزمایش <ArrowUpLeft size={15} />
-          </Link>
-        ) : null}
+        trialCta={null}
         pageExtras={(
           (!fullAccess || entitlement?.statusLabel === 'آزمایشی') ? (
             <AnalysisTrialAccess trial={trial} symbol={symbol} error={query.trial} compact />

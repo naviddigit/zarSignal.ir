@@ -3,19 +3,14 @@ import { build } from 'esbuild';
 import { readFile, writeFile } from 'node:fs/promises';
 test.setTimeout(90000);
 
-test('analysis summary and story trigger stay compact on the real page', async ({ page }) => {
+test('advanced analysis requires registration for guests and preserves the requested destination', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto('/analysis');
-  const quick = page.getByRole('region', { name: 'نگاه سریع به بازار' });
-  await expect(quick).toBeVisible();
-  expect((await quick.boundingBox())!.height).toBeLessThan(170);
-  const toolbar = page.getByRole('group', { name: 'ابزارهای تحلیل' });
-  await expect(toolbar).toBeVisible();
-  expect((await toolbar.boundingBox())!.height).toBeLessThan(120);
-  await toolbar.getByRole('button', { name: 'ساخت استوری', exact: true }).click();
-  await expect(page.getByRole('dialog', { name: 'استودیوی استوری' })).toBeVisible();
-  await page.keyboard.press('Escape');
-  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: 'برای مشاهدهٔ تحلیل، وارد حساب شوید' })).toBeVisible();
+  const register = page.getByRole('link', { name: 'ثبت‌نام و مشاهدهٔ تحلیل' });
+  await expect(register).toHaveAttribute('href', /\/login\?mode=register&next=%2Fanalysis/);
+  const login = page.getByRole('link', { name: 'قبلاً حساب دارید؟ ورود' });
+  await expect(login).toHaveAttribute('href', /\/login\?next=%2Fanalysis/);
   expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
 });
 
@@ -23,7 +18,19 @@ test('history and feedback open only on request and saved feedback survives reop
   const errors: string[] = [];
   page.on('pageerror', error => errors.push(error.message));
   // Bundle the real components with a signed-in UI fixture; no account or database writes.
-  const report = await (await request.get('/api/public/market-view')).json();
+  const reportResponse = await request.get('/api/public/market-view');
+  expect(reportResponse.status()).toBe(401);
+  // Use a deterministic minimal report fixture; the public API now correctly requires a session.
+  const report = {
+    schemaVersion: '1.0', reportId: 'e2e-report', generatedAtIso: new Date().toISOString(),
+    dataObservedAtIso: new Date().toISOString(), dataFreshness: 'ok', snapshotFingerprint: 'e2e-fingerprint',
+    symbol: null, title: 'دید بازار', access: 'full', summaryLines: ['شرایط بازار متعادل است.', ''], marketSays: '',
+    evidence: [], reading: '', unconfirmed: [], conclusion: 'شرایط بازار متعادل است.',
+    decision: { kind: 'analysis_inactive', tradeAction: null, title: 'متعادل', reason: 'شرایط بازار متعادل است.', changeConditions: '', valuation: null },
+    valuationMarks: [], trend: { status: 'not_computed', label: 'روند محاسبه نشده', detail: null }, changeFromPrior: null,
+    details: { formulaNotes: [], disclaimer: 'این گزارش توصیهٔ خرید و فروش نیست.' },
+  };
+  await page.route('**/api/public/market-view', route => route.fulfill({ status: 401, json: { error: 'ثبت‌نام لازم است' } }));
   const bundle = await build({
     stdin: { contents: `import { createRoot } from 'react-dom/client';
       import { MarketViewReportView } from './src/components/market-view-report';

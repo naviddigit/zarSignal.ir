@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { ArrowUpLeft, Calculator, Bell, ChartNoAxesCombined, Crown } from 'lucide-react';
+import { Calculator, Bell, ChartNoAxesCombined, Crown } from 'lucide-react';
 import { auth } from '@/auth';
 import { hasCapability } from '@/lib/capabilities';
 import { resolveAccountEntitlement } from '@/server/account-entitlement';
@@ -14,6 +14,7 @@ import { getWarningPolicy } from '@/server/time-reliability';
 import { timeReliability } from '@/lib/time-reliability';
 import { getAnalysisReadingSettings } from '@/server/analysis-reading-settings';
 import { resolveLastVisitChanges } from '@/server/last-visit';
+import { AnalysisRegistrationGate } from '@/components/analysis-registration-gate';
 
 export const metadata: Metadata = {
   title: 'دید زرسیگنال به بازار',
@@ -26,9 +27,8 @@ export default async function MarketAnalysisPage({ searchParams }: { searchParam
   const query = await searchParams;
   const session = await auth().catch(() => null);
   const userId = session?.user?.id;
-  const entitlement = userId
-    ? await resolveAccountEntitlement(userId)
-    : null;
+  if (!userId) return <AnalysisRegistrationGate returnTo="/analysis" />;
+  const entitlement = await resolveAccountEntitlement(userId);
   const fullAccess = entitlement ? hasCapability(entitlement.level, 'ANALYSIS_BASIC') : false;
   const report = await buildMarketViewReport(fullAccess ? 'full' : 'preview');
   const trial = await analysisTrial();
@@ -58,16 +58,12 @@ export default async function MarketAnalysisPage({ searchParams }: { searchParam
       <MarketViewReportView
         initial={report}
         canRefresh
-        signedIn={Boolean(userId)}
+        signedIn
         planLevel={entitlement?.level ?? null}
         planLabel={entitlement?.planLabel ?? null}
         planStatus={entitlement?.statusLabel ?? null}
         readingSettings={readingSettings}
-        trialCta={!fullAccess ? (
-          <Link className="button" href={`/login?next=${encodeURIComponent('/analysis')}`}>
-            ورود / شروع آزمایش <ArrowUpLeft size={15} />
-          </Link>
-        ) : null}
+        trialCta={null}
         pageExtras={(
           (!fullAccess || entitlement?.statusLabel === 'آزمایشی') ? (
             <AnalysisTrialAccess trial={trial} error={query.trial} compact />

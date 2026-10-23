@@ -17,7 +17,7 @@ function clientKey(request: Request, userId?: string | null) {
   return `market-view-refresh:ip:${createHash('sha256').update(ip).digest('hex').slice(0, 24)}`;
 }
 
-/** Public market-view JSON — full narrative only when ANALYSIS_BASIC is entitled. */
+/** Market-view JSON — only authenticated sessions may fetch analysis reports. */
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const symbolParam = url.searchParams.get('symbol');
@@ -28,11 +28,15 @@ export async function GET(request: Request) {
 
   const session = await auth().catch(() => null);
   const userId = session?.user?.id;
-  let full = false;
-  if (userId) {
-    const entitlement = await resolveAccountEntitlement(userId).catch(() => null);
-    full = entitlement ? hasCapability(entitlement.level, 'ANALYSIS_BASIC') : false;
+  if (!userId) {
+    return NextResponse.json(
+      { error: 'برای مشاهدهٔ تحلیل پیشرفته ابتدا ثبت‌نام یا وارد حساب خود شوید.' },
+      { status: 401, headers: { 'Cache-Control': 'private, no-store', Vary: 'Cookie' } },
+    );
   }
+  let full = false;
+  const entitlement = await resolveAccountEntitlement(userId).catch(() => null);
+  full = entitlement ? hasCapability(entitlement.level, 'ANALYSIS_BASIC') : false;
 
   if (manualRefresh) {
     const gate = await consumeRateLimit(clientKey(request, userId), MANUAL_REFRESH_COOLDOWN_MS).catch(() => null);
