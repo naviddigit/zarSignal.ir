@@ -1,8 +1,21 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { getAuthCapabilities } from '@/auth';
 
 /** Public deploy identity + minimal auth schema health (no secrets/PII). */
 export const dynamic = 'force-dynamic';
+
+function authPublicHost() {
+  for (const raw of [process.env.AUTH_URL, process.env.NEXTAUTH_URL, process.env.NEXT_PUBLIC_SITE_URL]) {
+    if (!raw) continue;
+    try {
+      return new URL(raw).host;
+    } catch {
+      return 'invalid';
+    }
+  }
+  return null;
+}
 
 export async function GET() {
   let passwordHashColumn = false;
@@ -26,11 +39,27 @@ export async function GET() {
     dbOk = false;
   }
 
+  const authHost = authPublicHost();
+  const authCapabilities = await getAuthCapabilities().catch(() => ({ google: false, email: false, phone: false }));
+
   return NextResponse.json({
     ok: true,
     commit: process.env.VERCEL_GIT_COMMIT_SHA || process.env.CF_PAGES_COMMIT_SHA || process.env.COMMIT_SHA || null,
     env: process.env.VERCEL_ENV ?? process.env.NODE_ENV ?? null,
     authEmailConfigured: Boolean(process.env.AUTH_SECRET),
+    authGoogleConfigured: authCapabilities.google,
+    authPublicHost: authHost,
+    authHostLooksLocal: Boolean(authHost && /^(localhost|127\.0\.0\.1)(:\d+)?$/i.test(authHost)),
+    adminBootstrapConfigured: Boolean(
+      process.env.ADMIN_BOOTSTRAP_TOKEN
+      && process.env.ADMIN_SESSION_SECRET
+      && process.env.ADMIN_BOOTSTRAP_TOKEN.length >= 24
+      && process.env.ADMIN_SESSION_SECRET.length >= 32
+      && !(process.env.NODE_ENV === 'production' && (
+        process.env.ADMIN_BOOTSTRAP_TOKEN.startsWith('local-only-')
+        || process.env.ADMIN_SESSION_SECRET.startsWith('local-only-')
+      )),
+    ),
     dbOk,
     passwordHashColumn,
     customerTypeColumn,

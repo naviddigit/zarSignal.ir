@@ -23,9 +23,28 @@ function destroy(request: Request) {
   return response;
 }
 
+function publicOrigin(request: Request) {
+  // Prefer browser-facing host. Behind nginx → localhost:3000, request.url is wrong for cookies.
+  const originHeader = request.headers.get('origin');
+  if (originHeader) {
+    try { return new URL(originHeader).origin; } catch { /* fall through */ }
+  }
+  const referer = request.headers.get('referer');
+  if (referer) {
+    try { return new URL(referer).origin; } catch { /* fall through */ }
+  }
+  const host = request.headers.get('x-forwarded-host') ?? request.headers.get('host');
+  const proto = request.headers.get('x-forwarded-proto') ?? 'https';
+  if (host && !/^localhost(?::\d+)?$/i.test(host) && !/^127\.0\.0\.1(?::\d+)?$/i.test(host)) {
+    return `${proto.split(',')[0].trim()}://${host.split(',')[0].trim()}`;
+  }
+  const configured = process.env.AUTH_URL ?? process.env.NEXT_PUBLIC_SITE_URL;
+  if (configured) {
+    try { return new URL(configured).origin; } catch { /* fall through */ }
+  }
+  return new URL(request.url).origin;
+}
+
 function redirectTo(path: string, request: Request) {
-  // In local development Next may normalize request.url to localhost. Keep the
-  // browser's original host so the just-set host-only cookie follows the redirect.
-  const origin = request.headers.get('origin') ?? request.headers.get('referer') ?? request.url;
-  return NextResponse.redirect(new URL(path, origin), 303);
+  return NextResponse.redirect(new URL(path, publicOrigin(request)), 303);
 }
